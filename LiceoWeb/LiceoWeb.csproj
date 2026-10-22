@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-LiceoWeb-b595ee35-e575-40de-8920-386db1bedd05</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="test\procedures\**" />
+    <Content Remove="test\procedures\**" />
+    <EmbeddedResource Remove="test\procedures\**" />
+    <None Remove="test\procedures\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.32" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.32" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.32" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.32" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="database\seeds\" />
+    <Folder Include="database\procedures\" />
+    <Folder Include="database\migrations\" />
+    <Folder Include="Repositories\" />
+    <Folder Include="Models\" />
+    <Folder Include="docs\" />
+    <Folder Include="test\" />
+    <Folder Include="ViewModels\" />
+    <Folder Include="Services\" />
+    <Folder Include="Pages\Arreglos\" />
+    <Folder Include="Pages\Reportes\" />
+    <Folder Include="Pages\Recibos\" />
+    <Folder Include="Pages\Precios\" />
+    <Folder Include="Pages\Cobros\" />
+    <Folder Include="Pages\Mensualidades\" />
+    <Folder Include="Pages\Matriculas\" />
+    <Folder Include="Pages\Estudiantes\" />
+  </ItemGroup>
+
+</Project>
