@@ -39,7 +39,7 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
-// Rutas utilizadas por la cookie de autenticación.
+// Rutas utilizadas por la cookie de autenticaciï¿½n.
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Identity/Account/Login";
@@ -68,13 +68,35 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage(
         "/Estudiantes/DarBaja", "SoloAdministrador");
 
-    // Permite mostrar errores aunque no haya una sesión.
+    // Permite mostrar errores aunque no haya una sesiï¿½n.
     options.Conventions.AllowAnonymousToPage("/Error");
 });
 
 //builder.Services.AddRazorPages();
 
 var app = builder.Build();
+
+// Creaciï¿½n manual de cuentas para desarrollo.
+if (args.Contains("--crear-cuentas"))
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            "Este comando solo estï¿½ habilitado en Development.");
+    }
+
+    await using var scope =
+        app.Services.CreateAsyncScope();
+
+    await IdentitySeeder.CrearCuentasAsync(
+        scope.ServiceProvider,
+        app.Configuration);
+
+    Console.WriteLine(
+        "Roles y cuentas iniciales verificados correctamente.");
+
+    return;
+}
 
 //Procesamiento de solicitudes
 // Configure the HTTP request  pipeline.

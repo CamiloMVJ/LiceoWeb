@@ -20,6 +20,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.32" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.32" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,7 +30,6 @@
     <Folder Include="ViewModels\" />
     <Folder Include="Services\" />
     <Folder Include="Pages\Arreglos\" />
-    <Folder Include="Pages\Reportes\" />
     <Folder Include="Pages\Recibos\" />
     <Folder Include="Pages\Precios\" />
     <Folder Include="Pages\Cobros\" />
