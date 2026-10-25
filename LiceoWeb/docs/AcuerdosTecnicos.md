@@ -181,3 +181,17 @@ La clase representa el resultado; no realiza ni valida el cobro.
 - Oskar: estudiantes, matrícula y precio de matrícula.
 - Pao: mensualidades, vencimientos, saldos y arreglos.
 - Har: mantenimiento, EvBoTa, promoción, recibos e historial de pagos.
+
+## Conexiones de los repositorios
+
+- Los repositorios reciben SqlConnectionFactory por el constructor.
+- Cada operación obtiene una conexión mediante Create().
+- El repositorio abre la conexión con OpenAsync().
+- La conexión se libera mediante await using.
+- No se conserva una SqlConnection abierta como campo del repositorio.
+- Los comandos utilizan parámetros SQL con tipos y tamaños definidos.
+- Los errores no se convierten silenciosamente en cero o listas vacías.
+- Los pasos de una misma transacción utilizan la misma conexión.
+- No se crea una conexión diferente para cada instrucción de una transacción.
+- No se comparten transacciones con ApplicationDbContext automáticamente:
+  cualquier operación que combine ambos accesos requiere coordinación explícita.

@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.AddScoped<SqlConnectionFactory>();
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 //Identity y Roles
@@ -98,6 +99,36 @@ if (args.Contains("--crear-cuentas"))
     return;
 }
 
+// Comprobación manual de conexión para desarrollo.
+if (args.Contains("--probar-conexion"))
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            "Este comando solo está habilitado en Development.");
+    }
+
+    await using var scope =
+        app.Services.CreateAsyncScope();
+
+    var factory = scope.ServiceProvider
+        .GetRequiredService<SqlConnectionFactory>();
+
+    await using var connection = factory.Create();
+
+    await connection.OpenAsync();
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = "SELECT DB_NAME();";
+
+    var baseActual = await command.ExecuteScalarAsync();
+
+    Console.WriteLine(
+        $"Conexión correcta. Base de datos: {baseActual}");
+
+    return;
+}
 //Procesamiento de solicitudes
 // Configure the HTTP request  pipeline.
 if (app.Environment.IsDevelopment())
