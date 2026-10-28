@@ -18,21 +18,19 @@
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.32" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.32" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.32" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.32" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="database\seeds\" />
-    <Folder Include="database\migrations\" />
+    <Folder Include="database\procedures\" />
     <Folder Include="Repositories\" />
-    <Folder Include="Models\" />
-    <Folder Include="docs\" />
     <Folder Include="test\" />
     <Folder Include="ViewModels\" />
     <Folder Include="Services\" />
     <Folder Include="Pages\Arreglos\" />
-    <Folder Include="Pages\Reportes\" />
     <Folder Include="Pages\Recibos\" />
     <Folder Include="Pages\Precios\" />
     <Folder Include="Pages\Cobros\" />
