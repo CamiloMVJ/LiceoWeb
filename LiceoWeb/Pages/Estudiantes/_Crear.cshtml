@@ -1,0 +1,150 @@
+﻿<div class="modal fade"
+     id="modalCrearEstudiante"
+     tabindex="-1"
+     aria-labelledby="tituloCrearEstudiante"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content liceo-modal">
+
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5"
+                        id="tituloCrearEstudiante">
+                        Registrar estudiante
+                    </h2>
+
+                    <p class="small text-muted mb-0 mt-1">
+                        Completa la información del estudiante y su tutor.
+                    </p>
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Cerrar">
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form id="formCrearEstudiante"
+                      asp-page="/Estudiantes/Index"
+                      asp-page-handler="Crear"
+                      method="post">
+
+                    <fieldset class="mb-4">
+                        <legend class="h6 mb-3">
+                            Información personal
+                        </legend>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="crearNombre" class="form-label">
+                                    Nombre completo
+                                </label>
+
+                                <input id="crearNombre"
+                                       name="NuevoEstudiante.NombreEstudiante"
+                                       class="form-control"
+                                       maxlength="100"
+                                       autocomplete="off"
+                                       required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="crearNacimiento" class="form-label">
+                                    Fecha de nacimiento
+                                </label>
+
+                                <input id="crearNacimiento"
+                                       name="NuevoEstudiante.FechaNacimiento"
+                                       type="date"
+                                       class="form-control"
+                                       required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="crearSexo" class="form-label">
+                                    Sexo
+                                </label>
+
+                                <select id="crearSexo"
+                                        name="NuevoEstudiante.Sexo"
+                                        class="form-select"
+                                        required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="F">Femenino</option>
+                                    <option value="M">Masculino</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend class="h6 mb-3">
+                            Información de contacto
+                        </legend>
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="crearTutor" class="form-label">
+                                    Nombre del tutor
+                                </label>
+
+                                <input id="crearTutor"
+                                       name="NuevoEstudiante.NombreTutor"
+                                       class="form-control"
+                                       required />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="crearTelefono" class="form-label">
+                                    Teléfono
+                                </label>
+
+                                <input id="crearTelefono"
+                                       name="NuevoEstudiante.Telefono"
+                                       type="tel"
+                                       class="form-control"
+                                       required />
+                            </div>
+
+                            <div class="col-12">
+                                <label for="crearDireccion" class="form-label">
+                                    Dirección
+                                </label>
+
+                                <textarea id="crearDireccion"
+                                          name="NuevoEstudiante.Direccion"
+                                          class="form-control"
+                                          rows="3"
+                                          required></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="estudiantes-aviso mt-4">
+                        Este formulario registra el expediente.
+                        La matrícula y su cobro se realizan después.
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-liceo-secondary"
+                        data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+
+                <button type="submit"
+                        form="formCrearEstudiante"
+                        class="btn btn-liceo-primary"
+                        disabled>
+                    Registrar estudiante
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>

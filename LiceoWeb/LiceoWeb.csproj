@@ -20,19 +20,18 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.32" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.32" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.14">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Repositories\" />
     <Folder Include="test\" />
-    <Folder Include="ViewModels\" />
     <Folder Include="Pages\Arreglos\" />
-    <Folder Include="Pages\Recibos\" />
-    <Folder Include="Pages\Precios\" />
-    <Folder Include="Pages\Cobros\" />
-    <Folder Include="Pages\Mensualidades\" />
+
     <Folder Include="Pages\Matriculas\" />
   </ItemGroup>
 

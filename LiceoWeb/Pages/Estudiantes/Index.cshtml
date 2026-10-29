@@ -1,0 +1,204 @@
+﻿@page
+@model LiceoWeb.Pages.Estudiantes.IndexModel
+
+@{
+    ViewData["Title"] = "Estudiantes y matrícula";
+    var esAdministrador = User.IsInRole("Administrador");
+}
+
+<div class="estudiantes-modulo">
+
+    <div class="liceo-page-heading estudiantes-encabezado">
+        <div>
+            <h1>Estudiantes y matrícula</h1>
+            <p>
+                Consulta estudiantes y administra sus matrículas.
+            </p>
+        </div>
+
+        <button type="button"
+                class="btn btn-liceo-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#modalCrearEstudiante">
+            Registrar estudiante
+        </button>
+    </div>
+
+    <section class="liceo-card mb-4"
+             aria-labelledby="buscarTitulo">
+
+        <h2 id="buscarTitulo" class="h5 mb-3">
+            Buscar estudiantes
+        </h2>
+
+        <form method="get">
+            <div class="row g-3">
+
+                <div class="col-lg-6">
+                    <label asp-for="Busqueda" class="form-label">
+                        Nombre o código
+                    </label>
+
+                    <input asp-for="Busqueda"
+                           type="search"
+                           class="form-control"
+                           placeholder="Nombre o código del estudiante" />
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                    <label asp-for="Modalidad" class="form-label">
+                        Modalidad
+                    </label>
+
+                    <select asp-for="Modalidad" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="Preescolar">Preescolar</option>
+                        <option value="Primaria">Primaria</option>
+                        <option value="Secundaria">Secundaria</option>
+                    </select>
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                    <label asp-for="Estado" class="form-label">
+                        Estado del estudiante
+                    </label>
+
+                    <select asp-for="Estado" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="Activo">Activo</option>
+                        <option value="Inactivo">Inactivo</option>
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex gap-2 flex-wrap">
+                    <button type="submit"
+                            class="btn btn-liceo-primary">
+                        Buscar
+                    </button>
+
+                    <a asp-page="/Estudiantes/Index"
+                       class="btn btn-liceo-secondary">
+                        Limpiar filtros
+                    </a>
+                </div>
+
+            </div>
+        </form>
+    </section>
+
+    <section class="liceo-card"
+             aria-labelledby="listadoTitulo">
+
+        <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+            <h2 id="listadoTitulo" class="h5 mb-0">
+                Listado de estudiantes
+            </h2>
+
+            @if (Model.ConsultaRealizada)
+            {
+                <span class="text-muted">
+                    @Model.Estudiantes.Count resultados
+                </span>
+            }
+        </div>
+
+        @if (!Model.ConsultaRealizada)
+        {
+            <p class="text-muted py-4 mb-0">
+                El listado estará disponible cuando se conecte
+                la consulta de estudiantes.
+            </p>
+        }
+        else if (Model.Estudiantes.Count == 0)
+        {
+            <p class="text-muted text-center py-4 mb-0">
+                No se encontraron estudiantes con los filtros indicados.
+            </p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table liceo-table estudiantes-tabla">
+                    <thead>
+                        <tr>
+                            <th scope="col">Estudiante</th>
+                            <th scope="col">Modalidad / grado</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var estudiante in Model.Estudiantes)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>
+                                        @estudiante.NombreEstudiante
+                                    </strong>
+
+                                    <span class="estudiante-codigo">
+                                        @estudiante.Registro
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @estudiante.Modalidad
+
+                                    <span class="estudiante-codigo">
+                                        @estudiante.Grado
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="estado-estudiante
+                                                @(estudiante.Activo
+                                                                                      ? "estado-activo"
+                                                                                      : "estado-inactivo")">
+
+                                        @(estudiante.Activo
+                                                                        ? "Activo"
+                                                                        : "Inactivo")
+                            </span>
+                        </td>
+
+                                <td>
+                                    <div class="estudiante-acciones">
+
+                                @if (estudiante.Activo)
+                                        {
+                                            <a asp-page="/Matriculas/Crear"
+                                               asp-route-registro="@estudiante.Registro"
+                                               class="btn btn-sm btn-liceo-secondary">
+                                                Matricular
+                                            </a>
+                                        }
+
+                                        @if (esAdministrador)
+                                        {
+                                            <a asp-page="/Estudiantes/Editar"
+                                               asp-route-registro="@estudiante.Registro"
+                                               class="btn btn-sm btn-liceo-secondary">
+                                                Actualizar
+                                            </a>
+
+                                            @if (estudiante.Activo)
+                                            {
+                                                <a asp-page="/Estudiantes/DarBaja"
+                                                   asp-route-registro="@estudiante.Registro"
+                                                   class="btn btn-sm btn-outline-danger">
+                                                    Dar de baja
+                                                </a>
+                                            }
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+<partial name="_Crear" />

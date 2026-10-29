@@ -598,3 +598,135 @@ textarea:focus-visible {
         transition: none;
     }
 }
+
+.estudiantes-encabezado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.estudiantes-modulo .form-label {
+    color: #1B264F;
+    font-weight: 600;
+    font-size: .9rem;
+}
+
+.estudiantes-tabla {
+    margin-bottom: 0;
+}
+
+    .estudiantes-tabla td,
+    .estudiantes-tabla th {
+        padding: 1rem;
+    }
+
+.estudiante-codigo {
+    display: block;
+    margin-top: .25rem;
+    color: #64748B;
+    font-size: .85rem;
+}
+
+.estudiante-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.estado-estudiante {
+    display: inline-block;
+    padding: .35rem .75rem;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.estado-activo {
+    background: #E7F3ED;
+    color: #245F4D;
+}
+
+.estado-inactivo {
+    background: #FCECEB;
+    color: #923B39;
+}
+
+.liceo-modal {
+    border: 1px solid #DDE3EB;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+    .liceo-modal .modal-header {
+        background: #F4F6F8;
+        border-bottom: 3px solid #C99700;
+        color: #1B264F;
+        padding: 1.25rem;
+    }
+
+    .liceo-modal .modal-body {
+        padding: 1.5rem;
+    }
+
+    .liceo-modal .modal-footer {
+        border-top: 1px solid #DDE3EB;
+        padding: 1rem 1.5rem;
+    }
+
+    .liceo-modal .form-label {
+        font-weight: 600;
+        font-size: .9rem;
+        color: #1B264F;
+    }
+
+.estudiantes-aviso {
+    padding: 1rem;
+    background: #FFF3CC;
+    border-radius: 10px;
+    color: #1B264F;
+    font-size: .9rem;
+    line-height: 1.6;
+}
+
+.demo-resultado {
+    color: #923B39;
+    font-size: .9rem;
+}
+
+.liceo-modal {
+    border: 1px solid #DDE3EB;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+    .liceo-modal .modal-header {
+        padding: 1.25rem;
+        background: #F4F6F8;
+        border-bottom: 3px solid #C99700;
+        color: #1B264F;
+    }
+
+    .liceo-modal .modal-body {
+        padding: 1.5rem;
+    }
+
+    .liceo-modal .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #DDE3EB;
+    }
+
+    .liceo-modal .form-label {
+        color: #1B264F;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+.estudiantes-aviso {
+    padding: 1rem;
+    background: #FFF3CC;
+    border-radius: 10px;
+    color: #1B264F;
+    font-size: .9rem;
+}

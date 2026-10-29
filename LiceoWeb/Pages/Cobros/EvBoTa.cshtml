@@ -1,0 +1,79 @@
+﻿@* @page
+@model LiceoWeb.Pages.Cobros.Index1Model
+@{
+}
+ *@
+
+@page
+@{
+    ViewData["Title"] = "Cobro de EvBoTa";
+}
+
+<div class="container py-4">
+    <div class="header-box mb-4 p-4 bg-white shadow-sm rounded-3 border-start border-4" style="border-color: #C99700 !important;">
+        <h2 class="fw-bold m-0" style="color: #1B264F;">
+            <i class="bi bi-card-checklist me-2"></i>Cobro de Evaluaciones, Boletín y Tarjeta (EvBoTa)
+        </h2>
+        <p class="text-muted m-0 mt-1">Gestión y cobro de EvBoTa respetando el año seleccionado y grado del estudiante.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Búsqueda -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h5 class="fw-bold mb-3" style="color: #1B264F;"><i class="bi bi-search me-2"></i>Buscar Estudiante</h5>
+                <form method="get">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Registro del Estudiante</label>
+                        <input type="text" class="form-control" name="registro" placeholder="Ej. E_0000001" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Año Lectivo</label>
+                        <input type="number" class="form-control" name="anio" value="@DateTime.Now.Year" required>
+                    </div>
+                    <button type="submit" class="btn w-100 text-white fw-bold py-2" style="background-color: #1B264F; border-radius: 8px;">
+                        <i class="bi bi-search me-1"></i> Consultar EvBoTa
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Pago -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h5 class="fw-bold mb-3" style="color: #1B264F;"><i class="bi bi-receipt me-2"></i>Detalle de Cobro</h5>
+
+                <div class="p-3 mb-4 rounded-3 border bg-light">
+                    <div class="row">
+                        <div class="col-6 mb-2"><span class="text-muted small">Estudiante:</span><br><strong class="text-secondary">[Sin datos]</strong></div>
+                        <div class="col-6 mb-2"><span class="text-muted small">Grado / Modalidad:</span><br><strong class="text-secondary">-</strong></div>
+                        <div class="col-6"><span class="text-muted small">Costo EvBoTa:</span><br><strong class="fs-5" style="color: #1B264F;">$0.00</strong></div>
+                        <div class="col-6"><span class="text-muted small">Estado:</span><br><span class="badge bg-secondary">Sin consultar</span></div>
+                    </div>
+                </div>
+
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Método de Pago</label>
+                            <select class="form-select" name="metodoPago" required>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Transferencia">Transferencia</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Referencia</label>
+                            <input type="text" class="form-control" name="referencia" placeholder="Referencia de pago">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <button type="submit" class="btn text-white fw-bold px-4 py-2" style="background-color: #C99700; border-radius: 8px;">
+                            <i class="bi bi-check-circle me-1"></i> Registrar Pago EvBoTa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

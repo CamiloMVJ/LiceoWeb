@@ -20,9 +20,460 @@
     <section class="liceo-home-placeholder"
              aria-label="Información institucional">
 
-        @* Aquí se agregará la información del colegio. *@
+        <!-- ESTILOS ENCAPSULADOS PARA LICEO HISPANIDAD -->
+        <style>
+            .lh-container {
+                --c-navy: #1B264F;
+                --c-bg: #F4F6F8;
+                --c-gold: #C99700;
+                --c-gold-light: #FFF8E7;
+                --c-white: #FFFFFF;
+                --c-border: #DCE3EB;
+                --c-text-dark: #1E293B;
+                --c-text-muted: #64748B;
 
-        <p>Espacio para información del colegio</p>
+                box-sizing: border-box;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+                max-width: 980px;
+                margin: 1.5rem auto;
+                background-color: var(--c-bg) !important;
+                border: 1px solid var(--c-border);
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(27, 38, 79, 0.08);
+                text-align: left !important;
+            }
+
+            .lh-container * {
+                box-sizing: border-box;
+            }
+
+            /* Barra de progreso inferior */
+            .lh-bottom-bar {
+                width: 100%;
+                height: 5px;
+                background-color: #E2E8F0;
+            }
+
+            .lh-bottom-bar-fill {
+                height: 100%;
+                width: 20%;
+                background-color: var(--c-gold);
+                transition: width 0.35s ease-in-out;
+            }
+
+            /* Barra superior de pestañas */
+            .lh-tabs-nav {
+                display: flex;
+                background-color: var(--c-navy) !important;
+                padding: 0 0.5rem;
+                overflow-x: auto;
+                border-bottom: 3px solid var(--c-gold);
+            }
+
+            .lh-tab-trigger {
+                background: transparent !important;
+                border: none !important;
+                border-bottom: 3px solid transparent !important;
+                color: #CBD5E1 !important;
+                font-weight: 600 !important;
+                font-size: 0.88rem !important;
+                padding: 0.9rem 1.15rem !important;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s ease;
+                outline: none !important;
+            }
+
+            .lh-tab-trigger:hover {
+                color: #FFFFFF !important;
+                background-color: rgba(255, 255, 255, 0.08) !important;
+            }
+
+            .lh-tab-trigger.is-active {
+                color: #FFFFFF !important;
+                background-color: rgba(201, 151, 0, 0.2) !important;
+                border-bottom: 3px solid var(--c-gold) !important;
+            }
+
+            /* Contenido de Diapositiva */
+            .lh-slide-body {
+                display: none;
+                padding: 2.25rem 2rem;
+                background-color: var(--c-bg) !important;
+                height: 460px;
+                overflow-y: auto;
+            }
+
+            .lh-slide-body.is-active {
+                display: block;
+                animation: lhFadeIn 0.25s ease-in-out;
+            }
+
+            @@keyframes lhFadeIn {
+                from { opacity: 0; transform: translateY(4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            /* Etiquetas y Encabezados */
+            .lh-pill {
+                display: inline-block;
+                background-color: var(--c-gold-light);
+                color: var(--c-navy);
+                border: 1px solid var(--c-gold);
+                padding: 0.2rem 0.65rem;
+                font-size: 0.75rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                border-radius: 4px;
+                margin-bottom: 0.75rem;
+            }
+
+            .lh-header-title {
+                color: var(--c-navy) !important;
+                font-size: 1.85rem !important;
+                font-weight: 800 !important;
+                margin: 0 0 0.25rem 0 !important;
+                line-height: 1.25;
+            }
+
+            .lh-header-slogan {
+                color: var(--c-gold);
+                font-size: 1.15rem;
+                font-style: italic;
+                font-weight: 700;
+                margin-bottom: 1rem;
+            }
+
+            .lh-lead {
+                color: var(--c-text-dark);
+                font-size: 1rem;
+                line-height: 1.55;
+                margin-bottom: 1.75rem;
+                max-width: 800px;
+            }
+
+            /* Estructura de Grillas */
+            .lh-grid-2 {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1.25rem;
+            }
+
+            .lh-grid-3 {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+
+            /* Tarjetas con profundidad y bordes claros */
+            .lh-card {
+                background-color: var(--c-white) !important;
+                border: 1px solid var(--c-border);
+                border-radius: 8px;
+                padding: 1.25rem;
+                box-shadow: 0 3px 8px rgba(27, 38, 79, 0.04);
+            }
+
+            .lh-card-navy {
+                background-color: var(--c-navy) !important;
+                color: #FFFFFF !important;
+                border: 1px solid var(--c-navy);
+                border-radius: 8px;
+                padding: 1.25rem;
+                box-shadow: 0 4px 12px rgba(27, 38, 79, 0.15);
+            }
+
+            .lh-card-navy h3, 
+            .lh-card-navy h4 {
+                color: var(--c-gold) !important;
+                margin-top: 0;
+                margin-bottom: 0.6rem;
+                font-size: 1.2rem;
+                font-weight: 700;
+            }
+
+            .lh-card-navy p,
+            .lh-card-navy span {
+                color: #F8FAFC !important;
+                line-height: 1.55;
+                font-size: 0.95rem;
+            }
+
+            .lh-card-gold {
+                background-color: var(--c-white) !important;
+                border: 2px solid var(--c-gold) !important;
+                border-radius: 8px;
+                padding: 1.25rem;
+                box-shadow: 0 4px 12px rgba(201, 151, 0, 0.08);
+            }
+
+            .lh-card h3, .lh-card h4, 
+            .lh-card-gold h3, .lh-card-gold h4 {
+                color: var(--c-navy) !important;
+                margin-top: 0;
+                margin-bottom: 0.6rem;
+                font-size: 1.15rem;
+                font-weight: 700;
+            }
+
+            .lh-card p, .lh-card-gold p {
+                color: var(--c-text-dark);
+                font-size: 0.9rem;
+                line-height: 1.5;
+                margin: 0;
+            }
+
+            /* Listados limpios y alineados */
+            .lh-list {
+                list-style: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .lh-list-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.65rem 0;
+                border-bottom: 1px solid #EDF2F7;
+                font-size: 0.95rem;
+                color: var(--c-text-dark);
+            }
+
+            .lh-list-row:last-child {
+                border-bottom: none;
+            }
+
+            .lh-check-row {
+                display: flex;
+                align-items: center;
+                gap: 0.65rem;
+                padding: 0.65rem 0;
+                border-bottom: 1px solid #EDF2F7;
+                font-size: 0.95rem;
+                color: var(--c-text-dark);
+            }
+
+            .lh-check-row:last-child {
+                border-bottom: none;
+            }
+
+            .lh-check-icon {
+                color: var(--c-gold);
+                font-weight: 800;
+                font-size: 1.05rem;
+            }
+
+            /* Barra de control inferior */
+            .lh-footer-bar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.85rem 1.75rem;
+                background-color: var(--c-white) !important;
+                border-top: 1px solid var(--c-border);
+            }
+
+            .lh-btn-nav {
+                background-color: var(--c-navy) !important;
+                color: #FFFFFF !important;
+                border: 1px solid var(--c-navy) !important;
+                padding: 0.5rem 1.35rem !important;
+                font-size: 0.9rem !important;
+                font-weight: 700 !important;
+                border-radius: 6px !important;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+
+            .lh-btn-nav:hover {
+                background-color: #121A38 !important;
+            }
+
+            .lh-page-label {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--c-navy);
+            }
+
+            @@media (max-width: 768px) {
+                .lh-grid-2, .lh-grid-3 {
+                    grid-template-columns: 1fr;
+                }
+                .lh-slide-body {
+                    padding: 1.5rem 1rem;
+                }
+            }
+        </style>
+
+        <div class="lh-container">
+            <!-- Navegación de Pestañas -->
+            <nav class="lh-tabs-nav" aria-label="Secciones">
+                <button type="button" class="lh-tab-trigger is-active" onclick="lhNavigate(0)">Bienvenida</button>
+                <button type="button" class="lh-tab-trigger" onclick="lhNavigate(1)">Modalidades</button>
+                <button type="button" class="lh-tab-trigger" onclick="lhNavigate(2)">Requisitos</button>
+                <button type="button" class="lh-tab-trigger" onclick="lhNavigate(3)">Aranceles</button>
+                <button type="button" class="lh-tab-trigger" onclick="lhNavigate(4)">Contacto</button>
+            </nav>
+
+            <!-- 1. Bienvenida -->
+            <div class="lh-slide-body is-active" id="lhPanel_0">
+                <span class="lh-pill">Institución Educativa</span>
+                <h2 class="lh-header-title">Liceo Hispanidad</h2>
+                <div class="lh-header-slogan">"De la mano con la educación"</div>
+                <p class="lh-lead">
+                    Brindamos un entorno académico integral y de alta calidad para el desarrollo formativo, intelectual y moral de niños y jóvenes en Managua.
+                </p>
+                <div class="lh-grid-3">
+                    <div class="lh-card">
+                        <h4>Preescolar</h4>
+                        <p>Estimulación temprana y formación socioemocional en ambientes seguros y colaborativos.</p>
+                    </div>
+                    <div class="lh-card">
+                        <h4>Primaria</h4>
+                        <p>Competencias base, razonamiento lógico, lectoescritura estructurada y valores.</p>
+                    </div>
+                    <div class="lh-card-gold">
+                        <h4>Secundaria Técnica</h4>
+                        <p>Formación diversificada con orientación vocacional y preparación para la educación superior.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Modalidades -->
+            <div class="lh-slide-body" id="lhPanel_1">
+                <span class="lh-pill">Oferta Académica</span>
+                <h2 class="lh-header-title">Modalidades y Niveles</h2>
+                <p class="lh-lead">Trayectoria educativa estructurada por ciclos de desarrollo pedagógico.</p>
+                <div class="lh-grid-3">
+                    <div class="lh-card">
+                        <h4>Preescolar</h4>
+                        <p>Desarrollo psicomotriz, motricidad fina, hábitos de convivencia y adaptación escolar armónica.</p>
+                    </div>
+                    <div class="lh-card">
+                        <h4>Primaria</h4>
+                        <p>Dominio de cálculo matemático, comprensión lectora, ciencias y formación continua en valores éticos.</p>
+                    </div>
+                    <div class="lh-card-gold">
+                        <h4>Secundaria Técnica</h4>
+                        <p>Bachillerato regular complementado con habilidades técnicas y preparación rigurosa para la universidad.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Requisitos -->
+            <div class="lh-slide-body" id="lhPanel_2">
+                <span class="lh-pill">Proceso de Ingreso</span>
+                <h2 class="lh-header-title">Requisitos de Inscripción</h2>
+                <p class="lh-lead">Documentación en regla solicitada por secretaría académica para formalizar el expediente.</p>
+                <div class="lh-card" style="max-width: 680px;">
+                    <ul class="lh-list">
+                        <li class="lh-check-row"><span class="lh-check-icon">✓</span> <span>2 Hojas de traslado</span></li>
+                        <li class="lh-check-row"><span class="lh-check-icon">✓</span> <span>2 Copias de cédula del tutor</span></li>
+                        <li class="lh-check-row"><span class="lh-check-icon">✓</span> <span>2 Copias de la partida de nacimiento</span></li>
+                        <li class="lh-check-row"><span class="lh-check-icon">✓</span> <span>2 Copias del boletín de calificaciones</span></li>
+                        <li class="lh-check-row"><span class="lh-check-icon">✓</span> <span>2 Copias de tarjeta de vacunas <em style="color: var(--c-navy); font-weight: 600;">(solo preescolar)</em></span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 4. Aranceles -->
+            <div class="lh-slide-body" id="lhPanel_3">
+                <span class="lh-pill">Inversión Educativa</span>
+                <h2 class="lh-header-title">Estructura Oficial de Aranceles (C$)</h2>
+                <p class="lh-lead">Valores aprobados por la dirección institucional para el ciclo lectivo (2026).</p>
+                <div class="lh-grid-2">
+                    <div class="lh-card">
+                        <h4>Preescolar y Primaria</h4>
+                        <ul class="lh-list" style="margin-top: 1rem;">
+                            <li class="lh-list-row"><span>Matrícula:</span> <strong>C$ 450</strong></li>
+                            <li class="lh-list-row"><span>Mantenimiento:</span> <strong>C$ 900</strong></li>
+                            <li class="lh-list-row"><span>Evaluaciones, boletín y tarjeta:</span> <strong>C$ 400</strong></li>
+                            <li class="lh-list-row"><span>Mensualidad:</span> <strong>C$ 700</strong></li>
+                        </ul>
+                    </div>
+                    <div class="lh-card-gold">
+                        <h4>Secundaria Técnica</h4>
+                        <ul class="lh-list" style="margin-top: 1rem;">
+                            <li class="lh-list-row"><span>Matrícula:</span> <strong>C$ 500</strong></li>
+                            <li class="lh-list-row"><span>Mantenimiento:</span> <strong>C$ 900</strong></li>
+                            <li class="lh-list-row"><span>Evaluaciones, boletín y tarjeta:</span> <strong>C$ 450</strong></li>
+                            <li class="lh-list-row"><span>Mensualidad:</span> <strong>C$ 800</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Contacto -->
+            <div class="lh-slide-body" id="lhPanel_4">
+                <span class="lh-pill">Atención a Padres</span>
+                <h2 class="lh-header-title">Canales de Atención y Ubicación</h2>
+                <p class="lh-lead">Visítanos o contáctanos para agendar una cita informativa presencial.</p>
+                <div class="lh-grid-2">
+                    <div class="lh-card-navy">
+                        <h3>Contacto Directo</h3>
+                        <p style="margin: 0.6rem 0;"><strong>Teléfonos:</strong> 2251-7512 / 8438-0635</p>
+                        <p style="margin: 0.6rem 0;"><strong>Servicio de Recorrido:</strong> 8860-4601</p>
+                    </div>
+                    <div class="lh-card">
+                        <h3>Dirección del Plantel</h3>
+                        <p style="margin-top: 0.6rem; color: var(--c-text-dark);">
+                            Reparto López, terminal de la ruta 119, 5 andenes al sur.<br />
+                            <strong>Managua, Nicaragua.</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Progreso Inferior -->
+            <div class="lh-bottom-bar">
+                <div class="lh-bottom-bar-fill" id="lhBar"></div>
+            </div>
+
+            <!-- Navegación Inferior -->
+            <div class="lh-footer-bar">
+                <button type="button" class="lh-btn-nav" onclick="lhStep(-1)">← Anterior</button>
+                <span class="lh-page-label" id="lhPageLabel">1 de 5</span>
+                <button type="button" class="lh-btn-nav" onclick="lhStep(1)">Siguiente →</button>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                var currentIndex = 0;
+                var totalSlides = 5;
+
+                window.lhNavigate = function (targetIdx) {
+                    currentIndex = (targetIdx + totalSlides) % totalSlides;
+
+                    var slides = document.querySelectorAll('.lh-slide-body');
+                    for (var i = 0; i < slides.length; i++) {
+                        slides[i].classList.toggle('is-active', i === currentIndex);
+                    }
+
+                    var tabs = document.querySelectorAll('.lh-tab-trigger');
+                    for (var j = 0; j < tabs.length; j++) {
+                        tabs[j].classList.toggle('is-active', j === currentIndex);
+                    }
+
+                    var bar = document.getElementById('lhBar');
+                    if (bar) {
+                        bar.style.width = ((currentIndex + 1) / totalSlides * 100) + '%';
+                    }
+
+                    var lbl = document.getElementById('lhPageLabel');
+                    if (lbl) {
+                        lbl.textContent = (currentIndex + 1) + ' de ' + totalSlides;
+                    }
+                };
+
+                window.lhStep = function (delta) {
+                    lhNavigate(currentIndex + delta);
+                };
+            })();
+        </script>
     </section>
 
 </section>

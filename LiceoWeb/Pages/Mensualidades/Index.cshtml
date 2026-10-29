@@ -1,0 +1,266 @@
+﻿@page
+@model LiceoWeb.Pages.Mensualidades.CobrosMensualidadModel
+@{
+    ViewData["Title"] = "Caja - Cobro de Mensualidades";
+}
+
+<!-- Estilos personalizados basados en la paleta del Liceo Hispanidad -->
+<style>
+    :root {
+        --azul-institucional: #1B264F;
+        --fondo-general: #F4F6F8;
+        --dorado-principal: #C99700;
+        --azul-secundario: #33446B;
+        --superficie: #FFFFFF;
+        --bordes: #DDE3EB;
+        --texto-secundario: #64748B;
+        --dorado-suave: #FFF3CC;
+        --exito: #2E7D65;
+        --error: #B94A48;
+    }
+
+    body {
+        background-color: var(--fondo-general);
+    }
+
+    .card-custom {
+        background-color: var(--superficie);
+        border: 1px solid var(--bordes);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .btn-dorado {
+        background-color: var(--dorado-principal);
+        color: #FFFFFF;
+        font-weight: 600;
+        border: none;
+    }
+    .btn-dorado:hover {
+        background-color: #B38600;
+        color: #FFFFFF;
+    }
+
+    .bg-azul-institucional {
+        background-color: var(--azul-institucional);
+        color: #FFFFFF;
+    }
+
+    .text-secundario {
+        color: var(--texto-secundario);
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- Encabezado de la sección -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold" style="color: var(--azul-institucional);">Módulo de Caja</h2>
+            <p class="text-secundario mb-0">Gestión de cobros de mensualidades y saldos a favor</p>
+        </div>
+    </div>
+
+    <!-- Mensajes de Alerta / Éxito -->
+    @if (!string.IsNullOrEmpty(Model.MensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.MensajeError
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.MensajeExito))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert" style="background-color: var(--exito); color: white;">
+            <i class="bi bi-check-circle-fill me-2"></i> @Model.MensajeExito 
+            @if (!string.IsNullOrEmpty(Model.ReciboGenerado))
+            {
+                <span class="ms-2"><strong>N° Recibo:</strong> @Model.ReciboGenerado</span>
+            }
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- COLUMNA IZQUIERDA: Buscador y Estado de Cuenta del Estudiante -->
+        <div class="col-lg-7 mb-4">
+            <!-- Buscador -->
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold mb-3" style="color: var(--azul-institucional);">Buscar Estudiante</h5>
+                <form method="get" class="row g-3">
+                    <div class="col-md-9">
+                        <input type="text" name="Busqueda" value="@Model.Busqueda" class="form-control" placeholder="Ingrese nombre, código o registro..." />
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-azul-institucional w-100 text-white" style="background-color: var(--azul-institucional);">Buscar</button>
+                    </div>
+                </form>
+
+                <!-- Resultados de búsqueda si hay varios -->
+                @if (Model.ListaEstudiantes != null && Model.ListaEstudiantes.Count > 0 && string.IsNullOrEmpty(Model.RegistroSeleccionado))
+                {
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Registro</th>
+                                    <th>Nombre</th>
+                                    <th>Grado</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var est in Model.ListaEstudiantes)
+                                {
+                                    <tr>
+                                        <td>@est.Registro</td>
+                                        <td>@est.NombreEstudiante</td>
+                                        <td>@est.Grado</td>
+                                        <td>
+                                            <a asp-page="./Cobrar" asp-route-registro="@est.Registro" class="btn btn-sm btn-dorado">Seleccionar</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <!-- Estado de Cuenta (Mensualidades Pendientes) -->
+            @if (!string.IsNullOrEmpty(Model.NombreEstudianteActual))
+            {
+                <div class="card card-custom p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0" style="color: var(--azul-institucional);">Estado de Cuenta</h5>
+                        <span class="badge bg-secondary">@Model.ModalidadActual - @Model.GradoActual</span>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="mb-1 text-secundario">Estudiante:</p>
+                            <h6 class="fw-bold">@Model.NombreEstudianteActual (@Model.RegistroSeleccionado)</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1 text-secundario">Saldo a Favor Disponible:</p>
+                            <h5 class="fw-bold text-success">C$ @Model.SaldoFavorActual.ToString("N2")</h5>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mt-2">Cuotas Pendientes / Vencidas</h6>
+                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Año</th>
+                                    <th>Mes</th>
+                                    <th>Monto</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.MensualidadesPendientes != null && Model.MensualidadesPendientes.Count > 0)
+                                {
+                                    foreach (var m in Model.MensualidadesPendientes)
+                                    {
+                                        <tr>
+                                            <td>@m.Anio</td>
+                                            <td>@m.Mes</td>
+                                            <td>C$ @m.Costo_Mensualidad</td>
+                                            <td>
+                                                @if (m.Estado == "Vencido")
+                                                {
+                                                    <span class="badge" style="background-color: var(--error);">Vencido</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge" style="background-color: var(--dorado-principal);">Pendiente</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No hay mensualidades pendientes.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- COLUMNA DERECHA: Formulario de Pago y Caja -->
+        <div class="col-lg-5">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3" style="color: var(--azul-institucional);">Procesar Cobro</h5>
+                
+                <form method="post">
+                    <input type="hidden" asp-for="RegistroSeleccionado" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Año Límite a Pagar</label>
+                        <select asp-for="AnioLimite" class="form-select">
+                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mes Límite a Pagar</label>
+                        <select asp-for="MesLimite" class="form-select">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Monto Dinero Recibido (C$)</label>
+                        <input type="number" asp-for="MontoRecibido" class="form-control" min="0" placeholder="0" required />
+                        <div class="form-text">Ingrese 0 si va a pagar exclusivamente con su saldo a favor.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Método de Pago</label>
+                        <select asp-for="MetodoPago" class="form-select">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia">Transferencia</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">N° de Referencia (Si es transferencia)</label>
+                        <input type="text" asp-for="ReferenciaTransaccion" class="form-control" placeholder="Opcional si es efectivo" />
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" asp-for="IntegrarSaldo" class="form-check-input" id="checkSaldo" />
+                        <label class="form-check-label fw-semibold" for="checkSaldo">Guardar sobrante como Saldo a Favor (Abono)</label>
+                        <div class="form-text">Si no se marca, el sobrante se devuelve como cambio en efectivo.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descripción / Concepto</label>
+                        <input type="text" asp-for="Descripcion" class="form-control" value="Pago de mensualidades escolares" />
+                    </div>
+
+                    <button type="submit" class="btn btn-dorado w-100 py-2 fs-5">
+                        <i class="bi bi-cash-coin me-2"></i> Confirmar y Registrar Pago
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

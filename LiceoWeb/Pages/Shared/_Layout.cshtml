@@ -13,12 +13,12 @@
         && paginaActual.Equals(
             "/Index",
             StringComparison.OrdinalIgnoreCase);
-
     var mostrarMenu =
         !esPortada
         && SignInManager.IsSignedIn(User)
         && (User.IsInRole("Administrador")
-            || User.IsInRole("Profesor"));
+            || User.IsInRole("Profesor")
+            || User.IsInRole("Cajero"));
 }
 
 <!DOCTYPE html>

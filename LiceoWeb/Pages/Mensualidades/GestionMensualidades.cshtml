@@ -1,0 +1,250 @@
+﻿@page
+@model LiceoWeb.Pages.Mensualidades.GestionMensualidadesModel
+@{
+    ViewData["Title"] = "Gestión de Mensualidades ";
+}
+
+<!-- Paleta de colores del Liceo Hispanidad -->
+<style>
+    :root {
+        --azul-institucional: #1B264F;
+        --fondo-general: #F4F6F8;
+        --dorado-principal: #C99700;
+        --azul-secundario: #33446B;
+        --superficie: #FFFFFF;
+        --bordes: #DDE3EB;
+        --texto-secundario: #64748B;
+        --exito: #2E7D65;
+        --error: #B94A48;
+    }
+
+    body {
+        background-color: var(--fondo-general);
+    }
+
+    .card-custom {
+        background-color: var(--superficie);
+        border: 1px solid var(--bordes);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: var(--azul-institucional);
+        color: white;
+        font-weight: bold;
+    }
+
+    .nav-pills .nav-link {
+        color: var(--azul-institucional);
+        font-weight: 600;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <h2 class="fw-bold" style="color: var(--azul-institucional);">Panel de Gestión de Mensualidades</h2>
+        <p class="text-muted">Consulta general de mensualidades, control de mora y saldos a favor</p>
+    </div>
+
+    <!-- Pestañas de Navegación (Tabs de Bootstrap) -->
+    <ul class="nav nav-pills mb-4" id="gestionTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="mensualidades-tab" data-bs-toggle="tab" data-bs-target="#mensualidades" type="button" role="tab">
+                <i class="bi bi-calendar-check me-2"></i> Consulta de Mensualidades
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="mora-tab" data-bs-toggle="tab" data-bs-target="#mora" type="button" role="tab">
+                <i class="bi bi-exclamation-octagon me-2"></i> Estudiantes en Mora (Vencidos)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="saldos-tab" data-bs-toggle="tab" data-bs-target="#saldos" type="button" role="tab">
+                <i class="bi bi-wallet2 me-2"></i> Saldos a Favor
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="gestionTabContent">
+
+        <!-- PESTAÑA 1: CONSULTA GENERAL DE MENSUALIDADES -->
+        <div class="tab-pane fade show active" id="mensualidades" role="tabpanel">
+            <div class="card card-custom p-4 mb-4">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" style="color: var(--azul-institucional);">Estudiante / Registro</label>
+                        <input type="text" name="FiltroNombre" value="@Model.FiltroNombre" class="form-control" placeholder="Buscar..." />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" style="color: var(--azul-institucional);">Año</label>
+                        <input type="number" name="FiltroAnio" value="@Model.FiltroAnio" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" style="color: var(--azul-institucional);">Modalidad</label>
+                        <select name="FiltroModalidad" class="form-select">
+                            <option value="Todos">Todos</option>
+                            <option value="Preescolar">Preescolar</option>
+                            <option value="Primaria">Primaria</option>
+                            <option value="Secundaria">Secundaria</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" style="color: var(--azul-institucional);">Estado</label>
+                        <select name="FiltroEstado" class="form-select">
+                            <option value="Todos">Todos</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Vencido">Vencido</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn text-white w-100" style="background-color: var(--dorado-principal); font-weight: bold;">
+                            <i class="bi bi-search me-1"></i> Filtrar Mensualidades
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de Mensualidades -->
+            <div class="card card-custom p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr style="color: var(--azul-institucional);">
+                                <th>Registro</th>
+                                <th>Estudiante</th>
+                                <th>Grado</th>
+                                <th>Modalidad</th>
+                                <th>Año / Mes</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ListaMensualidades != null && Model.ListaMensualidades.Count > 0)
+                            {
+                                foreach (var m in Model.ListaMensualidades)
+                                {
+                                    <tr>
+                                        <td>@m.Registro</td>
+                                        <td>@m.NombreEstudiante</td>
+                                        <td>@m.Grado</td>
+                                        <td>@m.Modalidad</td>
+                                        <td>@m.Anio - @m.Mes</td>
+                                        <td>C$ @m.Monto</td>
+                                        <td>
+                                            @if (m.Estado == "Cancelado")
+                                            {
+                                                <span class="badge" style="background-color: var(--exito);">Cancelado</span>
+                                            }
+                                            else if (m.Estado == "Vencido")
+                                            {
+
+                                                <span class="badge" style="background-color: var(--error);">Vencido</span>
+                                            }
+                                            else
+                                            {
+
+                                                <span class="badge" style="background-color: var(--dorado-principal); color: black;">Pendiente</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="7" class="text-center text-muted py-4">No se encontraron registros de mensualidades con estos filtros.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: ESTUDIANTES EN MORA (VENCIDOS) -->
+        <div class="tab-pane fade" id="mora" role="tabpanel">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3" style="color: var(--azul-institucional);">Cuotas Vencidas (Corte automático día 17)</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr style="color: var(--azul-institucional);">
+                                <th>Registro</th>
+                                <th>Estudiante</th>
+                                <th>Modalidad</th>
+                                <th>Mes y Año</th>
+                                <th>Monto</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ListaMora != null && Model.ListaMora.Count > 0)
+                            {
+                                foreach (var mora in Model.ListaMora)
+                                {
+                                    <tr>
+                                        <td>@mora.Registro</td>
+                                        <td>@mora.NombreEstudiante</td>
+                                        <td>@mora.Modalidad</td>
+                                        <td>@mora.Mes (@mora.Anio)</td>
+                                        <td>C$ @mora.Costo_Mensualidad</td>
+                                        <td>
+                                            <a asp-page="./CobrosMensualidad" asp-route-registro="@mora.Registro" class="btn btn-sm text-white" style="background-color: var(--dorado-principal); font-weight: bold;">
+                                                Ir a Cobrar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="6" class="text-center text-muted py-4">¡Excelente! No hay cuotas vencidas en mora actualmente.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 3: SALDOS Y ABONOS A FAVOR -->
+        <div class="tab-pane fade" id="saldos" role="tabpanel">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3" style="color: var(--azul-institucional);">Estudiantes con Saldo a Favor</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr style="color: var(--azul-institucional);">
+                                <th>Registro</th>
+                                <th>Estudiante</th>
+                                <th>Modalidad</th>
+                                <th>Grado</th>
+                                <th>Saldo a Favor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ListaSaldos != null && Model.ListaSaldos.Count > 0)
+                            {
+                                foreach (var s in Model.ListaSaldos)
+                                {
+                                    <tr>
+                                        <td>@s.Registro</td>
+                                        <td>@s.Estudiante</td>
+                                        <td>@s.Modalidad</td>
+                                        <td>@s.Grado</td>
+                                        <td><strong style="color: var(--exito);">C$ @s.SaldoAFavor</strong></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="5" class="text-center text-muted py-4">No hay saldos a favor registrados en el sistema.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
