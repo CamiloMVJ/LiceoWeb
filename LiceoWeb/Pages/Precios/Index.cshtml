@@ -1,0 +1,272 @@
+﻿@* @page
+@model LiceoWeb.Pages.Precios.IndexModel
+@{
+}
+ *@
+
+@page
+@{
+    ViewData["Title"] = "Gestión de Precios";
+}
+
+<style>
+    :root {
+        --bg-main: #F4F6F8;
+        --color-primary: #1B264F;
+        --color-accent: #C99700;
+        --color-primary-dark: #121A38;
+    }
+
+    body {
+        background-color: var(--bg-main);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    .header-dashboard {
+        background: #FFFFFF;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(27, 38, 79, 0.05);
+        border-left: 6px solid var(--color-accent);
+    }
+
+    .card-custom {
+        background: #FFFFFF;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .btn-primary-custom {
+        background-color: var(--color-primary);
+        color: #FFFFFF;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.65rem 1.4rem;
+        border: none;
+        transition: all 0.2s;
+    }
+
+        .btn-primary-custom:hover {
+            background-color: var(--color-primary-dark);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(27, 38, 79, 0.25);
+        }
+
+    .btn-accent-custom {
+        background-color: var(--color-accent);
+        color: #FFFFFF;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.65rem 1.4rem;
+        border: none;
+        transition: all 0.2s;
+    }
+
+        .btn-accent-custom:hover {
+            background-color: #A87E00;
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(201, 151, 0, 0.3);
+        }
+
+    .form-control-custom, .form-select-custom {
+        border: 1.5px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 0.65rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .table-container {
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid #EDF2F7;
+    }
+
+    .table-custom {
+        margin: 0;
+    }
+
+        .table-custom thead {
+            background-color: var(--color-primary);
+            color: #FFFFFF;
+        }
+
+        .table-custom th {
+            font-weight: 600;
+            font-size: 0.88rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1rem 1.25rem;
+            border: none;
+        }
+
+    .sync-banner {
+        background-color: rgba(201, 151, 0, 0.08);
+        border: 1px dashed var(--color-accent);
+        border-radius: 12px;
+    }
+</style>
+
+<div class="container py-4">
+
+    <!-- ENCABEZADO -->
+    <div class="header-dashboard p-4 mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <span class="badge px-3 py-2 text-uppercase mb-2 fw-bold" style="background-color: rgba(27, 38, 79, 0.1); color: var(--color-primary); border-radius: 8px;">
+                <i class="bi bi-shield-lock me-1"></i> Área de Administración
+            </span>
+            <h2 class="fw-bold m-0" style="color: var(--color-primary);">
+                Edición de Precios y Aranceles
+            </h2>
+            <p class="text-muted m-0 mt-1 fs-6">Configuración de costos para Mantenimiento, EvBoTa y Promoción por modalidad.</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-white text-dark border shadow-sm px-3 py-2 rounded-3 fs-6">
+                <i class="bi bi-clock-history text-warning me-1"></i> Conserva Importes Históricos[cite: 1]
+            </span>
+        </div>
+    </div>
+
+    <!-- TABLA DE PRECIOS POR MODALIDAD -->
+    <div class="card-custom p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0" style="color: var(--color-primary);">
+                <i class="bi bi-tags-fill me-2" style="color: var(--color-accent);"></i>Precios Actuales por Modalidad
+            </h5>
+            <button type="submit" form="formGuardarPrecios" class="btn btn-primary-custom">
+                <i class="bi bi-save me-1"></i> Guardar Cambios de Precios
+            </button>
+        </div>
+
+        <form id="formGuardarPrecios" method="post">
+            <div class="table-container">
+                <table class="table table-custom table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Modalidad</th>
+                            <th>Costo Mantenimiento</th>
+                            <th>Costo EvBoTa</th>
+                            <th>Costo Promoción</th>
+                            <th class="text-end">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Fila Preescolar -->
+                        <tr>
+                            <td class="fw-bold" style="color: var(--color-primary);">Preescolar</td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoMantenimientoPreescolar" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoEvBoTaPreescolar" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoPromocionPreescolar" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <span class="badge bg-light text-dark border">Cargando...</span>
+                            </td>
+                        </tr>
+                        <!-- Fila Primaria -->
+                        <tr>
+                            <td class="fw-bold" style="color: var(--color-primary);">Primaria</td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoMantenimientoPrimaria" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoEvBoTaPrimaria" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoPromocionPrimaria" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <span class="badge bg-light text-dark border">Cargando...</span>
+                            </td>
+                        </tr>
+                        <!-- Fila Secundaria -->
+                        <tr>
+                            <td class="fw-bold" style="color: var(--color-primary);">Secundaria</td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoMantenimientoSecundaria" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoEvBoTaSecundaria" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="max-width: 180px;">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" name="costoPromocionSecundaria" placeholder="0.00" required>
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <span class="badge bg-light text-dark border">Cargando...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+
+    <!-- SECCIÓN: SINCRONIZACIÓN DE PRECIOS DE PROMOCIÓN -->
+    <div class="card-custom p-4">
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-arrow-repeat me-2 fs-4" style="color: var(--color-accent);"></i>
+            <h5 class="fw-bold m-0" style="color: var(--color-primary);">Sincronizar Precios de Promoción Pendientes</h5>
+        </div>
+
+        <div class="sync-banner p-3 mb-4">
+            <p class="m-0 text-dark small">
+                <i class="bi bi-exclamation-triangle-fill me-1" style="color: var(--color-accent);"></i>
+                <strong>Alcance de la sincronización:</strong> Esta acción actualizará únicamente las deudas de promoción con estado <strong>'Pendiente'</strong> al nuevo costo actual de su modalidad[cite: 1]. Los pagos cancelados y registros históricos no sufrirán modificaciones[cite: 1].
+            </p>
+        </div>
+
+        <form method="post" onsubmit="return confirm('¿Está seguro de que desea sincronizar los precios de promoción pendientes con los aranceles actuales?');">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-secondary small">Año Lectivo a Sincronizar</label>
+                    <input type="number" class="form-control form-control-custom" name="anioSincronizar" value="@DateTime.Now.Year" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold text-secondary small">Modalidad Específica (Opcional)</label>
+                    <select class="form-select form-select-custom" name="modalidadSincronizar">
+                        <option value="Todas">Todas las modalidades</option>
+                        <option value="Preescolar">Preescolar</option>
+                        <option value="Primaria">Primaria</option>
+                        <option value="Secundaria">Secundaria</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-accent-custom w-100">
+                        <i class="bi bi-arrow-repeat me-1"></i> Sincronizar Precios[cite: 1]
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>

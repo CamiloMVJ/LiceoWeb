@@ -1,0 +1,281 @@
+﻿@* @page
+@model LiceoWeb.Pages.Reportes.IndexModel
+@{
+}
+ *@
+
+@page
+@{
+    ViewData["Title"] = "Consultas y Estados de Cobros";
+}
+
+<style>
+    :root {
+        --bg-main: #F4F6F8;
+        --color-primary: #1B264F;
+        --color-accent: #C99700;
+        --color-primary-dark: #121A38;
+    }
+
+    body {
+        background-color: var(--bg-main);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Estilos del Encabezado */
+    .header-dashboard {
+        background: #FFFFFF;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(27, 38, 79, 0.05);
+        border-left: 6px solid var(--color-accent);
+    }
+
+    /* Tarjetas KPI */
+    .kpi-card {
+        background: #FFFFFF;
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(27, 38, 79, 0.08);
+        }
+
+    .kpi-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+    }
+
+    /* Tarjeta Principal y Filtros */
+    .filter-card {
+        background: #FFFFFF;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .form-control-custom, .form-select-custom {
+        border: 1.5px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 0.65rem 1rem;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+
+        .form-control-custom:focus, .form-select-custom:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(27, 38, 79, 0.15);
+        }
+
+    .btn-primary-custom {
+        background-color: var(--color-primary);
+        color: #FFFFFF;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.65rem 1.5rem;
+        border: none;
+        transition: all 0.2s;
+    }
+
+        .btn-primary-custom:hover {
+            background-color: var(--color-primary-dark);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(27, 38, 79, 0.25);
+        }
+
+    /* Tabla Estilizada */
+    .table-container {
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid #EDF2F7;
+    }
+
+    .table-custom {
+        margin: 0;
+    }
+
+        .table-custom thead {
+            background-color: var(--color-primary);
+            color: #FFFFFF;
+        }
+
+        .table-custom th {
+            font-weight: 600;
+            font-size: 0.88rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1rem 1.25rem;
+            border: none;
+        }
+
+    .empty-state {
+        padding: 4rem 2rem;
+        background-color: #FAFAFC;
+    }
+
+    .empty-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        background-color: #F1F5F9;
+        color: var(--color-primary);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.2rem;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="container py-4">
+
+    <!-- ENCABEZADO DE LA PÁGINA -->
+    <div class="header-dashboard p-4 mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <span class="badge px-3 py-2 text-uppercase mb-2 fw-bold" style="background-color: rgba(201, 151, 0, 0.15); color: var(--color-accent); border-radius: 8px;">
+                <i class="bi bi-shield-check me-1"></i> Módulo Mantenimiento, EvBoTa y Promoción
+            </span>
+            <h2 class="fw-bold m-0" style="color: var(--color-primary);">
+                Consultas y Estados de Cobros
+            </h2>
+            <p class="text-muted m-0 mt-1 fs-6">Monitoreo general de deudas pendientes, cancelaciones e historial de comprobantes.</p>
+        </div>
+        <div class="d-none d-md-block text-end">
+            <span class="badge bg-white text-dark border shadow-sm px-3 py-2 rounded-3 fs-6">
+                <i class="bi bi-clock-history text-warning me-1"></i> Acceso a Histórico
+            </span>
+        </div>
+    </div>
+
+    <!-- TARJETAS CON METRICAS/KPIS -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="kpi-card p-3 d-flex align-items-center">
+                <div class="kpi-icon me-3" style="background-color: rgba(27, 38, 79, 0.1); color: var(--color-primary);">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div>
+                    <span class="text-muted small fw-semibold">Mantenimiento</span>
+                    <h4 class="fw-bold m-0" style="color: var(--color-primary);">$0.00</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card p-3 d-flex align-items-center">
+                <div class="kpi-icon me-3" style="background-color: rgba(201, 151, 0, 0.15); color: var(--color-accent);">
+                    <i class="bi bi-card-checklist"></i>
+                </div>
+                <div>
+                    <span class="text-muted small fw-semibold">EvBoTa</span>
+                    <h4 class="fw-bold m-0" style="color: var(--color-primary);">$0.00</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card p-3 d-flex align-items-center">
+                <div class="kpi-icon me-3" style="background-color: rgba(27, 38, 79, 0.1); color: var(--color-primary);">
+                    <i class="bi bi-mortarboard"></i>
+                </div>
+                <div>
+                    <span class="text-muted small fw-semibold">Promoción</span>
+                    <h4 class="fw-bold m-0" style="color: var(--color-primary);">$0.00</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TARJETA DE FILTROS -->
+    <div class="filter-card p-4 mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-funnel-fill me-2 fs-5" style="color: var(--color-accent);"></i>
+            <h5 class="fw-bold m-0" style="color: var(--color-primary);">Filtros Avanzados de Búsqueda</h5>
+        </div>
+
+        <form method="get">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-secondary small">Concepto de Cobro</label>
+                    <select class="form-select form-select-custom" name="concepto">
+                        <option value="Todos">Todos los conceptos</option>
+                        <option value="Mantenimiento">Mantenimiento</option>
+                        <option value="EvBoTa">EvBoTa (Evaluaciones/Boletín)</option>
+                        <option value="Promocion">Promoción</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-secondary small">Estado del Registro</label>
+                    <select class="form-select form-select-custom" name="estado">
+                        <option value="Todos">Pendientes y Cancelados</option>
+                        <option value="Pendiente">Solo Pendientes</option>
+                        <option value="Cancelado">Solo Cancelados</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold text-secondary small">Año Lectivo</label>
+                    <input type="number" class="form-control form-control-custom" name="anio" value="@DateTime.Now.Year">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-secondary small">Buscar por Estudiante / Comprobante</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-custom" name="criterio" placeholder="Código o Nº comprobante...">
+                        <button type="submit" class="btn btn-primary-custom px-4">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- TABLA DE RESULTADOS -->
+    <div class="filter-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold m-0" style="color: var(--color-primary);">
+                    <i class="bi bi-table me-2" style="color: var(--color-accent);"></i>Resultados de la Consulta
+                </h5>
+            </div>
+            <span class="badge px-3 py-2 text-dark border" style="background-color: #F8FAFC; border-radius: 8px;">
+                <strong>0</strong> registros encontrados
+            </span>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-custom table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Nº Comprobante</th>
+                        <th>Estudiante / Registro</th>
+                        <th>Concepto</th>
+                        <th>Grado / Modalidad</th>
+                        <th>Año</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th class="text-end">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- ESTADO VACÍO (Sin quemar datos estáticos) -->
+                    <tr>
+                        <td colspan="8" class="text-center empty-state">
+                            <div class="empty-icon-wrapper">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <h5 class="fw-bold" style="color: var(--color-primary);">No hay datos para mostrar</h5>
+                            <p class="text-muted mb-0 fs-6">Aún no existen cobros ni deudas registradas con los filtros seleccionados en la base de datos.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
