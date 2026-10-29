@@ -25,11 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="database\procedures\" />
     <Folder Include="Repositories\" />
     <Folder Include="test\" />
     <Folder Include="ViewModels\" />
-    <Folder Include="Services\" />
     <Folder Include="Pages\Arreglos\" />
     <Folder Include="Pages\Recibos\" />
     <Folder Include="Pages\Precios\" />

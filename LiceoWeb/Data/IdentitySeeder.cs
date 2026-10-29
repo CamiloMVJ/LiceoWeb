@@ -8,7 +8,8 @@ public static class IdentitySeeder
     private static readonly string[] RolesPermitidos =
     [
         "Administrador",
-        "Profesor"
+        "Profesor",
+        "Cajero"
     ];
 
     public static async Task CrearCuentasAsync(
