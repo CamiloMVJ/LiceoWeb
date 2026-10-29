@@ -52,6 +52,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddRazorPages(options =>
 {
+    options.Conventions.AllowAnonymousToPage("/Index");
+
     options.Conventions.AuthorizeFolder(
         "/", "OperarSistema");
 
