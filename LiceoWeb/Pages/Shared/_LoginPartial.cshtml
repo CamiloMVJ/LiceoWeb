@@ -1,26 +1,53 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @inject SignInManager<IdentityUser> SignInManager
-@inject UserManager<IdentityUser> UserManager
 
-<ul class="navbar-nav">
+@{
+    var paginaActual =
+        ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+
+    var areaActual =
+        ViewContext.RouteData.Values["area"]?.ToString() ?? "";
+
+    var esPortada =
+        string.IsNullOrEmpty(areaActual)
+        && paginaActual.Equals(
+            "/Index",
+            StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="liceo-session">
     @if (SignInManager.IsSignedIn(User))
     {
-        <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @User.Identity?.Name!</a>
-        </li>
-        <li class="nav-item">
-            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index", new { area = "" })">
-                <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
-            </form>
-        </li>
+        @if (esPortada
+            && (User.IsInRole("Administrador")
+            || User.IsInRole("Profesor")))
+        {
+            <a asp-area=""
+               asp-page="/Panel/Index"
+               class="liceo-session-button liceo-session-button-primary">
+                Entrar al sistema
+            </a>
+        }
+
+        <form asp-area="Identity"
+              asp-page="/Account/Logout"
+              asp-route-returnUrl="@Url.Page("/Index", new { area = "" })"
+              method="post"
+              class="liceo-session-form">
+
+            <button type="submit"
+                    class="liceo-session-button liceo-session-button-outline">
+                Cerrar sesión
+            </button>
+        </form>
     }
     else
     {
-        @* <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Register</a>
-        </li> *@
-        <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Login</a>
-        </li>
+        <a asp-area="Identity"
+           asp-page="/Account/Login"
+           asp-route-returnUrl="@Url.Page("/Index", new { area = "" })"
+           class="liceo-session-button liceo-session-button-primary">
+            Iniciar sesión
+        </a>
     }
-</ul>
+</div>

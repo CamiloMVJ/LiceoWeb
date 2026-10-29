@@ -1,10 +1,28 @@
 ﻿@page
-@model IndexModel
+@model LiceoWeb.Pages.IndexModel
+
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="liceo-home" aria-labelledby="home-title">
+
+    <div class="liceo-home-heading">
+        <span class="liceo-home-label">
+            Liceo Hispanidad
+        </span>
+
+        <h1 id="home-title">
+            Bienvenidos
+        </h1>
+    </div>
+
+    <section class="liceo-home-placeholder"
+             aria-label="Información institucional">
+
+        @* Aquí se agregará la información del colegio. *@
+
+        <p>Espacio para información del colegio</p>
+    </section>
+
+</section>

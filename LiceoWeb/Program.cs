@@ -1,6 +1,7 @@
 using LiceoWeb.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using LiceoWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +31,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("OperarSistema", policy =>
     {
         policy.RequireAuthenticatedUser();
-        policy.RequireRole("Administrador", "Profesor");
+        policy.RequireRole("Administrador", "Profesor", "Cajero");
     });
 
     options.AddPolicy("SoloAdministrador", policy =>
@@ -51,6 +52,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddRazorPages(options =>
 {
+    options.Conventions.AllowAnonymousToPage("/Index");
+
     options.Conventions.AuthorizeFolder(
         "/", "OperarSistema");
 
@@ -73,6 +76,8 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Error");
 });
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<UsuarioActual>();
 //builder.Services.AddRazorPages();
 
 var app = builder.Build();

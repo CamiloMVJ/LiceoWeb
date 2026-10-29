@@ -28,13 +28,11 @@
     <Folder Include="Repositories\" />
     <Folder Include="test\" />
     <Folder Include="ViewModels\" />
-    <Folder Include="Services\" />
     <Folder Include="Pages\Arreglos\" />
     <Folder Include="Pages\Recibos\" />
     <Folder Include="Pages\Precios\" />
     <Folder Include="Pages\Mensualidades\" />
     <Folder Include="Pages\Matriculas\" />
-    <Folder Include="Pages\Estudiantes\" />
   </ItemGroup>
 
 </Project>
