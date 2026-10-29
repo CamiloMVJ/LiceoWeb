@@ -63,6 +63,13 @@
     </a>
 
     <a asp-area=""
+       asp-page="/Mensualidades/GestionMensualidades"
+       class="@(EstaActivo("/Mensualidades/GestionMensualidades") ? "active" : "")"
+       aria-current="@AriaActual("/Mensualidades/GestionMensualidades")">
+        Gestión de Mensualidades
+    </a>
+
+    <a asp-area=""
        asp-page="/Mantenimientos/Index"
        class="@(EstaActivo("/Mantenimientos") ? "active" : "")"
        aria-current="@AriaActual("/Mantenimientos")">

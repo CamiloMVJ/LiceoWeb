@@ -562,6 +562,49 @@ WHERE Registro_Estudiante = @Registro
 END
 GO
 
+/* --- FILTRAR MENSUALIDADES CONSULTAS (Actualizado) --- */
+CREATE OR ALTER PROCEDURE Filtrar_Mensualidades_Consultas
+    @NombreEstudiante NVARCHAR(100) = '',
+    @Modalidad NVARCHAR(20) = 'Todos',
+    @Grado NVARCHAR(50) = 'Todos',
+    @Mes NVARCHAR(20) = 'Todos',
+    @Estado NVARCHAR(20) = 'Todos',
+    @Anio INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Asegura que los estados estén actualizados al día 17
+    EXEC Actualizar_Estados_Vencidos;
+
+    SELECT 
+        M.Id,
+        E.Registro,
+        E.NombreEstudiante,
+        E.Grado,
+        M.Modalidad,
+        M.Anio,
+        M.Mes,
+        M.Numero_Mes,
+        M.Costo_Mensualidad AS Monto,
+        M.Estado,
+        ISNULL(A.Abono_Disponible, 0) AS SaldoDisponible
+    FROM Mensualidades M
+    INNER JOIN Estudiantes E ON M.Registro_Estudiante = E.Registro
+    LEFT JOIN Abonos A ON E.Registro = A.Registro_Estudiante
+    WHERE 
+        (@Anio IS NULL OR @Anio = 0 OR M.Anio = @Anio)
+        AND (@NombreEstudiante IS NULL OR @NombreEstudiante = '' 
+             OR E.NombreEstudiante LIKE '%' + @NombreEstudiante + '%'
+             OR E.Registro LIKE '%' + @NombreEstudiante + '%')
+        AND (@Modalidad = 'Todos' OR M.Modalidad = @Modalidad)
+        AND (@Grado = 'Todos' OR E.Grado = @Grado)
+        AND (@Mes = 'Todos' OR M.Mes = @Mes)
+        AND (@Estado = 'Todos' OR M.Estado = @Estado)
+    ORDER BY M.Anio DESC, M.Numero_Mes ASC, E.NombreEstudiante ASC;
+END
+GO
+
 -- 5.2 Pagar_Mensualidad (Mejorado: Respeta mes/año límite, soporta pago con saldo, bloquea concurrencia y devuelve contrato completo)
 CREATE OR ALTER PROCEDURE Pagar_Mensualidad
 @Registro NVARCHAR(10),

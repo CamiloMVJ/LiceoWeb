@@ -6,7 +6,7 @@ using System.Data;
 
 namespace LiceoWeb.Pages.Mensualidades
 {
-    [Authorize]
+    [Authorize(Policy = "OperarSistema")]
     public class CobrosMensualidadModel : PageModel
     {
         private readonly IConfiguration _configuration;

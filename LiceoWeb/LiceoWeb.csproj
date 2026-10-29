@@ -31,7 +31,6 @@
     <Folder Include="Pages\Arreglos\" />
     <Folder Include="Pages\Recibos\" />
     <Folder Include="Pages\Precios\" />
-    <Folder Include="Pages\Mensualidades\" />
     <Folder Include="Pages\Matriculas\" />
   </ItemGroup>
 
