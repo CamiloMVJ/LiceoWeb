@@ -1,0 +1,120 @@
+﻿@{
+    var paginaActual =
+        ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+
+    var areaActual =
+        ViewContext.RouteData.Values["area"]?.ToString() ?? "";
+
+    bool EstaActivo(string ruta)
+    {
+        if (!string.IsNullOrEmpty(areaActual))
+        {
+            return false;
+        }
+
+        if (ruta == "/Index")
+        {
+            return paginaActual.Equals(
+                ruta,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        return paginaActual.Equals(
+                   ruta,
+                   StringComparison.OrdinalIgnoreCase)
+               || paginaActual.StartsWith(
+                   ruta + "/",
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
+    string? AriaActual(string ruta) =>
+        EstaActivo(ruta) ? "page" : null;
+}
+
+<p class="liceo-menu-title">Menú principal</p>
+
+<nav class="liceo-menu" aria-label="Módulos del sistema">
+    <a asp-area=""
+       asp-page="/Panel/Index"
+       class="@(EstaActivo("/Panel") ? "active" : "")"
+       aria-current="@AriaActual("/Panel")">
+        Inicio del sistema
+    </a>
+
+    <a asp-area=""
+       asp-page="/Estudiantes/Index"
+       class="@(EstaActivo("/Estudiantes") ? "active" : "")"
+       aria-current="@AriaActual("/Estudiantes")">
+        Estudiantes
+    </a>
+
+    <a asp-area=""
+       asp-page="/Matriculas/Index"
+       class="@(EstaActivo("/Matriculas") ? "active" : "")"
+       aria-current="@AriaActual("/Matriculas")">
+        Matrículas
+    </a>
+
+    <a asp-area=""
+       asp-page="/Mensualidades/Index"
+       class="@(EstaActivo("/Mensualidades") ? "active" : "")"
+       aria-current="@AriaActual("/Mensualidades")">
+        Mensualidades
+    </a>
+
+    <a asp-area=""
+       asp-page="/Mantenimientos/Index"
+       class="@(EstaActivo("/Mantenimientos") ? "active" : "")"
+       aria-current="@AriaActual("/Mantenimientos")">
+        Mantenimiento
+    </a>
+
+    <a asp-area=""
+       asp-page="/EvBoTa/Index"
+       class="@(EstaActivo("/EvBoTa") ? "active" : "")"
+       aria-current="@AriaActual("/EvBoTa")">
+        Evaluaciones, boletín y tarjeta
+    </a>
+
+    <a asp-area=""
+       asp-page="/Promociones/Index"
+       class="@(EstaActivo("/Promociones") ? "active" : "")"
+       aria-current="@AriaActual("/Promociones")">
+        Promoción
+    </a>
+
+    <a asp-area=""
+       asp-page="/Comprobantes/Index"
+       class="@(EstaActivo("/Comprobantes") ? "active" : "")"
+       aria-current="@AriaActual("/Comprobantes")">
+        Comprobantes
+    </a>
+
+    @if (User.IsInRole("Administrador"))
+    {
+        <div class="liceo-menu-divider"></div>
+
+        <p class="liceo-menu-title">Administración</p>
+
+        <a asp-area=""
+           asp-page="/Arreglos/Index"
+           class="@(EstaActivo("/Arreglos") ? "active" : "")"
+           aria-current="@AriaActual("/Arreglos")">
+            Arreglos de pago
+        </a>
+
+        <a asp-area=""
+           asp-page="/Precios/Index"
+           class="@(EstaActivo("/Precios") ? "active" : "")"
+           aria-current="@AriaActual("/Precios")">
+            Tarifas
+        </a>
+
+        <a asp-area=""
+           asp-page="/Reportes/Index"
+           class="@(EstaActivo("/Reportes") ? "active" : "")"
+           aria-current="@AriaActual("/Reportes")">
+            Reportes
+        </a>
+    }
+</nav>
