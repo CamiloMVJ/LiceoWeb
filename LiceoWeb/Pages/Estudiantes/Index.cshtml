@@ -1,6 +1,27 @@
-﻿namespace LiceoWeb.Pages.Estudiantes
-{
-    public class Index
-    {
-    }
+﻿@page
+@model LiceoWeb.Pages.Estudiantes.IndexModel
+@{
+    ViewData["Title"] = "Estudiantes";
 }
+<link rel="stylesheet" href="~/css/liceo-modulos.css" asp-append-version="true" />
+<section class="liceo-modulo">
+    <header class="lm-head"><div><div class="lm-eyebrow">Gestión académica / Estudiantes</div><h1>Directorio de estudiantes</h1><p>Consulta los alumnos y accede a registro o edición.</p></div><a asp-page="/Estudiantes/Registrar" class="lm-btn primary">＋ Registrar estudiante</a></header>
+    <div class="lm-cards"><div class="lm-card"><div class="lm-meta">Total registrados</div><div class="lm-metric">248</div><div class="lm-meta">Ejemplo visual</div></div><div class="lm-card"><div class="lm-meta">Activos</div><div class="lm-metric">231</div><div class="lm-meta">Ejemplo visual</div></div><div class="lm-card"><div class="lm-meta">Pendientes</div><div class="lm-metric">17</div><div class="lm-meta">Ejemplo visual</div></div></div>
+    <div class="lm-panel">
+        <div class="lm-panel-header"><div><h2>Listado de alumnos</h2><p>Los registros mostrados son de demostración.</p></div><div class="lm-tools"><input id="buscarAlumno" class="lm-search" placeholder="Buscar por nombre o código" aria-label="Buscar estudiante" /><select id="filtroModalidad" class="lm-search" aria-label="Filtrar modalidad"><option value="">Todas las modalidades</option><option>Regular</option><option>Sabatina</option></select></div></div>
+        <div class="lm-table-scroll">
+            <table id="tablaAlumnos">
+                <thead><tr><th>Código</th><th>Nombre</th><th>Modalidad</th><th>Grado</th><th>Estado</th><th>Acción</th></tr></thead>
+                <tbody>
+                    <tr><td>EST-0001</td><td>María López</td><td>Regular</td><td>7.º</td><td><span class="lm-pill">Activo</span></td><td><a asp-page="/Estudiantes/Editar" asp-route-id="1" class="lm-link">Editar</a></td></tr>
+                    <tr><td>EST-0002</td><td>Carlos Martínez</td><td>Sabatina</td><td>10.º</td><td><span class="lm-pill pending">Pendiente</span></td><td><a asp-page="/Estudiantes/Editar" asp-route-id="2" class="lm-link">Editar</a></td></tr>
+                    <tr><td>EST-0003</td><td>Ana Rodríguez</td><td>Regular</td><td>8.º</td><td><span class="lm-pill">Activo</span></td><td><a asp-page="/Estudiantes/Editar" asp-route-id="3" class="lm-link">Editar</a></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="lm-notice">Esta pantalla es un diseño de ejemplo. Reemplaza las filas y cifras estáticas por consultas a tu base de datos.</div>
+</section>
+<script>
+    (()=>{const b=document.getElementById('buscarAlumno'),m=document.getElementById('filtroModalidad');function filtrar(){document.querySelectorAll('#tablaAlumnos tbody tr').forEach(f=>{f.hidden=!(f.textContent.toLowerCase().includes(b.value.trim().toLowerCase())&&(!m.value||f.cells[2].textContent.trim()===m.value));});}b.addEventListener('input',filtrar);m.addEventListener('change',filtrar);})();
+</script>

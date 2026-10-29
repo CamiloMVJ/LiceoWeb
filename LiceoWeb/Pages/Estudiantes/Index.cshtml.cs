@@ -1,6 +1,6 @@
-﻿namespace LiceoWeb.Pages.Estudiantes
+﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+namespace LiceoWeb.Pages.Estudiantes;
+public class IndexModel : PageModel
 {
-    public class Index
-    {
-    }
+    public void OnGet() { } // TODO: Consultar estudiantes reales en la base de datos.
 }

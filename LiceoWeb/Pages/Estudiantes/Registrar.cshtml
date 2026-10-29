@@ -1,6 +1,35 @@
-﻿namespace LiceoWeb.Pages.Estudiantes
-{
-    public class Registrar
-    {
-    }
+﻿@page
+@model LiceoWeb.Pages.Estudiantes.RegistrarModel
+@{
+	ViewData["Title"] = "Registrar estudiante";
 }
+<link rel="stylesheet" href="~/css/liceo-modulos.css" asp-append-version="true" />
+<section class="liceo-modulo">
+	<header class="lm-head"><div><div class="lm-eyebrow">Estudiantes / Registrar</div><h1>Registrar estudiante</h1><p>Completa los datos para crear un expediente.</p></div><a asp-page="/Estudiantes/Index" class="lm-btn">← Volver al directorio</a></header>
+	<div class="lm-panel">
+		<div class="lm-panel-header"><div><h2>Información del estudiante</h2><p>Los campos marcados con * son obligatorios.</p></div></div><div class="lm-panel-body">
+			<form method="post">
+				<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+				<div class="lm-fields">
+					<label class="lm-field">Nombre completo *<input asp-for="Alumno.Nombre" placeholder="Nombre y apellidos" /><span asp-validation-for="Alumno.Nombre" class="text-danger"></span></label>
+					<label class="lm-field">Código *<input asp-for="Alumno.Codigo" placeholder="EST-0004" /><span asp-validation-for="Alumno.Codigo" class="text-danger"></span></label>
+					<label class="lm-field">Fecha de nacimiento *<input asp-for="Alumno.FechaNacimiento" type="date" /><span asp-validation-for="Alumno.FechaNacimiento" class="text-danger"></span></label>
+					<label class="lm-field">Sexo *<select asp-for="Alumno.Sexo"><option value="">Seleccionar</option><option value="Femenino">Femenino</option><option value="Masculino">Masculino</option><option value="Otro">Otro</option></select><span asp-validation-for="Alumno.Sexo" class="text-danger"></span></label>
+					<label class="lm-field">Modalidad *<select asp-for="Alumno.Modalidad" id="modalidadAlumno"><option value="">Seleccionar</option><option value="Regular">Regular</option><option value="Sabatina">Sabatina</option></select><span asp-validation-for="Alumno.Modalidad" class="text-danger"></span></label>
+					<label class="lm-field">Grado *<select asp-for="Alumno.Grado" id="gradoAlumno"><option value="">Seleccionar</option><option value="7.º">7.º</option><option value="8.º">8.º</option><option value="9.º">9.º</option><option value="10.º">10.º</option><option value="11.º">11.º</option></select><span asp-validation-for="Alumno.Grado" class="text-danger"></span></label>
+				</div><h2 class="lm-divider-title">Datos del tutor</h2>
+				<div class="lm-fields">
+					<label class="lm-field">Nombre del tutor *<input asp-for="Alumno.Tutor" placeholder="Nombre completo" /><span asp-validation-for="Alumno.Tutor" class="text-danger"></span></label>
+					<label class="lm-field">Teléfono *<input asp-for="Alumno.Telefono" type="tel" placeholder="8888-8888" /><span asp-validation-for="Alumno.Telefono" class="text-danger"></span></label>
+					<label class="lm-field wide">Dirección<input asp-for="Alumno.Direccion" placeholder="Barrio, municipio y referencias" /></label>
+					<label class="lm-field full">Observaciones<textarea asp-for="Alumno.Notas" rows="3" placeholder="Información opcional"></textarea></label>
+				</div>
+				<div class="lm-notice">Diseño de demostración: guarda la información en la base de datos cuando integres el servicio de estudiantes. Por ahora, el formulario no modifica registros.</div><div class="lm-actions"><a asp-page="/Estudiantes/Index" class="lm-btn">Cancelar</a><button type="submit" class="lm-btn primary">Registrar estudiante</button></div>
+			</form>
+		</div>
+	</div>
+</section>
+<script>
+	// Ajusta la correspondencia modalidad-grado a las reglas académicas reales.
+	(()=>{const m=document.getElementById('modalidadAlumno'),g=document.getElementById('gradoAlumno');const disponibles={Regular:['7.º','8.º','9.º','10.º','11.º'],Sabatina:['7.º','8.º','9.º','10.º','11.º']};function actualizar(){let actual=g.value;g.innerHTML='<option value="">Seleccionar</option>';(disponibles[m.value]||[]).forEach(x=>g.add(new Option(x,x)));g.value=actual;}m.addEventListener('change',actualizar);actualizar();})();
+</script>
