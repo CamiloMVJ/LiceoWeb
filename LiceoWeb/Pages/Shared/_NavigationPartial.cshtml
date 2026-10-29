@@ -5,30 +5,16 @@
     var areaActual =
         ViewContext.RouteData.Values["area"]?.ToString() ?? "";
 
-    bool EstaActivo(string ruta)
+    bool EstaActivo(string pagina)
     {
-        if (!string.IsNullOrEmpty(areaActual))
-        {
-            return false;
-        }
-
-        if (ruta == "/Index")
-        {
-            return paginaActual.Equals(
-                ruta,
+        return string.IsNullOrEmpty(areaActual)
+            && paginaActual.Equals(
+                pagina,
                 StringComparison.OrdinalIgnoreCase);
-        }
-
-        return paginaActual.Equals(
-                   ruta,
-                   StringComparison.OrdinalIgnoreCase)
-               || paginaActual.StartsWith(
-                   ruta + "/",
-                   StringComparison.OrdinalIgnoreCase);
     }
 
-    string? AriaActual(string ruta) =>
-        EstaActivo(ruta) ? "page" : null;
+    string? AriaActual(string pagina) =>
+        EstaActivo(pagina) ? "page" : null;
 }
 
 <p class="liceo-menu-title">Menú principal</p>
@@ -36,57 +22,50 @@
 <nav class="liceo-menu" aria-label="Módulos del sistema">
     <a asp-area=""
        asp-page="/Panel/Index"
-       class="@(EstaActivo("/Panel") ? "active" : "")"
-       aria-current="@AriaActual("/Panel")">
+       class="@(EstaActivo("/Panel/Index") ? "active" : "")"
+       aria-current="@AriaActual("/Panel/Index")">
         Inicio del sistema
     </a>
 
     <a asp-area=""
        asp-page="/Estudiantes/Index"
-       class="@(EstaActivo("/Estudiantes") ? "active" : "")"
-       aria-current="@AriaActual("/Estudiantes")">
-        Estudiantes
-    </a>
-
-    <a asp-area=""
-       asp-page="/Matriculas/Index"
-       class="@(EstaActivo("/Matriculas") ? "active" : "")"
-       aria-current="@AriaActual("/Matriculas")">
-        Matrículas
+       class="@(EstaActivo("/Estudiantes/Index") ? "active" : "")"
+       aria-current="@AriaActual("/Estudiantes/Index")">
+        Estudiantes y matrícula
     </a>
 
     <a asp-area=""
        asp-page="/Mensualidades/Index"
-       class="@(EstaActivo("/Mensualidades") ? "active" : "")"
-       aria-current="@AriaActual("/Mensualidades")">
+       class="@(EstaActivo("/Mensualidades/Index") ? "active" : "")"
+       aria-current="@AriaActual("/Mensualidades/Index")">
         Mensualidades
     </a>
 
     <a asp-area=""
        asp-page="/Mantenimientos/Index"
-       class="@(EstaActivo("/Mantenimientos") ? "active" : "")"
-       aria-current="@AriaActual("/Mantenimientos")">
+       class="@(EstaActivo("/Mantenimientos/Index") ? "active" : "")"
+       aria-current="@AriaActual("/Mantenimientos/Index")">
         Mantenimiento
     </a>
 
     <a asp-area=""
        asp-page="/EvBoTa/Index"
-       class="@(EstaActivo("/EvBoTa") ? "active" : "")"
-       aria-current="@AriaActual("/EvBoTa")">
+       class="@(EstaActivo("/EvBoTa/Index") ? "active" : "")"
+       aria-current="@AriaActual("/EvBoTa/Index")">
         Evaluaciones, boletín y tarjeta
     </a>
 
     <a asp-area=""
        asp-page="/Promociones/Index"
-       class="@(EstaActivo("/Promociones") ? "active" : "")"
-       aria-current="@AriaActual("/Promociones")">
+       class="@(EstaActivo("/Promociones/Index") ? "active" : "")"
+       aria-current="@AriaActual("/Promociones/Index")">
         Promoción
     </a>
 
     <a asp-area=""
        asp-page="/Comprobantes/Index"
-       class="@(EstaActivo("/Comprobantes") ? "active" : "")"
-       aria-current="@AriaActual("/Comprobantes")">
+       class="@(EstaActivo("/Comprobantes/Index") ? "active" : "")"
+       aria-current="@AriaActual("/Comprobantes/Index")">
         Comprobantes
     </a>
 
@@ -98,22 +77,22 @@
 
         <a asp-area=""
            asp-page="/Arreglos/Index"
-           class="@(EstaActivo("/Arreglos") ? "active" : "")"
-           aria-current="@AriaActual("/Arreglos")">
+           class="@(EstaActivo("/Arreglos/Index") ? "active" : "")"
+           aria-current="@AriaActual("/Arreglos/Index")">
             Arreglos de pago
         </a>
 
         <a asp-area=""
            asp-page="/Precios/Index"
-           class="@(EstaActivo("/Precios") ? "active" : "")"
-           aria-current="@AriaActual("/Precios")">
+           class="@(EstaActivo("/Precios/Index") ? "active" : "")"
+           aria-current="@AriaActual("/Precios/Index")">
             Tarifas
         </a>
 
         <a asp-area=""
            asp-page="/Reportes/Index"
-           class="@(EstaActivo("/Reportes") ? "active" : "")"
-           aria-current="@AriaActual("/Reportes")">
+           class="@(EstaActivo("/Reportes/Index") ? "active" : "")"
+           aria-current="@AriaActual("/Reportes/Index")">
             Reportes
         </a>
     }

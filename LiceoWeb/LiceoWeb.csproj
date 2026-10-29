@@ -27,11 +27,9 @@
   <ItemGroup>
     <Folder Include="Repositories\" />
     <Folder Include="test\" />
-    <Folder Include="ViewModels\" />
     <Folder Include="Pages\Arreglos\" />
     <Folder Include="Pages\Recibos\" />
     <Folder Include="Pages\Precios\" />
-    <Folder Include="Pages\Cobros\" />
     <Folder Include="Pages\Mensualidades\" />
     <Folder Include="Pages\Matriculas\" />
   </ItemGroup>

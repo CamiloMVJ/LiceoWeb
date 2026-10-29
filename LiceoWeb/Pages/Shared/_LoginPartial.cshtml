@@ -20,7 +20,8 @@
     {
         @if (esPortada
             && (User.IsInRole("Administrador")
-            || User.IsInRole("Profesor")))
+            || User.IsInRole("Profesor")
+            || User.IsInRole("Cajero")))
         {
             <a asp-area=""
                asp-page="/Panel/Index"
