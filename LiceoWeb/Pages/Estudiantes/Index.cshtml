@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model LiceoWeb.Pages.Estudiantes.IndexModel
 
 @{
@@ -16,12 +16,9 @@
             </p>
         </div>
 
-        <button type="button"
-                class="btn btn-liceo-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#modalCrearEstudiante">
-            Registrar estudiante
-        </button>
+        @if (esAdministrador) {
+            <a asp-page="Expediente" class="btn btn-liceo-primary">Registrar estudiante</a>
+        }
     </div>
 
     <section class="liceo-card mb-4"
@@ -97,7 +94,7 @@
             @if (Model.ConsultaRealizada)
             {
                 <span class="text-muted">
-                    @Model.Estudiantes.Count resultados
+                    @Model.Estudiantes.Count resultados (máximo 200; filtra para precisar)
                 </span>
             }
         </div>
@@ -105,8 +102,7 @@
         @if (!Model.ConsultaRealizada)
         {
             <p class="text-muted py-4 mb-0">
-                El listado estará disponible cuando se conecte
-                la consulta de estudiantes.
+                @Model.Error
             </p>
         }
         else if (Model.Estudiantes.Count == 0)
@@ -165,31 +161,18 @@
                                 <td>
                                     <div class="estudiante-acciones">
 
-                                @if (estudiante.Activo)
-                                        {
-                                            <a asp-page="/Matriculas/Crear"
-                                               asp-route-registro="@estudiante.Registro"
-                                               class="btn btn-sm btn-liceo-secondary">
-                                                Matricular
-                                            </a>
-                                        }
-
                                         @if (esAdministrador)
                                         {
-                                            <a asp-page="/Estudiantes/Editar"
+                                            <a asp-page="/Estudiantes/Expediente"
                                                asp-route-registro="@estudiante.Registro"
                                                class="btn btn-sm btn-liceo-secondary">
                                                 Actualizar
                                             </a>
-
-                                            @if (estudiante.Activo)
-                                            {
-                                                <a asp-page="/Estudiantes/DarBaja"
-                                                   asp-route-registro="@estudiante.Registro"
-                                                   class="btn btn-sm btn-outline-danger">
-                                                    Dar de baja
-                                                </a>
+                                            @if(estudiante.Activo) {
+                                            <a asp-page="DarBaja" asp-route-registro="@estudiante.Registro" class="btn btn-sm btn-outline-danger">Dar de baja</a>
                                             }
+
+
                                         }
                                     </div>
                                 </td>
@@ -201,4 +184,3 @@
         }
     </section>
 </div>
-<partial name="_Crear" />

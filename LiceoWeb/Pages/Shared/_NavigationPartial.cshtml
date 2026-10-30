@@ -27,6 +27,8 @@
         Inicio del sistema
     </a>
 
+    @if (User.IsInRole("Administrador") || User.IsInRole("Cajero"))
+    {
     <a asp-area=""
        asp-page="/Estudiantes/Index"
        class="@(EstaActivo("/Estudiantes/Index") ? "active" : "")"
@@ -77,6 +79,7 @@
         Comprobantes
     </a>
 
+    }
     @if (User.IsInRole("Administrador"))
     {
         <div class="liceo-menu-divider"></div>

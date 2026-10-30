@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using LiceoWeb.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -39,6 +40,9 @@ public class IndexModel(UserManager<IdentityUser> users, RoleManager<IdentityRol
             }
             var assigned = await users.AddToRoleAsync(user, Input.Rol);
             if (!assigned.Succeeded) throw new InvalidOperationException("No se pudo asignar el rol.");
+            var actorId = users.GetUserId(User) ?? throw new InvalidOperationException("Sesión inválida.");
+            var operationId = Guid.NewGuid();
+            await db.Database.ExecuteSqlInterpolatedAsync($"EXEC dbo.Registrar_Auditoria @UsuarioId={actorId}, @Accion=N'CrearCuentaPersonal', @Entidad=N'AspNetUsers', @RegistroId={user.Id}, @IdOperacion={operationId}");
             await transaction.CommitAsync();
             logger.LogInformation("Administrador {Actor} creó la cuenta interna {Cuenta} con rol {Rol}", users.GetUserId(User), user.Id, Input.Rol);
             Mensaje = "Cuenta creada. Entregue las credenciales al empleado por un canal privado.";

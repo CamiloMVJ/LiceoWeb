@@ -1,3 +1,4 @@
+using LiceoWeb.Repositories;
 using LiceoWeb.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,9 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("Administrador", "Profesor", "Cajero");
     });
 
+    options.AddPolicy("GestionFinanciera", policy => policy.RequireAuthenticatedUser().RequireRole("Administrador", "Cajero"));
+    options.AddPolicy("GestionAcademica", policy => policy.RequireAuthenticatedUser().RequireRole("Administrador", "Profesor"));
+
     options.AddPolicy("SoloAdministrador", policy =>
     {
         policy.RequireAuthenticatedUser();
@@ -53,6 +57,11 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AllowAnonymousToPage("/Index");
+    options.Conventions.AuthorizeFolder("/Estudiantes", "GestionFinanciera");
+    options.Conventions.AuthorizeFolder("/Cobros", "GestionFinanciera");
+    options.Conventions.AuthorizeFolder("/Mensualidades", "GestionFinanciera");
+    options.Conventions.AuthorizeFolder("/Matriculas", "GestionFinanciera");
+    options.Conventions.AuthorizeFolder("/Recibos", "GestionFinanciera");
     options.Conventions.AuthorizeFolder("/Personal", "SoloAdministrador");
 
     options.Conventions.AuthorizeFolder(
@@ -79,6 +88,8 @@ builder.Services.AddRazorPages(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UsuarioActual>();
+builder.Services.AddScoped<ExpedienteRepository>();
+builder.Services.AddScoped<ExpedienteService>();
 //builder.Services.AddRazorPages();
 
 var app = builder.Build();

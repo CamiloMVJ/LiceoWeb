@@ -1,0 +1,14 @@
+@page
+@model LiceoWeb.Pages.Estudiantes.DarBajaModel
+@{ ViewData["Title"]="Baja de estudiante"; }
+<h1>Dar de baja</h1>
+<form method="post" class="liceo-card">
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<input asp-for="Registro" type="hidden" />
+<p>Estudiante: <strong>@Model.Nombre</strong> (@Model.Registro)</p>
+<p>El expediente, las deudas y los comprobantes se conservan. Esta acción no cancela deudas.</p>
+<label asp-for="Motivo" class="form-label">Motivo</label><textarea asp-for="Motivo" class="form-control mb-3" rows="3"></textarea>
+<button class="btn btn-danger" type="submit">Confirmar baja</button>
+<a asp-page="Index" class="btn btn-liceo-secondary">Cancelar</a>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
