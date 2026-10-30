@@ -1,0 +1,18 @@
+@page
+@model LiceoWeb.Pages.Personal.IndexModel
+@{ ViewData["Title"] = "Cuentas del personal"; }
+<div class="liceo-page-heading"><h1>Cuentas del personal</h1><p>Asigna acceso interno a cada integrante del colegio.</p></div>
+@if (Model.Mensaje is not null) { <div class="alert alert-success" role="status">@Model.Mensaje</div> }
+<form method="post" class="liceo-card">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <label asp-for="Input.Correo" class="form-label">Correo del empleado</label>
+    <input asp-for="Input.Correo" class="form-control mb-3" autocomplete="off" />
+    <label asp-for="Input.Contrasenia" class="form-label">Contraseña inicial</label>
+    <input asp-for="Input.Contrasenia" class="form-control mb-3" autocomplete="new-password" />
+    <label asp-for="Input.Rol" class="form-label">Rol</label>
+    <select asp-for="Input.Rol" class="form-select mb-4">
+        @foreach (var rol in LiceoWeb.Pages.Personal.IndexModel.Roles) { <option value="@rol">@rol</option> }
+    </select>
+    <button class="btn btn-liceo-primary" type="submit">Crear cuenta</button>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

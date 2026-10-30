@@ -1,4 +1,4 @@
-﻿@{
+@{
     var paginaActual =
         ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 
@@ -82,6 +82,7 @@
         <div class="liceo-menu-divider"></div>
 
         <p class="liceo-menu-title">Administración</p>
+        <a asp-area="" asp-page="/Personal/Index">Cuentas del personal</a>
 
         <a asp-area=""
            asp-page="/Arreglos/Index"
