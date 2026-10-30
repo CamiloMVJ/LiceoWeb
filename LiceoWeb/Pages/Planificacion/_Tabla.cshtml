@@ -1,0 +1,7 @@
+@model System.Data.DataTable
+<div class="table-responsive"><table class="table liceo-table"><thead><tr>
+@foreach(System.Data.DataColumn columna in Model.Columns){<th scope="col">@columna.ColumnName</th>}
+</tr></thead><tbody>
+@foreach(System.Data.DataRow fila in Model.Rows){<tr>@foreach(System.Data.DataColumn columna in Model.Columns){<td>@(fila[columna] is DateTime fecha ? fecha.ToString("dd/MM/yyyy") : fila[columna])</td>}</tr>}
+</tbody></table></div>
+@if(Model.Rows.Count==0){<p class="text-muted">Todavía no hay registros.</p>}

@@ -90,6 +90,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UsuarioActual>();
 builder.Services.AddScoped<ExpedienteRepository>();
 builder.Services.AddScoped<ExpedienteService>();
+builder.Services.AddScoped<PlanificacionRepository>();
+builder.Services.AddScoped<PlanificacionService>();
 //builder.Services.AddRazorPages();
 
 var app = builder.Build();

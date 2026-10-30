@@ -1,0 +1,33 @@
+@page
+@model LiceoWeb.Pages.Planificacion.CatalogosModel
+@{ViewData["Title"]="Catálogos académicos";}
+<div class="liceo-page-heading"><h1>Catálogos académicos</h1><p>Define primero años, períodos, modalidades, turnos, aulas y asignaturas.</p><a asp-page="Index">Ir a planificación</a></div>
+<nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Catálogos">@foreach(var tipo in LiceoWeb.Pages.Planificacion.CatalogosModel.Tipos){<a asp-route-tipo="@tipo" class="btn btn-liceo-secondary">@(tipo=="Anios"?"Años":tipo)</a>}</nav>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+<form method="post" class="liceo-card mb-4"><h2 class="h4">@(Model.Input.Id==0?"Crear":"Editar") · @Model.Input.Tipo</h2>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div><input type="hidden" asp-for="Input.Tipo" /><input type="hidden" asp-for="Input.Id" />
+<div class="row g-3">
+@if(Model.Input.Tipo=="Anios"){<div class="col-md-6"><label asp-for="Input.Anio" class="form-label">Año lectivo</label><input asp-for="Input.Anio" type="number" class="form-control" /><span asp-validation-for="Input.Anio" class="text-danger"></span></div>
+}else{<div class="col-md-6"><label asp-for="Input.Nombre" class="form-label">Nombre</label><input asp-for="Input.Nombre" type="text" class="form-control" /><span asp-validation-for="Input.Nombre" class="text-danger"></span></div>
+}@if(Model.Input.Tipo=="Periodos"){<div class="col-md-6"><label asp-for="Input.AnioId" class="form-label">Año lectivo</label><select asp-for="Input.AnioId" asp-items='Model.Anios' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AnioId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Inicio" class="form-label">Inicio</label><input asp-for="Input.Inicio" type="date" class="form-control" /><span asp-validation-for="Input.Inicio" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Fin" class="form-label">Fin</label><input asp-for="Input.Fin" type="date" class="form-control" /><span asp-validation-for="Input.Fin" class="text-danger"></span></div>
+}@if(Model.Input.Tipo=="Aulas"){<div class="col-md-6"><label asp-for="Input.Ubicacion" class="form-label">Ubicación</label><input asp-for="Input.Ubicacion" type="text" class="form-control" /><span asp-validation-for="Input.Ubicacion" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Capacidad" class="form-label">Capacidad</label><input asp-for="Input.Capacidad" type="number" class="form-control" /><span asp-validation-for="Input.Capacidad" class="text-danger"></span></div>
+}@if(Model.Input.Tipo=="Asignaturas"){<div class="col-md-6"><label asp-for="Input.Codigo" class="form-label">Código</label><input asp-for="Input.Codigo" type="text" class="form-control" /><span asp-validation-for="Input.Codigo" class="text-danger"></span></div>
+}</div>@if(Model.Input.Tipo!="Periodos"){<div class="form-check my-3"><input asp-for="Input.Activo" class="form-check-input" /><label asp-for="Input.Activo" class="form-check-label">Activo</label></div>}
+<button class="btn btn-liceo-primary mt-3">Guardar</button></form>
+<section class="liceo-card"><h2 class="h4">Registros</h2><p class="text-muted">Los catálogos utilizados conservan su definición histórica. Puedes inactivarlos, sin borrarlos.</p>
+@if(Model.Datos.Tables.Contains(Model.Input.Tipo)){
+var tabla=Model.Datos.Tables[Model.Input.Tipo]!;
+<div class="table-responsive"><table class="table"><thead><tr><th>Registro</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+@foreach(System.Data.DataRow fila in tabla.Rows){
+<tr><td>@fila["Etiqueta"]</td><td>@(tabla.Columns.Contains("Activo")?((bool)fila["Activo"]?"Activo":"Inactivo"):((bool)fila["Cerrado"]?"Cerrado":"Abierto"))</td><td>
+<a asp-route-tipo="@Model.Input.Tipo" asp-route-id="@fila["Id"]" class="btn btn-sm btn-liceo-secondary">Editar</a>
+@if(tabla.Columns.Contains("Activo")){
+<form method="post" class="d-inline"><input type="hidden" name="Input.Tipo" value="@Model.Input.Tipo" /><input type="hidden" name="Input.Id" value="@fila["Id"]" /><input type="hidden" name="Input.SoloEstado" value="true" /><input type="hidden" name="Input.Activo" value="@(((bool)fila["Activo"])?"false":"true")" /><button class="btn btn-sm btn-liceo-secondary">@((bool)fila["Activo"]?"Inactivar":"Activar")</button></form>
+}
+</td></tr>}
+</tbody></table></div>}
+</section>
+@section Scripts{<partial name="_ValidationScriptsPartial" />}

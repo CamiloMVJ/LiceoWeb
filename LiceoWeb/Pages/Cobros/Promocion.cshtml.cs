@@ -6,7 +6,7 @@ namespace LiceoWeb.Pages.Cobros
 {
 
     [Authorize(Policy = "OperarSistema")]
-    public class Index2Model : PageModel
+    public class PromocionModel : PageModel
     {
         public void OnGet()
         {

@@ -5,7 +5,8 @@ Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac41814
 ## Estado real
 Esta entrega es parcial. NO habilitar el esquema financiero nuevo para cobros reales.
 Implementado: portada comercial adaptable sin tarifas fijas, formulario de cuentas internas exclusivo del administrador, ajuste de EF Tools a versión 8, migración aditiva de estructura académica/expedientes/finanzas.
-El SDK .NET 8 fue descargado en la continuación. MSBuild falla por restricciones de información de procesos del entorno; no se afirma compilación de solución. Se compilaron y ejecutaron directamente con Roslyn las ocho pruebas de validación del expediente: todas pasan. También se compiló por Roslyn el C# de las páginas de estudiantes, repositorio y servicio con las referencias reales de ASP.NET Core/SqlClient. No se compiló Razor ni la solución completa. No hay SQL Server: ejecución SQL pendiente.
+La solución completa compila con SDK .NET 8.0.427, incluidas las vistas Razor: cero errores y 40 advertencias preexistentes (principalmente nulabilidad en mensualidades). Se corrigieron las clases duplicadas Index1Model/Index2Model de EvBoTa/Promoción, conservando ambas rutas. Pasan 8 pruebas de expediente y 12 de planificación. No hay SQL Server en el entorno: las pruebas SQL integradas siguen pendientes; la sintaxis de los procedimientos de expediente y planificación se validó con ScriptDom.
+Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; planificación, catálogos, MiHorario, expediente y cuentas redirigen al login sin sesión. Esto no sustituye las pruebas con usuarios autenticados de distintos roles.
 
 ## Instalación del avance
 1. Respaldar la base y usar una copia de desarrollo.
@@ -37,19 +38,29 @@ El SDK .NET 8 fue descargado en la continuación. MSBuild falla por restriccione
 7. Probar dos pestañas editando el mismo expediente: la segunda debe mostrar conflicto y conservar entradas, sin sobreescribir.
 8. Probar /Estudiantes/Expediente y POST como Cajero/Profesor: denegado. Probar filtros sin registrar datos sensibles.
 
+## Avance de continuación: planificación académica
+- Catálogos: años, períodos, modalidades, turnos, aulas y asignaturas. Alta, consulta, edición antes de uso y activación/inactivación sin borrar referencias.
+- Pensum por año/modalidad/nivel y materias; grupos por período, turno y aula; asignación de cuentas Profesor.
+- Horarios con detección de cruces por docente, aula y grupo, considerando fechas del período y admitiendo clases adyacentes.
+- Inscripción a grupo con comprobación de estudiante activo, matrícula del mismo año/modalidad/nivel, cupo y pertenencia única al período.
+- Mi horario muestra exclusivamente las asignaciones de la cuenta autenticada.
+- Mutaciones con autorización, auditoría y bloqueo transaccional compartido para evitar carreras.
+- Instalación: ejecutar database/procedures/Planificacion.sql después de las etapas anteriores. No necesita tablas adicionales.
+- Guía: docs/PlanificacionAcademica.md. Pruebas: tests/PlanificacionValidation y database/verification/005_VerificarPlanificacion.sql.
+- Doce pruebas C# de validación y compilación de solución completa satisfactorias. Sintaxis SQL revisada con ScriptDom (no equivale a ejecutar SQL Server).
+
 ## Continuar más tarde — trabajo obligatorio restante
-1. Compilar la integración completa y corregir errores previos. Revisar Pages/Cobros/Index1 e Index2, clases vacías Registrar/Editar y CobrosMensualidadModel.cs en raíz antes de eliminar algo.
-2. Crear repositorios y servicios académicos/financieros restantes. El expediente ya tiene implementación.
-3. Conectar expediente a formularios existentes: padre y madre independientes, permitir datos desconocidos sin inventarlos; tutor padre/madre/tercero, vigencias sin solapamientos, cierre y alta de tutela sin sobrescribir historia. Edad derivada de nacimiento. Auditoría sin copiar información médica a logs. Documentos inicialmente como checklist, sin ficheros públicos. Validar traslado y formato real del colegio/MINED, no inventar obligatoriedad normativa.
-4. Planificación: CRUD de catálogos, pensum por año/nivel, grupos, asignación docente/asignatura y horarios. Validar año del pensum/período, asignatura en pensum, rol Profesor, cupo y matrícula; detectar cruces por aula/docente/grupo dentro de transacción. No borrar catálogos referenciados: inactivar.
-5. Notas: validar pertenencia del alumno al grupo y docente a asignación en cada GET/POST; no basta pertenecer al rol Profesor. Bloquear períodos cerrados. Nota 0..Maximo; ausente NULL no cero. Peso total <=100 durante configuración, exactamente 100 al cerrar/publicar. Calcular suma(Nota/Maximo*Peso), no suma de notas brutas. Usar bloqueo por asignación y rowversion para concurrencia. Añadir evaluación cualitativa configurable (mencionada en audio).
-6. Finanzas: catálogo administrable y tarifas por año/modalidad; generación idempotente de cargos. Diseñar migración explícita de deudas/abonos/pagos antiguos y conciliación por alumno: no operar dos libros paralelos. Recibo único con varias aplicaciones, pagador, número común, IdOperacion estable; validar pertenencia cargos/estudiante, importe aplicado y dinero en una transacción con bloqueo. Incorporar saldo anterior y saldo final antes de habilitar cobro: ReciboMultiple aún no los modela. Mantener recibos anteriores y snapshots. Estado de cuenta debe reunir lo antiguo y lo nuevo sin duplicar ingresos. Anulaciones con contrapartida y auditoría, sin DELETE.
-7. Roles: separar permisos académicos, financieros y médicos. Actualmente OperarSistema incluye Profesor y Cajero con acceso amplio heredado. Profesor solo notas/grupos asignados; Cajero finanzas y datos mínimos; administrador configuración/cuentas. Registrar auditoría persistente de provisión (actualmente ILogger). No modificar roles por campos libres; prohibir autodeshabilitar al último administrador al añadir mantenimiento de cuentas.
-8. UI: páginas y navegación real de planificación, notas, aranceles y estado de cuenta; no enlaces a páginas inexistentes. Registro expandido por secciones, validación servidor; modal mantiene datos y se reabre si falla.
-9. Pruebas: traslado sin código, cambio histórico de tutor, autorización directa, docente ajeno, solapamientos, nota superior al máximo, suma pesos, doble cobro concurrente, reintento IdOperacion, rollback, recibo multiconcepto, conciliación y reimpresión.
+1. Ejecutar pruebas integradas SQL y de autorización en una base de desarrollo. Verificar la integración completa, incluidos los módulos financieros previos.
+2. Completar cambios de grupos/asignaciones y cancelación de horarios conservando historial. La etapa actual permite crearlos, pero no reasignarlos ni cerrar períodos.
+3. Notas: validar pertenencia del alumno al grupo y docente a asignación en cada GET/POST; no basta pertenecer al rol Profesor. Bloquear períodos cerrados. Nota 0..Maximo; ausente NULL no cero. Peso total <=100 durante configuración, exactamente 100 al cerrar/publicar. Calcular suma(Nota/Maximo*Peso), no suma de notas brutas. Usar bloqueo por asignación y rowversion para concurrencia. Añadir evaluación cualitativa configurable.
+4. Finanzas: catálogo administrable y tarifas por año/modalidad; generación idempotente de cargos. Migrar/conciliar deudas, abonos y pagos antiguos sin operar dos libros paralelos. Recibo único con varias aplicaciones, pagador, número común, IdOperacion estable; validar cargos/estudiante e importes en una transacción. Incorporar saldo anterior y final antes de habilitar ReciboMultiple. Estado de cuenta sin duplicar ingresos; anulaciones con contrapartida, sin DELETE.
+5. Cuentas: al incorporar desactivación y cambio de rol, impedir eliminar el último administrador y renovar las sesiones afectadas. Creación ya tiene auditoría persistente.
+6. UI: completar notas, aranceles, estado de cuenta y enlaces de módulos anteriores que aún sean solo formularios.
+7. Colegio: confirmar fotos, datos de contacto, formato de traslado, escala de notas, catálogo de niveles y política de preinscripción. No inventar información institucional ni normativa.
+8. Pruebas pendientes: autorización directa de páginas/POST, cruces concurrentes, cupo lleno, docente ajeno, nota fuera de rango, doble cobro, reintento idempotente, rollback, recibo multiconcepto y conciliación.
 
 ## Decisiones de alcance
 Portal de padres, notificaciones automáticas y preinscripción/reserva de cupo quedan fuera de esta entrega; la política de preinscripción requiere confirmación del colegio. Matutino es turno; dominical describe jornada/frecuencia: no confundir con niveles Preescolar/Primaria/Secundaria. No cambiar SQL Server a PostgreSQL.
 
 ## Punto exacto para retomar
-Leer este documento y git log de la rama. Primero compilar y ejecutar las pruebas SQL y de acceso del expediente en base descartable; después implementar planificación, notas y adaptación financiera. El expediente está conectado, pero pendiente de prueba integrada en SQL Server. Esta rama no representa todavía todos los requerimientos terminados.
+Leer este documento y git log. Probar la planificación en SQL Server; luego implementar registro de notas y cierre de períodos sobre las asignaciones existentes, antes de abordar la adaptación financiera. Esta rama aún no completa todos los requerimientos del profesor.

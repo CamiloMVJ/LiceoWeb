@@ -85,6 +85,8 @@
         <div class="liceo-menu-divider"></div>
 
         <p class="liceo-menu-title">Administración</p>
+        <a asp-page="/Planificacion/Index" class="@(EstaActivo("/Planificacion/Index") ? "active" : "")">Planificación académica</a>
+        <a asp-page="/Planificacion/Catalogos" class="@(EstaActivo("/Planificacion/Catalogos") ? "active" : "")">Catálogos académicos</a>
         <a asp-area="" asp-page="/Personal/Index">Cuentas del personal</a>
 
         <a asp-area=""
@@ -107,5 +109,8 @@
            aria-current="@AriaActual("/Reportes/Index")">
             Reportes
         </a>
+    }
+    @if(User.IsInRole("Profesor")) {
+        <a asp-page="/Planificacion/MiHorario" class="@(EstaActivo("/Planificacion/MiHorario") ? "active" : "")">Mi horario</a>
     }
 </nav>

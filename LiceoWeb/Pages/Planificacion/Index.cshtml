@@ -1,0 +1,38 @@
+@page
+@model LiceoWeb.Pages.Planificacion.IndexModel
+@{ViewData["Title"]="Planificación académica";}
+<div class="liceo-page-heading"><h1>Planificación académica</h1><p>Construye el pensum, organiza grupos y asigna docentes y horarios.</p><a asp-page="Catalogos">Administrar catálogos</a></div>
+<nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Operaciones">@foreach(var accion in LiceoWeb.Pages.Planificacion.IndexModel.Acciones){<a asp-route-accion="@accion" class="btn btn-liceo-secondary">@accion</a>}</nav>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+<form method="post" class="liceo-card mb-4"><h2 class="h4">Agregar · @Model.Input.Accion</h2><div asp-validation-summary="All" class="text-danger" role="alert"></div><input asp-for="Input.Accion" type="hidden" /><div class="row g-3">
+@if(Model.Input.Accion=="Pensum"){<div class="col-md-6"><label asp-for="Input.AnioId" class="form-label">Año</label><select asp-for="Input.AnioId" asp-items='Model.Opciones("Anios")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AnioId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.ModalidadId" class="form-label">Modalidad</label><select asp-for="Input.ModalidadId" asp-items='Model.Opciones("Modalidades")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.ModalidadId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Nivel" class="form-label">Nivel (igual al grado de matrícula)</label><input asp-for="Input.Nivel" type="text" class="form-control" /><span asp-validation-for="Input.Nivel" class="text-danger"></span></div>
+}
+@if(Model.Input.Accion=="Materia"){<div class="col-md-6"><label asp-for="Input.PensumId" class="form-label">Pensum</label><select asp-for="Input.PensumId" asp-items='Model.Opciones("Pensums")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.PensumId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.AsignaturaId" class="form-label">Asignatura</label><select asp-for="Input.AsignaturaId" asp-items='Model.Opciones("Asignaturas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignaturaId" class="text-danger"></span></div>
+}
+@if(Model.Input.Accion=="Grupo"){<div class="col-md-6"><label asp-for="Input.PensumId" class="form-label">Pensum</label><select asp-for="Input.PensumId" asp-items='Model.Opciones("Pensums")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.PensumId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.PeriodoId" class="form-label">Período</label><select asp-for="Input.PeriodoId" asp-items='Model.Opciones("Periodos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.PeriodoId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.TurnoId" class="form-label">Turno</label><select asp-for="Input.TurnoId" asp-items='Model.Opciones("Turnos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.TurnoId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.AulaId" class="form-label">Aula</label><select asp-for="Input.AulaId" asp-items='Model.Opciones("Aulas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AulaId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Seccion" class="form-label">Sección</label><input asp-for="Input.Seccion" type="text" class="form-control" /><span asp-validation-for="Input.Seccion" class="text-danger"></span></div>
+}
+@if(Model.Input.Accion=="Docente"){<div class="col-md-6"><label asp-for="Input.GrupoId" class="form-label">Grupo</label><select asp-for="Input.GrupoId" asp-items='Model.Opciones("Grupos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.GrupoId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.AsignaturaId" class="form-label">Asignatura</label><select asp-for="Input.AsignaturaId" asp-items='Model.Opciones("Asignaturas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignaturaId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.DocenteId" class="form-label">Docente</label><select asp-for="Input.DocenteId" asp-items='Model.Opciones("Docentes")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.DocenteId" class="text-danger"></span></div>
+}
+@if(Model.Input.Accion=="Horario"){<div class="col-md-6"><label asp-for="Input.AsignacionId" class="form-label">Asignación</label><select asp-for="Input.AsignacionId" asp-items='Model.Opciones("Asignaciones")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignacionId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Dia" class="form-label">Día: 1 lunes, 2 martes, …, 7 domingo</label><input asp-for="Input.Dia" type="number" class="form-control" /><span asp-validation-for="Input.Dia" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Inicio" class="form-label">Hora de inicio</label><input asp-for="Input.Inicio" type="time" class="form-control" /><span asp-validation-for="Input.Inicio" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Fin" class="form-label">Hora de fin</label><input asp-for="Input.Fin" type="time" class="form-control" /><span asp-validation-for="Input.Fin" class="text-danger"></span></div>
+}
+@if(Model.Input.Accion=="Estudiante"){<div class="col-md-6"><label asp-for="Input.GrupoId" class="form-label">Grupo</label><select asp-for="Input.GrupoId" asp-items='Model.Opciones("Grupos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.GrupoId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Registro" class="form-label">Código del estudiante con matrícula vigente</label><input asp-for="Input.Registro" type="text" class="form-control" /><span asp-validation-for="Input.Registro" class="text-danger"></span></div>
+}
+</div><button class="btn btn-liceo-primary mt-4">Guardar planificación</button></form>
+<p class="text-muted">Completa las materias antes de crear grupos. Los estudiantes requieren matrícula del año, modalidad y nivel correspondientes. La gestión de notas y cambios de asignaciones se incorporará en la siguiente etapa.</p>
+@foreach(var nombre in new[]{"Pensums","Materias","Grupos","Asignaciones","Horario","EstudiantesGrupo"}){
+<section class="liceo-card mb-3"><h2 class="h4">@nombre</h2>@if(Model.Datos.Tables.Contains(nombre)){<partial name="_Tabla" model="Model.Datos.Tables[nombre]!" />}</section>
+}
+@section Scripts{<partial name="_ValidationScriptsPartial" />}

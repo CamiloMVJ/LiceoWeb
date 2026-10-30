@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace LiceoWeb.Pages.Cobros
 {
     [Authorize(Policy = "OperarSistema")]
-    public class Index1Model : PageModel
+    public class EvBoTaModel : PageModel
     {
         public void OnGet()
         {
