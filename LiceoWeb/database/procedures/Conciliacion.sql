@@ -52,3 +52,33 @@ BEGIN
  WHERE R.Id>@DespuesDeRevision ORDER BY R.Id;
 END;
 GO
+
+CREATE OR ALTER PROCEDURE dbo.Conciliacion_Pantalla
+ @UsuarioId nvarchar(450),@Pagina int=1,@Registro nvarchar(10)=N'',@Origen nvarchar(30)=N'',@OrigenId int=0
+AS
+BEGIN
+ SET NOCOUNT ON;
+ IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name='Administrador') THROW 53001,N'Se requiere administrador.',1;
+ IF @Pagina NOT BETWEEN 1 AND 100000 THROW 53000,N'Página inválida.',1;
+ SELECT P.Origen,P.OrigenId,P.Registro,P.Anio,P.Modalidad,P.Importe,P.Estado,P.Comprobante,
+ ISNULL(R.Id,0) RevisionAnterior,R.Decision,
+ CASE WHEN O.OrigenId IS NULL THEN N'ORIGEN_AUSENTE'
+ WHEN EXISTS(SELECT P.Registro,P.Anio,P.Modalidad,P.Importe,P.Estado,P.Comprobante EXCEPT SELECT O.Registro,O.Anio,O.Modalidad,O.Importe,O.Estado,O.Comprobante) THEN N'ORIGEN_CAMBIO'
+ ELSE N'COINCIDE_CON_ORIGEN' END EstadoFuente
+ FROM dbo.PreparacionObligacion P
+ OUTER APPLY(SELECT TOP(1) Id,Decision FROM dbo.RevisionObligacion R WHERE R.Origen=P.Origen AND R.OrigenId=P.OrigenId ORDER BY Id DESC) R
+ LEFT JOIN dbo.ObligacionLegada O ON O.Origen=P.Origen AND O.OrigenId=P.OrigenId
+ WHERE @Registro=N'' OR P.Registro=@Registro
+ ORDER BY P.Origen,P.OrigenId OFFSET ((@Pagina-1)*50) ROWS FETCH NEXT 51 ROWS ONLY;
+ SELECT P.*,ISNULL(R.Id,0) RevisionAnterior,R.Decision
+ FROM dbo.PreparacionObligacion P OUTER APPLY(SELECT TOP(1) Id,Decision FROM dbo.RevisionObligacion R WHERE R.Origen=P.Origen AND R.OrigenId=P.OrigenId ORDER BY Id DESC) R
+ WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId;
+ SELECT T.Id,CONCAT(A.Nombre,N' / ',Y.Anio,N' / ',M.Nombre,N' / precio actual ',T.Importe) Etiqueta
+ FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId
+ JOIN dbo.PreparacionObligacion P ON P.ArancelId=T.ArancelId AND P.Anio=Y.Anio AND P.Modalidad=M.Nombre
+ WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId ORDER BY T.Id;
+ SELECT TOP(200) R.Id,R.TarifaId,R.Decision,R.Motivo,U.UserName Responsable,R.Fecha
+ FROM dbo.RevisionObligacion R JOIN dbo.AspNetUsers U ON U.Id=R.UsuarioId
+ WHERE R.Origen=@Origen AND R.OrigenId=@OrigenId ORDER BY R.Id DESC;
+END;
+GO

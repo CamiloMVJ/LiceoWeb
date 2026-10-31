@@ -1,5 +1,5 @@
 # Revisión de obligaciones: backend de conciliación
-Estado: procedimientos SQL implementados, sin ejecución de pruebas en este turno. No hay pantalla nueva conectada a estos procedimientos todavía. No genera cargos, pagos ni saldos iniciales; no activa cobros nuevos.
+Estado: procedimientos SQL implementados, sin ejecución de pruebas en este turno. La pantalla /Finanzas/Conciliacion está conectada a los procedimientos y es exclusiva de Administración. No genera cargos, pagos ni saldos iniciales; no activa cobros nuevos.
 
 ## Instalar en copia de desarrollo
 1. Tener instalada la migración 008 y Aranceles.sql.
@@ -7,7 +7,7 @@ Estado: procedimientos SQL implementados, sin ejecución de pruebas en este turn
 3. Ejecutar procedures/Conciliacion.sql completo, incluidos GO.
 4. No aplicar a producción sin ejecutar las pruebas siguientes.
 
-## Contrato para conectar la interfaz
+## Contrato de la interfaz
 Conciliacion_Revisar recibe UsuarioId de la sesión (nunca un campo libre del navegador), Origen/OrigenId de una obligación capturada, TarifaId, Decision, Motivo y RevisionAnterior.
 Decision: Deuda, SinDeuda o Rechazada.
 RevisionAnterior es 0 para la primera revisión; después, el Id de la última revisión conocida. Un valor antiguo se rechaza sin sobrescribir decisiones.
@@ -32,4 +32,14 @@ En copia descartable y con datos de prueba:
 El procedimiento revierte toda transacción abierta al fallar; no mezclar estas pruebas con trabajo ajeno sin confirmar en SSMS.
 
 ## Continuar
-Conectar pantalla de revisión, implementar recaptura de discrepancias con historial y conciliación de Abonos/pagos; después corte de escrituras anteriores, cargos, recibos multiconcepto y estado de cuenta. No se deben interpretar estas revisiones como una migración completada.
+Implementar recaptura de discrepancias con historial y conciliación de Abonos/pagos; después corte de escrituras anteriores, cargos, recibos multiconcepto y estado de cuenta. No se deben interpretar estas revisiones como una migración completada.
+
+## Instalar la pantalla
+Con 008 y 009 instaladas, volver a ejecutar procedures/Conciliacion.sql completo: añade Conciliacion_Pantalla sin cambiar tablas. Actualizar código y compilar. En el menú administrativo aparece Conciliación de obligaciones.
+1. Capturar obligaciones desde Aranceles y preparación.
+2. Buscar por código exacto de estudiante o recorrer las páginas de 50 filas.
+3. Abrir Revisar, escoger tarifa compatible, decisión y motivo.
+4. Guardar y comprobar historial. Ante conflicto recargar; no se actualiza silenciosamente el identificador de revisión enviado.
+Las fuentes cambiadas o ausentes requieren resolución posterior; la pantalla no permite recapturarlas automáticamente.
+Los Id del listado son las referencias originales de cada tabla, no números de recibo.
+Pruebas pendientes de esta continuación: compilación de Razor/C#, autorización GET/POST como Cajero y Profesor, paginación, filtros, alta de decisión, dos pestañas con revisión antigua y fuentes modificadas. No se ejecutaron estas pruebas ni SQL Server en este turno. No dar esta etapa por validada en producción.

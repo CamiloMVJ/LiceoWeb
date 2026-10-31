@@ -92,3 +92,6 @@ Leer este documento y docs/AdaptacionFinanciera.md y docs/CatalogoFinanciero.md.
 
 ## Continuación: backend de revisión de obligaciones
 Migración 009_RevisionObligaciones.sql y procedures/Conciliacion.sql agregan decisiones con historial, correspondencia de tarifa y detección de fuentes cambiadas. No hay interfaz conectada ni migración a cargos en esta etapa. Scripts no ejecutados ni compilados en SQL Server en este turno; ver docs/ConciliacionObligaciones.md para contrato y pruebas obligatorias. Próximo paso: interfaz de revisión, recaptura con historial, saldos/pagos y corte financiero.
+
+## Continuación: pantalla de conciliación
+Se conectó /Finanzas/Conciliacion, exclusiva del administrador: listado paginado de 50 obligaciones, filtro por código de estudiante, selección de tarifa compatible, decisión con motivo e historial por obligación. Actualizar procedures/Conciliacion.sql (añade Conciliacion_Pantalla); no requiere otra migración. Compilación, SQL Server y pruebas autenticadas pendientes en esta continuación. Próximo paso: validar interfaz y resolver discrepancias con recaptura histórica, después conciliación de saldos/pagos y corte financiero. Todavía no se generan cargos ni recibos multiconcepto.

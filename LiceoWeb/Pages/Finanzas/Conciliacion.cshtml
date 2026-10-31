@@ -1,0 +1,56 @@
+@page
+@using System.Data
+@model LiceoWeb.Pages.Finanzas.ConciliacionModel
+@{ViewData["Title"]="Conciliación de obligaciones";}
+<h1>Conciliación de obligaciones</h1>
+<p>Revisa las obligaciones capturadas antes de migrar el libro financiero.</p>
+<div class="alert alert-info">Registrar una decisión no genera cargos ni pagos. El importe histórico se conserva; el precio actual de la tarifa no lo reemplaza.</div>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<form method="get" class="liceo-card mb-4">
+<label for="Registro" class="form-label">Código de estudiante (coincidencia exacta)</label>
+<input id="Registro" name="Registro" value="@Model.Registro" maxlength="10" class="form-control mb-3"/>
+<button class="btn btn-liceo-primary">Buscar</button>
+<a asp-page="Aranceles" class="btn btn-liceo-secondary">Aranceles y captura</a>
+</form>
+@if(Model.Seleccion is not null){
+ var s=Model.Seleccion;
+ <section class="liceo-card mb-4">
+ <h2 class="h4">Revisar @s["Origen"] · @s["OrigenId"]</h2>
+ <p>Estudiante: @s["Registro"] · Año: @s["Anio"] · Modalidad: @s["Modalidad"]</p>
+ <p>Importe histórico: C$ @s["Importe"] · Estado: @s["Estado"] · Comprobante: @s["Comprobante"]</p>
+ @if(s["CargoId"] is not DBNull){<p>Esta obligación ya está vinculada a un cargo y no admite revisión.</p>}
+ else{
+ <form method="post">
+ <input asp-for="Input.Origen" type="hidden"/><input asp-for="Input.OrigenId" type="hidden"/>
+ <input asp-for="Input.RevisionAnterior" type="hidden"/>
+ <input asp-for="Pagina" type="hidden"/><input asp-for="Registro" type="hidden"/>
+ <label asp-for="Input.TarifaId" class="form-label">Tarifa compatible</label>
+ <select asp-for="Input.TarifaId" asp-items="Model.Tarifas" class="form-select mb-3"><option value="0">Seleccionar</option></select>
+ @if(!Model.Tarifas.Any()){<p class="text-danger">No hay tarifa compatible. Configura el concepto, año y modalidad originales en Aranceles antes de revisar.</p>}
+ <label asp-for="Input.Decision" class="form-label">Decisión</label>
+ <select asp-for="Input.Decision" class="form-select mb-3"><option value="">Seleccionar</option><option value="Deuda">Deuda pendiente</option><option value="SinDeuda">Sin deuda</option><option value="Rechazada">Rechazar revisión</option></select>
+ <label asp-for="Input.Motivo" class="form-label">Motivo y referencia de la revisión documental</label>
+ <textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea>
+ <p>Si el origen cambió o una persona revisó antes, el sistema rechazará el guardado. Recarga para consultar el estado actual.</p>
+ <button class="btn btn-liceo-primary">Registrar revisión</button>
+ </form>
+ }
+ <h3 class="h5 mt-4">Últimas 200 revisiones de esta obligación</h3>
+ <partial name="~/Pages/Planificacion/_Tabla.cshtml" model='Model.Datos.Tables["Historial"]!'/>
+ </section>
+}
+<section class="liceo-card">
+<h2 class="h4">Obligaciones capturadas</h2>
+<div class="table-responsive"><table class="table"><thead><tr><th>Origen</th><th>Estudiante</th><th>Año</th><th>Importe</th><th>Estado</th><th>Fuente actual</th><th>Última decisión</th><th>Acción</th></tr></thead><tbody>
+@foreach(var r in Model.Filas("Obligaciones").Take(50)){
+<tr><td>@r["Origen"] / @r["OrigenId"]</td><td>@r["Registro"]</td><td>@r["Anio"]</td><td>@r["Importe"]</td><td>@r["Estado"]</td><td>@r["EstadoFuente"]</td><td>@r["Decision"]</td>
+<td><a asp-route-origen='@r["Origen"]' asp-route-origenId='@r["OrigenId"]' asp-route-Pagina="@Model.Pagina" asp-route-Registro="@Model.Registro">Revisar</a></td></tr>
+}
+</tbody></table></div>
+@if(!Model.Filas("Obligaciones").Any()){<p>No se encontraron obligaciones. Comprueba el filtro y la captura en Aranceles y preparación.</p>}
+<nav class="d-flex gap-3" aria-label="Páginas de obligaciones">
+@if(Model.Pagina>1){<a asp-route-Pagina="@(Model.Pagina-1)" asp-route-Registro="@Model.Registro">Anterior</a>}
+<span>Página @Model.Pagina</span>
+@if(Model.Filas("Obligaciones").Count()>50 && Model.Pagina<100000){<a asp-route-Pagina="@(Model.Pagina+1)" asp-route-Registro="@Model.Registro">Siguiente</a>}
+</nav></section>
