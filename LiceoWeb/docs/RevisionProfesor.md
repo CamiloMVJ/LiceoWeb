@@ -118,3 +118,9 @@ Se agregó /Finanzas/Cargos para Administración, configuración de periodicidad
 
 Punto vigente para continuar: probar generación y cobro en SQL Server; implementar anulaciones/contrapartidas, retirada de formularios antiguos tras el corte e impresión dedicada. Luego resolver integración con matrícula y restantes pendientes académicos/cuentas. Las secciones anteriores son historial de avances; los pendientes resueltos por 013 y 014 no deben reiniciarse.
 Validación de 014: compilación C#/Razor y 13 pruebas de entrada aprobadas; 3 scripts sin errores de sintaxis ScriptDom; prueba HTTP anónima redirige a login. Pruebas SQL Server y roles autenticados pendientes.
+
+## Continuación: anulación completa de recibos (015)
+Se agregó /Finanzas/AnularRecibo para Administración. Contrapartida sin borrar el original, devolución documentada del dinero neto, restitución de saldo al disponible actual, deuda reabierta, auditoría y reintento por GUID. Actualizar CobroMultiple.sql es obligatorio: ahora consume aplicaciones vigentes y consulta el historial. Guía docs/AnulacionRecibos.md.
+
+Punto vigente para continuar: probar 015, cobros, generación y anulaciones en SQL Server; retirar/redirigir formularios de cobro anteriores tras el corte, preparar impresión dedicada e integrar cargos con el flujo definitivo de matrícula. Siguen abiertos los pendientes académicos, cuentas y pruebas autenticadas/concurrentes.
+Validación de 015: compilación C#/Razor y 10 pruebas de entrada aprobadas; 5 scripts sin errores sintácticos de ScriptDom; acceso anónimo a anulación, recibo y cuenta redirige a login. SQL Server, roles autenticados y concurrencia pendientes.

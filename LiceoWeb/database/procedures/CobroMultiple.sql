@@ -41,7 +41,7 @@ BEGIN
  IF @Nombre IS NULL THROW 53502,N'Estudiante inexistente.',1;
  SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
  IF @SaldoAplicado>@Saldo THROW 53502,N'Saldo a favor insuficiente. Actualice la consulta.',1;
- IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.CargoEstudiante C WITH(UPDLOCK,HOLDLOCK) ON C.Id=I.CargoId WHERE C.Id IS NULL OR C.Registro<>@Registro OR C.Anulado=1 OR I.Importe>C.Importe-ISNULL((SELECT SUM(A.Importe) FROM dbo.AplicacionPago A WITH(UPDLOCK,HOLDLOCK) WHERE A.CargoId=C.Id),0)) THROW 53502,N'Un cargo no pertenece al estudiante, está anulado o su deuda cambió.',1;
+ IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.CargoEstudiante C WITH(UPDLOCK,HOLDLOCK) ON C.Id=I.CargoId WHERE C.Id IS NULL OR C.Registro<>@Registro OR C.Anulado=1 OR I.Importe>C.Importe-ISNULL((SELECT SUM(A.Importe) FROM dbo.AplicacionPagoVigente A WITH(UPDLOCK,HOLDLOCK) WHERE A.CargoId=C.Id),0)) THROW 53502,N'Un cargo no pertenece al estudiante, está anulado o su deuda cambió.',1;
  DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
  SET @Numero=N'RC-'+CONVERT(nvarchar(20),@Secuencia);
  IF EXISTS(SELECT 1 FROM dbo.Pagos WHERE Id_Comprobante=@Numero) THROW 53502,N'Numeración ocupada. Revise la secuencia con administración.',1;
@@ -73,8 +73,10 @@ BEGIN
  IF @Lock<0 THROW 53503,N'Finanzas está ocupado.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.Estudiantes WHERE Registro=@Registro) THROW 53502,N'Estudiante inexistente.',1;
  SELECT E.Registro,E.NombreEstudiante,ISNULL(S.Disponible,0) SaldoFavor,CONVERT(bit,ISNULL((SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1),0)) Migrado FROM dbo.Estudiantes E LEFT JOIN dbo.SaldoFinanciero S ON S.Registro=E.Registro WHERE E.Registro=@Registro;
- SELECT C.Id,C.DescripcionHistorica,C.Vencimiento,C.Importe,ISNULL(A.Pagado,0) Pagado,C.Importe-ISNULL(A.Pagado,0) Pendiente FROM dbo.CargoEstudiante C OUTER APPLY(SELECT SUM(Importe) Pagado FROM dbo.AplicacionPago WHERE CargoId=C.Id) A WHERE C.Registro=@Registro AND C.Anulado=0 ORDER BY C.Id;
- SELECT Id,Numero,Fecha,Metodo,Recibido,Cambio,SaldoAplicado,TotalAplicado FROM dbo.ReciboMultiple WHERE Registro=@Registro ORDER BY Id DESC;
+ SELECT C.Id,C.DescripcionHistorica,C.Vencimiento,C.Importe,ISNULL(A.Pagado,0) Pagado,C.Importe-ISNULL(A.Pagado,0) Pendiente FROM dbo.CargoEstudiante C OUTER APPLY(SELECT SUM(Importe) Pagado FROM dbo.AplicacionPagoVigente WHERE CargoId=C.Id) A WHERE C.Registro=@Registro AND C.Anulado=0 ORDER BY C.Id;
+ SELECT R.Id,R.Numero,R.Fecha,R.Metodo,R.Recibido,R.Cambio,R.SaldoAplicado,R.TotalAplicado,
+ CONVERT(bit,CASE WHEN X.Id IS NULL THEN 0 ELSE 1 END) Anulado,ISNULL(X.DineroDevuelto,0) DineroDevuelto,ISNULL(X.SaldoRestituido,0) SaldoRestituido
+ FROM dbo.ReciboMultiple R LEFT JOIN dbo.AnulacionRecibo X ON X.ReciboId=R.Id WHERE R.Registro=@Registro ORDER BY R.Id DESC;
  -- Solo referencia histórica. NO sumarla a ingresos ni deuda del libro nuevo.
  SELECT Id_Comprobante,Fecha_Pago,Concepto,Monto FROM dbo.Pagos WHERE Registro_Estudiante=@Registro ORDER BY Fecha_Pago DESC,Id_Comprobante;
  COMMIT;
@@ -88,10 +90,22 @@ GO
 CREATE OR ALTER PROCEDURE dbo.ReciboMultiple_Consultar @UsuarioId nvarchar(450),@Id bigint
 AS
 BEGIN
- SET NOCOUNT ON;
+ SET NOCOUNT ON;SET XACT_ABORT ON;
  EXEC dbo.Finanzas_Autorizar @UsuarioId;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ DECLARE @Lock int;
+ EXEC @Lock=sys.sp_getapplock @Resource='Liceo.Finanzas.Configuracion',@LockMode='Shared',@LockOwner='Transaction',@LockTimeout=10000;
+ IF @Lock<0 THROW 53503,N'Finanzas está ocupado.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.ReciboMultiple WHERE Id=@Id) THROW 53504,N'Recibo inexistente.',1;
  SELECT R.*,U.UserName Responsable FROM dbo.ReciboMultiple R JOIN dbo.AspNetUsers U ON U.Id=R.UsuarioId WHERE R.Id=@Id;
  SELECT CargoId,DescripcionHistorica,Importe FROM dbo.AplicacionPago WHERE ReciboId=@Id ORDER BY CargoId;
+ SELECT X.*,U.UserName Responsable FROM dbo.AnulacionRecibo X JOIN dbo.AspNetUsers U ON U.Id=X.UsuarioId WHERE X.ReciboId=@Id;
+ COMMIT;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
 END;
 GO

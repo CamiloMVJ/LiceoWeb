@@ -21,7 +21,7 @@ public class ReciboModel(SqlConnectionFactory factory, UsuarioActual usuario) : 
             cmd.Parameters.Add("@UsuarioId", SqlDbType.NVarChar, 450).Value = usuario.ObtenerId();
             cmd.Parameters.Add("@Id", SqlDbType.BigInt).Value = id;
             await using var reader = await cmd.ExecuteReaderAsync();
-            foreach (var name in new[] { "Recibo", "Detalle" }) { var t = new DataTable(name); t.Load(reader); Datos.Tables.Add(t); }
+            foreach (var name in new[] { "Recibo", "Detalle", "Anulacion" }) { var t = new DataTable(name); t.Load(reader); Datos.Tables.Add(t); }
             return Page();
         }
         catch (SqlException ex) when (ex.Number == 53504) { return NotFound(); }

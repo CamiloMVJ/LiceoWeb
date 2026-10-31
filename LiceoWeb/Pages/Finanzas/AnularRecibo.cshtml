@@ -1,0 +1,39 @@
+@page "{id:long}"
+@model LiceoWeb.Pages.Finanzas.AnularReciboModel
+@using System.Data
+@{ ViewData["Title"] = "Anular recibo"; }
+<h1>Anular recibo</h1>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (Model.Cargado)
+{
+    var r = Model.Datos.Tables["Recibo"]!.Rows[0];
+    <h2>@r["Numero"] · @r["NombreEstudiante"]</h2><p>Pagador original: @r["Pagador"] · Método original: @r["Metodo"]</p>
+    @if (Model.Anulado)
+    { <div class="alert alert-info">Este recibo ya está anulado. No vuelvas a devolver el dinero ni a restituir saldo.</div> }
+    else
+    {
+        <div class="alert alert-warning">Esta acción anula el recibo completo y vuelve a dejar pendientes sus importes. Conserva el documento original y añade la devolución al historial. No se puede deshacer desde esta pantalla.</div>
+        <dl class="row">
+            <dt class="col-sm-8">Dinero que debe devolverse</dt><dd class="col-sm-4">C$ @(((decimal)r["Recibido"]-(decimal)r["Cambio"]).ToString("N2"))</dd>
+            <dt class="col-sm-8">Saldo a favor que restituirá el sistema</dt><dd class="col-sm-4">C$ @(((decimal)r["SaldoAplicado"]).ToString("N2"))</dd>
+            <dt class="col-sm-8">Deuda que se reabrirá</dt><dd class="col-sm-4">C$ @(((decimal)r["TotalAplicado"]).ToString("N2"))</dd>
+        </dl>
+        <table class="table"><thead><tr><th>Concepto</th><th>Importe a reabrir (C$)</th></tr></thead><tbody>
+        @foreach (DataRow d in Model.Datos.Tables["Detalle"]!.Rows) { <tr><td>@d["DescripcionHistorica"]</td><td>@(((decimal)d["Importe"]).ToString("N2"))</td></tr> }
+        </tbody></table>
+        <p><strong>El sistema no envía dinero al banco.</strong> Registra aquí la devolución ya realizada por el mismo método del recibo. Si se pagó solo con saldo, no hay dinero que entregar: se restituirá ese saldo. Conserva un comprobante firmado o la referencia bancaria.</p>
+    }
+}
+@if (!Model.Anulado)
+{
+    <form method="post" class="card card-body">
+        <input type="hidden" asp-for="Input.ReciboId" /><input type="hidden" asp-for="Input.Operacion" />
+        <label asp-for="Input.Motivo">Motivo de la anulación</label><textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea>
+        <label asp-for="Input.Receptor">Persona que recibió la devolución o titular del saldo restituido</label><input asp-for="Input.Receptor" class="form-control mb-3" maxlength="200" required />
+        <label asp-for="Input.ReferenciaDevolucion">Referencia bancaria, comprobante de entrega o constancia de restitución</label><input asp-for="Input.ReferenciaDevolucion" class="form-control mb-3" maxlength="100" required />
+        <div class="form-check mb-3"><input asp-for="Input.Confirmado" class="form-check-input" /><label asp-for="Input.Confirmado" class="form-check-label">Confirmo que la devolución de dinero indicada ya fue realizada y documentada, o que no corresponde entregar dinero si fue solo saldo. Entiendo que se reabrirá la deuda y se restituirá el saldo utilizado.</label></div>
+        <button class="btn btn-danger align-self-start" disabled="@(!Model.Cargado)">Confirmar anulación completa</button>
+        <small class="text-muted mt-2">Operación: @Model.Input.Operacion. Si ocurre un error, consulta el recibo y conserva esta operación. No repitas la entrega del dinero.</small>
+    </form>
+}
+<a class="btn btn-outline-secondary mt-3" asp-page="Recibo" asp-route-id="@Model.Input.ReciboId">Volver al recibo</a>

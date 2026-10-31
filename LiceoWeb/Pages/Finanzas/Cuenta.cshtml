@@ -52,9 +52,9 @@
         @if (Model.MasCargos) { <a asp-page="Cuenta" asp-route-registro="@Model.Input.Registro" asp-route-cargoPagina="@(Model.CargoPagina+1)">Siguientes 50 cargos</a> }
     }
     <h3>Recibos del libro nuevo</h3>
-    <div class="table-responsive"><table class="table"><thead><tr><th>Número</th><th>Fecha (UTC)</th><th>Método</th><th>Dinero neto</th><th>Saldo utilizado</th><th>Aplicado a deuda</th></tr></thead><tbody>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Número</th><th>Estado</th><th>Fecha (UTC)</th><th>Método</th><th>Dinero neto</th><th>Saldo utilizado</th><th>Aplicado a deuda</th></tr></thead><tbody>
     @foreach (DataRow r in Model.Datos.Tables["Recibos"]!.Rows)
-    { <tr><td><a asp-page="Recibo" asp-route-id="@r["Id"]">@r["Numero"]</a></td><td>@(((DateTime)r["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</td><td>@r["Metodo"]</td><td>@(((decimal)r["Recibido"]-(decimal)r["Cambio"]).ToString("N2"))</td><td>@(((decimal)r["SaldoAplicado"]).ToString("N2"))</td><td>@(((decimal)r["TotalAplicado"]).ToString("N2"))</td></tr> }
+    { <tr><td><a asp-page="Recibo" asp-route-id="@r["Id"]">@r["Numero"]</a></td><td>@((bool)r["Anulado"] ? "Anulado" : "Vigente")</td><td>@(((DateTime)r["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</td><td>@r["Metodo"]</td><td>@(((decimal)r["Recibido"]-(decimal)r["Cambio"]-(decimal)r["DineroDevuelto"]).ToString("N2"))</td><td>@(((decimal)r["SaldoAplicado"]-(decimal)r["SaldoRestituido"]).ToString("N2"))</td><td>@(((bool)r["Anulado"] ? 0m : (decimal)r["TotalAplicado"]).ToString("N2"))</td></tr> }
     </tbody></table></div>
     <details><summary>Pagos históricos del libro anterior</summary><p>Referencia documental: no se suman otra vez al saldo ni a los ingresos del libro nuevo.</p>
     <table class="table"><thead><tr><th>Comprobante</th><th>Fecha</th><th>Concepto</th><th>Monto registrado</th></tr></thead><tbody>
