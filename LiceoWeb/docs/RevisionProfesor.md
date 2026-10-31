@@ -95,3 +95,6 @@ Migración 009_RevisionObligaciones.sql y procedures/Conciliacion.sql agregan de
 
 ## Continuación: pantalla de conciliación
 Se conectó /Finanzas/Conciliacion, exclusiva del administrador: listado paginado de 50 obligaciones, filtro por código de estudiante, selección de tarifa compatible, decisión con motivo e historial por obligación. Actualizar procedures/Conciliacion.sql (añade Conciliacion_Pantalla); no requiere otra migración. Compilación, SQL Server y pruebas autenticadas pendientes en esta continuación. Próximo paso: validar interfaz y resolver discrepancias con recaptura histórica, después conciliación de saldos/pagos y corte financiero. Todavía no se generan cargos ni recibos multiconcepto.
+
+## Continuación: recaptura con historial
+Migración 010 y Conciliacion.sql actualizados; pantalla permite recapturar cambios de origen con motivo, historial antes/después y generación. Invalida decisiones anteriores y rechaza formularios antiguos. No permite cambiar estudiante ni recapturar origen ausente. Ver docs/RecapturaObligaciones.md. Compilación y ejecución SQL pendientes en esta continuación. Próximo paso: saldos/pagos, corte y migración financiera efectiva.

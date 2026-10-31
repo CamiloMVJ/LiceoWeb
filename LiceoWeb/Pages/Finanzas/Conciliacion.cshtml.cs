@@ -28,14 +28,14 @@ public class ConciliacionModel(ConciliacionRepository repository,UsuarioActual u
   if(!FiltrosValidos() || origen.Length>30 || origenId<0)return BadRequest();
   Input.Origen=origen;Input.OrigenId=origenId;await CargarAsync();
   if(origenId>0 && Seleccion is null)return NotFound();
-  if(Seleccion is not null)Input.RevisionAnterior=(long)Seleccion["RevisionAnterior"];
+  if(Seleccion is not null){Input.RevisionAnterior=(long)Seleccion["RevisionAnterior"];Input.GeneracionEsperada=(int)Seleccion["Generacion"];}
   return Page();
  }
  public async Task<IActionResult> OnPostAsync()
  {
   if(!FiltrosValidos())return BadRequest();
   if(ModelState.IsValid)
-  try{await repository.GuardarAsync(Input,usuario.ObtenerId());Mensaje="Revisión registrada. No se generaron cargos ni pagos.";return RedirectToPage(new{origen=Input.Origen,origenId=Input.OrigenId,Pagina,Registro});}
+  try{await repository.GuardarAsync(Input,usuario.ObtenerId());Mensaje=Input.Recapturar?"Captura actualizada. La decisión anterior ya no es vigente; revisa nuevamente.":"Revisión registrada. No se generaron cargos ni pagos.";return RedirectToPage(new{origen=Input.Origen,origenId=Input.OrigenId,Pagina,Registro});}
   catch(SqlException ex) when(ex.Number==53001){return Forbid();}
   catch(SqlException ex) when(ex.Number is >=53000 and <=53005){ModelState.AddModelError("",ex.Message);}
   catch(Exception ex){logger.LogError("Error de conciliación: {Tipo}",ex.GetType().Name);ModelState.AddModelError("","No se pudo guardar. Revisa la instalación del módulo.");}
