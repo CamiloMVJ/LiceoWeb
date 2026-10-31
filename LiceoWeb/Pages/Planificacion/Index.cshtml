@@ -27,11 +27,13 @@
 <div class="col-md-6"><label asp-for="Input.Inicio" class="form-label">Hora de inicio</label><input asp-for="Input.Inicio" type="time" class="form-control" /><span asp-validation-for="Input.Inicio" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.Fin" class="form-label">Hora de fin</label><input asp-for="Input.Fin" type="time" class="form-control" /><span asp-validation-for="Input.Fin" class="text-danger"></span></div>
 }
-@if(Model.Input.Accion=="Estudiante"){<div class="col-md-6"><label asp-for="Input.GrupoId" class="form-label">Grupo</label><select asp-for="Input.GrupoId" asp-items='Model.Opciones("Grupos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.GrupoId" class="text-danger"></span></div>
+@if(Model.Input.Accion=="Estudiante"){
+<div class="col-12 alert alert-info">Después del corte, genera primero el cargo anual de matrícula desde <a asp-page="/Finanzas/Cargos">Generar cargos</a>. Al guardar se vinculará ese cargo y se confirmará la matrícula académica del año junto con la inscripción al grupo. Una matrícula histórica del mismo año, modalidad y nivel se reconoce sin generar otro cobro. El cargo puede estar pendiente de pago; no se exige solvencia para inscribir.</div>
+<div class="col-md-6"><label asp-for="Input.GrupoId" class="form-label">Grupo</label><select asp-for="Input.GrupoId" asp-items='Model.Opciones("Grupos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.GrupoId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.Registro" class="form-label">Código del estudiante con matrícula vigente</label><input asp-for="Input.Registro" type="text" class="form-control" /><span asp-validation-for="Input.Registro" class="text-danger"></span></div>
 }
 </div><button class="btn btn-liceo-primary mt-4">Guardar planificación</button></form>
-<p class="text-muted">Completa las materias antes de crear grupos. Los estudiantes requieren matrícula del año, modalidad y nivel correspondientes. La gestión de notas y cambios de asignaciones se incorporará en la siguiente etapa.</p>
+<p class="text-muted">Completa las materias antes de crear grupos. Los estudiantes requieren respaldo de matrícula del año, modalidad y nivel correspondientes. Crear un cargo por sí solo no confirma su inscripción al grupo. La gestión de notas y cambios de asignaciones se incorporará en la siguiente etapa.</p>
 @foreach(var nombre in new[]{"Pensums","Materias","Grupos","Asignaciones","Horario","EstudiantesGrupo"}){
 <section class="liceo-card mb-3"><h2 class="h4">@nombre</h2>@if(Model.Datos.Tables.Contains(nombre)){<partial name="_Tabla" model="Model.Datos.Tables[nombre]!" />}</section>
 }

@@ -118,6 +118,12 @@ BEGIN
  BEGIN TRY
  BEGIN TRANSACTION;
  DECLARE @Lock int,@Resultado int;
+ -- Mantener el orden financiero -> académico, antes de bloquear estudiantes.
+ IF @Accion='Estudiante'
+ BEGIN
+  EXEC @Lock=sys.sp_getapplock @Resource=N'Liceo.Finanzas.Configuracion',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
+  IF @Lock<0 THROW 52303,N'Finanzas ocupada. Intente nuevamente.',1;
+ END;
  EXEC @Lock=sys.sp_getapplock @Resource=N'Liceo.Planificacion',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
  IF @Lock<0 THROW 52303,N'Planificación ocupada. Intente nuevamente.',1;
  IF @Accion='Pensum'
@@ -165,7 +171,32 @@ BEGIN
   DECLARE @Estado nvarchar(10),@Capacidad int,@AnioNumero int,@ModalidadNombre nvarchar(80);
   SELECT @Estado=Estado FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Estudiante;
   SELECT @Capacidad=A.Capacidad,@AnioNumero=Y.Anio,@ModalidadNombre=M.Nombre,@Nivel=P.Nivel,@Periodo=G.PeriodoId FROM dbo.GrupoAcademico G JOIN dbo.Aula A ON A.Id=G.AulaId JOIN dbo.Pensum P ON P.Id=G.PensumId JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=P.ModalidadId WHERE G.Id=@Grupo;
-  IF @Estado IS NULL OR @Estado<>'Activo' OR NOT EXISTS(SELECT 1 FROM dbo.Matriculas WHERE Registro_Estudiante=@Estudiante AND Anio=@AnioNumero AND Modalidad=@ModalidadNombre AND Grado=@Nivel) THROW 52314,N'El estudiante requiere matrícula vigente del mismo año, modalidad y nivel.',1;
+  IF @Estado IS NULL OR @Estado<>'Activo' OR @Capacidad IS NULL THROW 52314,N'Estudiante o grupo inválido.',1;
+  IF EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
+  BEGIN
+   IF NOT EXISTS(SELECT 1 FROM dbo.GrupoAcademico G JOIN dbo.Pensum P ON P.Id=G.PensumId JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=P.ModalidadId JOIN dbo.Aula A ON A.Id=G.AulaId JOIN dbo.TurnoAcademico T ON T.Id=G.TurnoId WHERE G.Id=@Grupo AND Y.Activo=1 AND M.Activo=1 AND A.Activo=1 AND T.Activo=1) THROW 52314,N'El grupo requiere catálogos activos.',1;
+   IF NOT EXISTS(SELECT 1 FROM dbo.Estudiantes WHERE Registro=@Estudiante AND Modalidad=@ModalidadNombre AND Grado=@Nivel) THROW 52314,N'El expediente debe coincidir con modalidad y nivel del grupo.',1;
+   IF EXISTS(SELECT 1 FROM dbo.MatriculaAcademica WHERE Registro=@Estudiante AND Anio=@AnioNumero AND (Modalidad<>@ModalidadNombre OR Nivel<>@Nivel)) THROW 52314,N'Existe matrícula del año con otro nivel/modalidad. Requiere revisión, no una segunda matrícula.',1;
+   IF NOT EXISTS(SELECT 1 FROM dbo.MatriculaAcademica WHERE Registro=@Estudiante AND Anio=@AnioNumero)
+   BEGIN
+    DECLARE @CargoMatricula bigint,@MatriculaLegada int,@CantidadCargos int;
+    SELECT @MatriculaLegada=MIN(Id) FROM dbo.Matriculas WHERE Registro_Estudiante=@Estudiante AND Anio=@AnioNumero AND Modalidad=@ModalidadNombre AND Grado=@Nivel;
+    IF @MatriculaLegada IS NULL
+    BEGIN
+     SELECT @CantidadCargos=COUNT(*),@CargoMatricula=MIN(C.Id)
+     FROM dbo.CargoEstudiante C JOIN dbo.TarifaArancel T ON T.Id=C.TarifaId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId
+     JOIN dbo.ConfiguracionMatricula L ON L.ArancelId=T.ArancelId AND L.Id=1
+     JOIN dbo.ConfiguracionCargo F ON F.ArancelId=T.ArancelId AND F.Periodicidad='Anual'
+     WHERE C.Registro=@Estudiante AND C.Anulado=0 AND C.Referencia='ANUAL' AND Y.Anio=@AnioNumero AND M.Nombre=@ModalidadNombre;
+     IF @CantidadCargos<>1 THROW 52314,N'Genera primero un único cargo anual de matrícula para el estudiante, año y modalidad. Revisa ConfiguracionMatricula.',1;
+    END;
+    INSERT dbo.MatriculaAcademica(Registro,Anio,Modalidad,Nivel,CargoId,MatriculaLegadaId,UsuarioId)
+    VALUES(@Estudiante,@AnioNumero,@ModalidadNombre,@Nivel,@CargoMatricula,@MatriculaLegada,@UsuarioId);
+    DECLARE @MatriculaId nvarchar(100)=CONVERT(nvarchar(100),SCOPE_IDENTITY()),@OperacionMatricula uniqueidentifier=NEWID(),@JsonMatricula nvarchar(max)=(SELECT @Estudiante Registro,@AnioNumero Anio,@ModalidadNombre Modalidad,@Nivel Nivel,@CargoMatricula CargoId,@MatriculaLegada MatriculaLegadaId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+    EXEC dbo.Registrar_Auditoria @UsuarioId,'MatricularAcademicamente','MatriculaAcademica',@MatriculaId,@OperacionMatricula,NULL,@JsonMatricula;
+   END;
+  END
+  ELSE IF NOT EXISTS(SELECT 1 FROM dbo.Matriculas WHERE Registro_Estudiante=@Estudiante AND Anio=@AnioNumero AND Modalidad=@ModalidadNombre AND Grado=@Nivel) THROW 52314,N'El estudiante requiere matrícula vigente del mismo año, modalidad y nivel.',1;
   IF EXISTS(SELECT 1 FROM dbo.GrupoEstudiante E JOIN dbo.GrupoAcademico G ON G.Id=E.GrupoId WHERE E.Registro=@Estudiante AND G.PeriodoId=@Periodo) THROW 52315,N'El estudiante ya pertenece a un grupo en este período.',1;
   IF (SELECT COUNT(*) FROM dbo.GrupoEstudiante WHERE GrupoId=@Grupo)>=@Capacidad THROW 52316,N'El aula alcanzó su capacidad.',1;
   INSERT dbo.GrupoEstudiante(GrupoId,Registro) VALUES(@Grupo,@Estudiante);SET @Resultado=@Grupo;
