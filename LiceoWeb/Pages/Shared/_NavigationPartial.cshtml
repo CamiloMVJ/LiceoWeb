@@ -1,4 +1,9 @@
+@inject LiceoWeb.Services.IEstadoLibroFinanciero EstadoFinanciero
 @{
+    var usuarioFinanciero = User.IsInRole("Administrador") || User.IsInRole("Cajero");
+    var libro = usuarioFinanciero ? await EstadoFinanciero.ObtenerAsync() : LiceoWeb.Services.EstadoLibro.NoDisponible;
+    var mostrarAnterior = libro == LiceoWeb.Services.EstadoLibro.Anterior;
+
     var paginaActual =
         ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 
@@ -17,6 +22,8 @@
         EstaActivo(pagina) ? "page" : null;
 }
 
+@if (usuarioFinanciero && libro == LiceoWeb.Services.EstadoLibro.NoDisponible)
+{ <p role="status">No se pudo verificar el estado financiero. Los accesos antiguos están ocultos hasta recuperar la conexión.</p> }
 <p class="liceo-menu-title">Menú principal</p>
 
 <nav class="liceo-menu" aria-label="Módulos del sistema">
@@ -37,6 +44,8 @@
         Estudiantes y matrícula
     </a>
 
+    @if (mostrarAnterior)
+    {
     <a asp-area=""
        asp-page="/Mensualidades/Index"
        class="@(EstaActivo("/Mensualidades/Index") ? "active" : "")"
@@ -79,6 +88,7 @@
        aria-current="@AriaActual("/Recibos/Index")">
         Comprobantes
     </a>
+    }
 
     }
     @if (User.IsInRole("Administrador"))
@@ -95,6 +105,8 @@
         <a asp-page="/Planificacion/Catalogos" class="@(EstaActivo("/Planificacion/Catalogos") ? "active" : "")">Catálogos académicos</a>
         <a asp-area="" asp-page="/Personal/Index">Cuentas del personal</a>
 
+        @if (mostrarAnterior)
+        {
         <a asp-area=""
            asp-page="/Arreglos/Index"
            class="@(EstaActivo("/Arreglos/Index") ? "active" : "")"
@@ -115,6 +127,7 @@
            aria-current="@AriaActual("/Reportes/Index")">
             Reportes
         </a>
+        }
     }
     @if(User.IsInRole("Administrador") || User.IsInRole("Profesor")) {
         <a asp-page="/Notas/Index" class="@(EstaActivo("/Notas/Index") ? "active" : "")">Calificaciones</a>

@@ -1,0 +1,14 @@
+@page
+@model LiceoWeb.Pages.Finanzas.LibroAnteriorModel
+@{ ViewData["Title"] = "Operación financiera actualizada"; }
+<h1>Operación financiera actualizada</h1>
+<p>Si el corte ya fue aplicado, los formularios del libro anterior dejan de estar disponibles. Los pagos históricos permanecen en la consulta de cada estudiante.</p>
+<p>Los formularios enviados desde una pestaña antigua no se trasladan automáticamente al libro nuevo. Consulta primero el estado de cuenta antes de registrar otro movimiento.</p>
+<a class="btn btn-liceo-primary" asp-page="Cuenta">Estado de cuenta y cobros</a>
+@if (User.IsInRole("Administrador"))
+{
+    <a class="btn btn-outline-secondary" asp-page="Cargos">Generar cargos</a>
+    <a class="btn btn-outline-secondary" asp-page="Aranceles">Administrar aranceles</a>
+}
+<p class="mt-3">El registro y la edición del expediente del estudiante siguen en su módulo. Generar un cargo no sustituye su inscripción académica.</p>
+<a asp-page="/Estudiantes/Index">Estudiantes y matrícula</a>

@@ -54,6 +54,11 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 //Protecciones
 
+builder.Services.AddScoped<IEstadoLibroFinanciero, EstadoLibroFinanciero>();
+builder.Services.AddScoped<LiceoWeb.Filters.LibroAnteriorFilter>();
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.ServiceFilterAttribute(typeof(LiceoWeb.Filters.LibroAnteriorFilter))));
+
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AllowAnonymousToPage("/Index");

@@ -1,0 +1,22 @@
+@page "{id:long}"
+@model LiceoWeb.Pages.Finanzas.ReciboModel
+@{ Layout = null; var r = Model.Datos.Tables["Recibo"]!.Rows[0]; }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recibo @r["Numero"] - Liceo Hispanidad</title>
+    <link rel="stylesheet" href="~/css/recibo-impresion.css" asp-append-version="true" />
+</head>
+<body>
+    <nav class="acciones-impresion" aria-label="Acciones del recibo">
+        <button type="button" id="imprimir-recibo">Imprimir o guardar PDF</button>
+        <a asp-page="Recibo" asp-route-id="@r["Id"]">Volver al recibo</a>
+        <p>Usa tamaño A4 o Carta. Desactiva los encabezados y pies del navegador si no deseas imprimir la URL.</p>
+        <noscript>Usa la opción Imprimir del navegador.</noscript>
+    </nav>
+    <main><partial name="_DetalleRecibo" model="Model.Datos" /></main>
+    <script src="~/js/recibo-impresion.js" asp-append-version="true"></script>
+</body>
+</html>

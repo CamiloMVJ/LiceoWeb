@@ -1,0 +1,29 @@
+:root { color-scheme: light; font-family: Arial, sans-serif; color: #1b264f; background: #f4f6f8; }
+* { box-sizing: border-box; }
+body { margin: 0; font-size: 14px; line-height: 1.5; }
+main, .acciones-impresion { max-width: 190mm; margin: 20px auto; padding: 20px; }
+main { background: white; border: 1px solid #d9dee5; }
+h1 { font-size: 24px; margin: 0; } h2 { font-size: 19px; margin-top: 6px; }
+p, td, dt, dd, small, .alert { overflow-wrap: anywhere; }
+button, .acciones-impresion a { display: inline-block; border: 1px solid #1b264f; border-radius: 6px; padding: 10px 16px; margin: 0 8px 8px 0; font: inherit; cursor: pointer; }
+button { background: #1b264f; color: white; } a { color: #1b264f; }
+button:focus-visible, a:focus-visible { outline: 3px solid #c99700; outline-offset: 3px; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; table-layout: fixed; }
+th, td { padding: 8px; border-bottom: 1px solid #b7becb; text-align: left; vertical-align: top; }
+th:last-child, td:last-child { width: 30%; text-align: right; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+dl { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 7px 12px; break-inside: avoid; }
+dt { font-weight: bold; } dd { margin: 0; text-align: right; }
+small { display: block; font-size: 11px; }
+.alert { border: 2px solid #9b1c1c; color: #751919; padding: 12px; margin-bottom: 20px; break-inside: avoid; }
+.alert strong { font-size: 20px; }
+@page { margin: 14mm; }
+@media print {
+    :root, body { background: white; color: black; }
+    body { font-size: 10pt; }
+    .acciones-impresion { display: none !important; }
+    main { max-width: none; margin: 0; padding: 0; border: 0; }
+    h1, h2 { break-after: avoid; }
+    .alert { color: black; border-color: black; }
+}

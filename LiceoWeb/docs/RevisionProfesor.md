@@ -124,3 +124,8 @@ Se agregó /Finanzas/AnularRecibo para Administración. Contrapartida sin borrar
 
 Punto vigente para continuar: probar 015, cobros, generación y anulaciones en SQL Server; retirar/redirigir formularios de cobro anteriores tras el corte, preparar impresión dedicada e integrar cargos con el flujo definitivo de matrícula. Siguen abiertos los pendientes académicos, cuentas y pruebas autenticadas/concurrentes.
 Validación de 015: compilación C#/Razor y 10 pruebas de entrada aprobadas; 5 scripts sin errores sintácticos de ScriptDom; acceso anónimo a anulación, recibo y cuenta redirige a login. SQL Server, roles autenticados y concurrencia pendientes.
+
+## Continuación: transición de rutas e impresión
+Se agregó consulta scoped del estado financiero y filtro previo a handlers de páginas antiguas: antes del corte continúan, después GET/HEAD redirigen y envíos devuelven 409; si no se puede verificar el estado, 503 sin ejecutar operación. Menú retira las rutas antiguas tras el corte. Vista /Finanzas/ImprimirRecibo comparte el detalle real e historial de anulación, sin navegación y con CSS para papel. No requiere migración nueva; sí instalación completa hasta 015. Guía docs/TransicionEImpresion.md.
+Punto vigente para continuar: integración definitiva de matrícula académica con cargos; pruebas SQL y autenticadas de finanzas; pendientes académicos, cuentas y reportes consolidados nuevos. Validar impresión real con documentos largos A4/Carta.
+Validación de transición/impresión: compilación sin errores, 13 pruebas del filtro con estados simulados; accesos anónimos a impresión/transición/Cobros redirigen a login y recursos de impresión disponibles. Faltan SQL Server, sesiones reales y revisión visual en papel.

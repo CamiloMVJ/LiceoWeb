@@ -1,0 +1,27 @@
+@model System.Data.DataSet
+@using System.Data
+@{ var r = Model.Tables["Recibo"]!.Rows[0]; }
+<article class="card card-body">
+    @if (Model.Tables["Anulacion"]!.Rows.Count > 0)
+    {
+        var a = Model.Tables["Anulacion"]!.Rows[0];
+        <div class="alert alert-danger"><strong>RECIBO ANULADO</strong><br />
+        Fecha (UTC): @(((DateTime)a["Fecha"]).ToString("dd/MM/yyyy HH:mm")) · Responsable: @a["Responsable"]<br />
+        Motivo: @a["Motivo"]<br />Receptor: @a["Receptor"] · Referencia: @a["ReferenciaDevolucion"]<br />
+        Dinero devuelto: C$ @(((decimal)a["DineroDevuelto"]).ToString("N2")) · Saldo restituido: C$ @(((decimal)a["SaldoRestituido"]).ToString("N2"))<br />
+        Saldo al anular: C$ @(((decimal)a["SaldoAnterior"]).ToString("N2")) → C$ @(((decimal)a["SaldoFinal"]).ToString("N2")).<br />
+        Los datos siguientes corresponden al recibo original; sus aplicaciones ya no cancelan deuda.</div>
+    }
+    <h1>Liceo Hispanidad</h1><h2>Recibo @r["Numero"]</h2>
+    <p>Fecha (UTC): @(((DateTime)r["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</p>
+    <p>Estudiante: <strong>@r["NombreEstudiante"]</strong> · @r["Registro"]<br />Pagador: @r["Pagador"]<br />Responsable: @r["Responsable"]</p>
+    <p>Método: @r["Metodo"] · Referencia: @r["Referencia"]</p>
+    <table class="table"><thead><tr><th>Concepto</th><th class="text-end">Aplicado (C$)</th></tr></thead><tbody>
+    @foreach (DataRow d in Model.Tables["Detalle"]!.Rows) { <tr><td>@d["DescripcionHistorica"]</td><td class="text-end">@(((decimal)d["Importe"]).ToString("N2"))</td></tr> }
+    </tbody></table>
+    <dl class="row">
+    @foreach (var (col, label) in new[] { ("TotalAplicado", "Total aplicado a deuda"), ("Recibido", "Dinero recibido"), ("Cambio", "Vuelto"), ("SaldoAnterior", "Saldo a favor anterior"), ("SaldoAplicado", "Saldo utilizado"), ("SaldoFinal", "Saldo a favor restante") })
+    { <dt class="col-8">@label</dt><dd class="col-4 text-end">C$ @(((decimal)r[col]).ToString("N2"))</dd> }
+    </dl>
+    <small>Operación: @r["Operacion"]</small>
+</article>
