@@ -98,3 +98,6 @@ Se conectó /Finanzas/Conciliacion, exclusiva del administrador: listado paginad
 
 ## Continuación: recaptura con historial
 Migración 010 y Conciliacion.sql actualizados; pantalla permite recapturar cambios de origen con motivo, historial antes/después y generación. Invalida decisiones anteriores y rechaza formularios antiguos. No permite cambiar estudiante ni recapturar origen ausente. Ver docs/RecapturaObligaciones.md. Compilación y ejecución SQL pendientes en esta continuación. Próximo paso: saldos/pagos, corte y migración financiera efectiva.
+
+## Continuación: conciliación de saldos
+Nueva pantalla /Finanzas/Saldos exclusiva de Administración, saldo de Abonos y pagos históricos, revisión con referencia/motivo e instantánea. Cambios de fuentes o revisiones antiguas invalidan el guardado. No genera ingresos ni modifica saldo. Instalar 011_RevisionSaldo.sql y ConciliacionSaldos.sql; guía docs/ConciliacionSaldos.md. Se recuperó la compilación completa, incluidas conciliación/recaptura anteriores; pruebas SQL pendientes. Próximo paso obligatorio: corte de escrituras antiguas y migración transaccional de cargos/saldos conciliados antes de activar recibos multiconcepto.

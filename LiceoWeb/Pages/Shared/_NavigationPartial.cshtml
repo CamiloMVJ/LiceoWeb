@@ -85,6 +85,7 @@
         <div class="liceo-menu-divider"></div>
 
         <p class="liceo-menu-title">Administración</p>
+        <a asp-area="" asp-page="/Finanzas/Saldos" class="@(EstaActivo("/Finanzas/Saldos") ? "active" : "")">Conciliación de saldos</a>
         <a asp-area="" asp-page="/Finanzas/Conciliacion" class="@(EstaActivo("/Finanzas/Conciliacion") ? "active" : "")">Conciliación de obligaciones</a>
         <a asp-area="" asp-page="/Finanzas/Aranceles" class="@(EstaActivo("/Finanzas/Aranceles") ? "active" : "")">Aranceles y preparación</a>
         <a asp-area="" asp-page="/Notas/Cierre" class="@(EstaActivo("/Notas/Cierre") ? "active" : "")">Cierre e historial académico</a>

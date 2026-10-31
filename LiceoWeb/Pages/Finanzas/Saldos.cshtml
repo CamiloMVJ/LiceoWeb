@@ -1,0 +1,23 @@
+@page
+@model LiceoWeb.Pages.Finanzas.SaldosModel
+@{ViewData["Title"]="Conciliación de saldos";}
+<h1>Conciliación de saldos a favor</h1>
+<p>Consulta el saldo existente y sus pagos históricos antes de autorizar un saldo inicial.</p>
+<div class="alert alert-info">Esta revisión no aplica saldo, no cobra y no convierte abonos en ingresos nuevos. Los pagos sin historial requieren comprobación documental; su monto antiguo no demuestra por sí solo cuánto dinero ingresó.</div>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<form method="get" class="liceo-card mb-4"><label for="registro" class="form-label">Código de estudiante</label><input id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" class="form-control mb-3" required/><button class="btn btn-liceo-primary">Consultar</button></form>
+@if(Model.Cargado){
+<section class="liceo-card mb-4"><h2 class="h4">Saldo actual</h2>
+<p>C$ @(Model.Datos.Tables["Resumen"]!.Rows[0]["SaldoFavor"]) · Filas de saldo: @(Model.Datos.Tables["Resumen"]!.Rows[0]["FilasSaldo"])</p>
+<p>Cero filas significa que no hay saldo registrado. No prueba que se haya completado la conciliación.</p>
+<form method="post"><input asp-for="Input.Registro" type="hidden"/><input asp-for="Input.Huella" type="hidden"/><input asp-for="Input.RevisionAnterior" type="hidden"/>
+<label asp-for="Input.Decision" class="form-label">Decisión sobre el saldo observado</label><select asp-for="Input.Decision" class="form-select mb-3"><option value="">Seleccionar</option><option value="Aprobado">Aprobado documentalmente</option><option value="Rechazado">Rechazado</option></select>
+<label asp-for="Input.Referencia" class="form-label">Referencia del respaldo revisado</label><input asp-for="Input.Referencia" class="form-control mb-3" maxlength="200" required/>
+<label asp-for="Input.Motivo" class="form-label">Motivo y explicación de diferencias</label><textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea>
+<p>Al aprobar confirmas que verificaste el saldo con sus respaldos, incluidos los pagos sin historial. La aprobación no valida automáticamente cada pago ni activa la migración.</p>
+<button class="btn btn-liceo-primary">Registrar decisión</button>
+<a asp-route-registro="@Model.Input.Registro" class="btn btn-liceo-secondary">Recargar datos</a></form></section>
+<section class="liceo-card mb-4"><h2 class="h4">Pagos históricos</h2><partial name="~/Pages/Planificacion/_Tabla.cshtml" model='Model.Datos.Tables["Pagos"]!'/></section>
+<section class="liceo-card"><h2 class="h4">Últimas 200 revisiones del saldo</h2><p>Las decisiones anteriores se conservan. Para la futura migración se debe considerar únicamente la última revisión, si continúa coincidiendo con la fuente.</p><partial name="~/Pages/Planificacion/_Tabla.cshtml" model='Model.Datos.Tables["Historial"]!'/></section>
+}
