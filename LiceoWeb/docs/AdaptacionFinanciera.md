@@ -1,5 +1,5 @@
-# Adaptación financiera — primera etapa: diagnóstico
-Estado: diagnóstico implementado; NO se activó un libro financiero nuevo.
+# Adaptación financiera — diagnóstico, catálogo y preparación
+Estado: diagnóstico, catálogo y preparación implementados; NO se activó un libro financiero nuevo.
 Ejecutar database/verification/008_DiagnosticoFinanciero.sql completo en una copia LiceoWeb_Dev sin actividad de cobros. Requiere tablas originales y etapa 003. Es solo lectura de tablas de negocio; usa una tabla temporal. Validado con ScriptDom, no ejecutado contra SQL Server.
 
 ## Resultados
@@ -24,5 +24,8 @@ Procedimientos.sql contiene USE Registro_Pagos y parámetros/variables INT para 
 - Estado de cuenta distingue cargos, aplicaciones, saldos iniciales y anulaciones. No sumar otra vez un pago por cada detalle.
 - Reversos conservan historial y requieren permiso y motivo.
 
+## Catálogo y preparación implementados
+Instalar migrations/008_CatalogoFinanciero.sql y procedures/Aranceles.sql. Administración puede gestionar aranceles, tarifas con historial y correspondencias, y capturar obligaciones por clave única de origen. Guía: docs/CatalogoFinanciero.md. La captura preserva importes históricos y detecta cambios posteriores de la fuente; no crea cargos cobrables, no concilia automáticamente y no modifica pagos.
+
 ## Continuar más tarde
-Este avance NO completa la adaptación solicitada. Próximo paso: catálogo/tarifas administrables, tablas de mapeo y preparación de migración idempotente; luego conciliación y corte controlado, recibos multiconcepto y estado de cuenta. Resolver anomalías del diagnóstico antes de ejecutar el corte. No requiere cambiar las migraciones 000–007.
+Este avance NO completa la adaptación solicitada. Próximo paso: resolver discrepancias y aprobar conciliación, mapear tarifas/años/modalidades y saldos, implementar corte controlado y migración a cargos; luego recibos multiconcepto y estado de cuenta. Resolver anomalías del diagnóstico antes de ejecutar el corte. No requiere cambiar las migraciones 000–007.

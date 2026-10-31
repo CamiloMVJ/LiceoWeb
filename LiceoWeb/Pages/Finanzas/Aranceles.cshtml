@@ -1,0 +1,46 @@
+@page
+@using System.Data
+@model LiceoWeb.Pages.Finanzas.ArancelesModel
+@{ViewData["Title"]="Aranceles y preparación financiera";}
+<h1>Aranceles y tarifas</h1>
+<p>Configura conceptos, precios por año y modalidad, y su relación con los registros anteriores.</p>
+<div class="alert alert-info">Configuración en preparación. Estos precios todavía no se aplican a los cobros anteriores y esta pantalla no emite recibos.</div>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+<nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Operaciones financieras">@foreach(var a in LiceoWeb.Pages.Finanzas.ArancelesModel.Acciones){<a asp-route-accion="@a" class="btn btn-liceo-secondary">@(a switch{"Mapeo"=>"Vincular conceptos","Preparar"=>"Preparar obligaciones",_=>a})</a>}</nav>
+<form method="post" class="liceo-card mb-4"><div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<input asp-for="Input.Accion" type="hidden"/><input asp-for="Input.Id" type="hidden"/><input asp-for="Input.Version" type="hidden"/>
+@if(Model.Input.Accion=="Arancel"){
+<h2 class="h4">@(Model.Input.Id==0?"Nuevo arancel":"Editar arancel")</h2>
+<label asp-for="Input.Codigo" class="form-label">Código</label><input asp-for="Input.Codigo" class="form-control mb-3" required/>
+<label asp-for="Input.Nombre" class="form-label">Nombre</label><input asp-for="Input.Nombre" class="form-control mb-3" required/>
+<p>Una vez utilizado en tarifas o correspondencias, se conserva su código y nombre. Puedes inactivarlo.</p>
+}
+@if(Model.Input.Accion is "Tarifa" or "Mapeo"){
+<label asp-for="Input.ArancelId" class="form-label">Arancel</label><select asp-for="Input.ArancelId" asp-items='Model.Opciones("Aranceles")' class="form-select mb-3"><option value="0">Seleccionar</option></select>
+}
+@if(Model.Input.Accion=="Tarifa"){
+<label asp-for="Input.AnioId" class="form-label">Año lectivo</label><select asp-for="Input.AnioId" asp-items='Model.Opciones("Anios")' class="form-select mb-3"><option value="0">Seleccionar</option></select>
+<label asp-for="Input.ModalidadId" class="form-label">Modalidad</label><select asp-for="Input.ModalidadId" asp-items='Model.Opciones("Modalidades")' class="form-select mb-3"><option value="0">Seleccionar</option></select>
+<label asp-for="Input.Importe" class="form-label">Importe en córdobas</label><input asp-for="Input.Importe" type="number" min="0" step="0.01" class="form-control mb-3" required/>
+<p>Crea años y modalidades en Catálogos académicos. Al editar se conserva la combinación original; los cambios de importe quedan en el historial y no alteran cargos ya registrados.</p>
+}
+@if(Model.Input.Accion is "Arancel" or "Tarifa"){
+<div class="form-check mb-3"><input asp-for="Input.Activo" class="form-check-input"/><label asp-for="Input.Activo" class="form-check-label">Activo</label></div>
+}
+@if(Model.Input.Accion=="Mapeo"){
+<label asp-for="Input.Origen" class="form-label">Concepto anterior</label><select asp-for="Input.Origen" class="form-select mb-3"><option value="">Seleccionar</option>@foreach(var o in LiceoWeb.ViewModels.ArancelInput.Origenes){<option>@o</option>}</select>
+<p>Relaciona cada origen con el arancel correspondiente. Repetir la misma relación no duplica datos. Una relación guardada no puede reasignarse desde esta pantalla.</p>
+}
+@if(Model.Input.Accion=="Preparar"){
+<h2 class="h4">Capturar obligaciones para revisión</h2><p>Guarda una referencia por obligación anterior. Requiere los cinco conceptos vinculados. No genera cargos cobrables, no aplica saldos y no modifica pagos. Las fuentes que cambien después se señalarán para revisión.</p>
+}
+<label asp-for="Input.Motivo" class="form-label">Motivo</label><textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea>
+<button class="btn btn-liceo-primary">@(Model.Input.Accion=="Preparar"?"Capturar para revisión":"Guardar")</button>
+</form>
+<section class="liceo-card mb-4"><h2 class="h4">Aranceles</h2><div class="table-responsive"><table class="table"><thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th>Acción</th></tr></thead><tbody>@foreach(var r in Model.Filas("Aranceles")){<tr><td>@r["Codigo"]</td><td>@r["Nombre"]</td><td>@((bool)r["Activo"]?"Activo":"Inactivo")</td><td><a asp-route-accion="Arancel" asp-route-id="@r["Id"]">Editar</a></td></tr>}</tbody></table></div></section>
+<section class="liceo-card mb-4"><h2 class="h4">Tarifas</h2><div class="table-responsive"><table class="table"><thead><tr><th>Arancel</th><th>Año</th><th>Modalidad</th><th>C$</th><th>Estado</th><th>Acción</th></tr></thead><tbody>@foreach(var r in Model.Filas("Tarifas")){<tr><td>@r["Arancel"]</td><td>@r["Anio"]</td><td>@r["Modalidad"]</td><td>@(((decimal)r["Importe"]).ToString("N2"))</td><td>@((bool)r["Activo"]?"Activa":"Inactiva")</td><td><a asp-route-accion="Tarifa" asp-route-id="@r["Id"]">Editar</a></td></tr>}</tbody></table></div></section>
+@foreach(var tabla in new[]{"Mapeos","Historial","Resumen","Preparacion"}){
+<section class="liceo-card mb-4"><h2 class="h4">@(tabla switch{"Mapeos"=>"Correspondencias","Historial"=>"Historial de tarifas","Resumen"=>"Resumen de preparación",_=>"Obligaciones capturadas"})</h2>
+@if(tabla is "Historial" or "Preparacion"){<p>Se muestran hasta 200 filas. El resumen de preparación cuenta todos los registros. Capturado no significa conciliado ni listo para cobrar.</p>}
+<partial name="~/Pages/Planificacion/_Tabla.cshtml" model="Model.Datos.Tables[tabla]!"/></section>
+}

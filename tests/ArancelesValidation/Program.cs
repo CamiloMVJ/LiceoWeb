@@ -1,0 +1,21 @@
+using System.ComponentModel.DataAnnotations;
+using LiceoWeb.ViewModels;
+static bool Valida(ArancelInput x)=>Validator.TryValidateObject(x,new ValidationContext(x),new List<ValidationResult>(),true);
+static void Check(bool ok,string name){if(!ok)throw new Exception(name);Console.WriteLine("OK: "+name);}
+static ArancelInput Tarifa()=>new(){Accion="Tarifa",ArancelId=1,ModalidadId=1,AnioId=1,Importe=150.25m,Motivo="Tarifa acordada"};
+Check(Valida(Tarifa()),"Importe con centavos válido");
+var t=Tarifa();t.Importe=0;Check(Valida(t),"Tarifa cero permitida");
+t.Importe=-1;Check(!Valida(t),"Negativo rechazado");
+t.Importe=0.001m;Check(!Valida(t),"No redondear silenciosamente");
+t.Importe=null;Check(!Valida(t),"Importe requerido");
+t=Tarifa();t.AnioId=0;Check(!Valida(t),"Año requerido");
+t=Tarifa();t.Id=1;Check(!Valida(t),"Edición exige versión");
+t.Version="0x0000000000000001";Check(Valida(t),"Edición con versión");
+t.Version="0x12";Check(!Valida(t),"Versión incompleta rechazada");
+t=Tarifa();t.Motivo=" ";Check(!Valida(t),"Motivo requerido");
+Check(!Valida(new(){Codigo="BUS",Nombre=" ",Motivo="Alta"}),"Nombre requerido");
+Check(Valida(new(){Codigo="BUS",Nombre="Transporte",Motivo="Alta"}),"Arancel configurable");
+Check(Valida(new(){Accion="Mapeo",Origen="Mensualidades",ArancelId=1,Motivo="Vinculación"}),"Origen permitido");
+Check(!Valida(new(){Accion="Mapeo",Origen="Pagos",ArancelId=1,Motivo="Vinculación"}),"No confundir pagos con obligaciones");
+Check(Valida(new(){Accion="Preparar",Motivo="Revisión"}),"Preparación válida");
+Check(!Valida(new(){Accion="Cobrar",Motivo="Intento"}),"Cobro no expuesto por catálogo");

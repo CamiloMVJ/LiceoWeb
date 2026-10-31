@@ -67,13 +67,20 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 - Instalar 007_HistorialCierreAcademico.sql, actualizar Notas.sql y ejecutar CierreAcademico.sql. Guía: docs/CierreAcademico.md.
 - Solución y Razor compilados sin errores (40 advertencias anteriores). Pasan doce pruebas C# nuevas y las dieciséis de notas. Scripts de cinco escenarios SQL preparados; HTTP sin sesión redirige /Notas/Cierre al login. Sintaxis SQL validada; ejecución SQL y autorización autenticada pendientes.
 
+## Avance financiero: catálogo y preparación
+- Aranceles y tarifas por año/modalidad administrables, con motivos, rowversion, auditoría e historial de importes/estado. Los cargos existentes no se recalculan.
+- Correspondencias explícitas para cinco conceptos antiguos; captura única por origen/Id sin duplicar al repetir. Discrepancias con fuentes cambiadas se muestran para revisión.
+- Instalar migrations/008_CatalogoFinanciero.sql y procedures/Aranceles.sql. Guía: docs/CatalogoFinanciero.md; diagnóstico 008 y prueba SQL 009.
+- Dieciséis pruebas nuevas C# pasan; solución/Razor compilan con 0 errores y 40 advertencias anteriores. SQL revisado con ScriptDom; ejecución SQL pendiente.
+- No hay corte financiero, migración efectiva a cargos, saldo inicial conciliado, recibos multiconcepto ni estado de cuenta definitivo. Las tarifas nuevas todavía no afectan los cobros anteriores.
+
 ## Continuar más tarde — trabajo obligatorio restante
 1. Ejecutar pruebas integradas SQL y de autorización en una base de desarrollo. Verificar la integración completa, incluidos los módulos financieros previos.
 2. Completar cambios de grupos/asignaciones y cancelación de horarios conservando historial. La etapa actual permite crearlos y cerrar períodos, pero no reasignarlos ni cancelar horarios.
 3. Notas: ejecutar verificación SQL y pruebas autenticadas/concurrentes. Validar la corrección/reapertura administrativa con historial y el cierre de período ya implementados en 007; completar edición de definiciones de evaluación con historial y consulta paginada de eventos. No modificar resultados publicados mediante SQL manual. La captura, escalas cualitativas, ponderación y publicación por asignación ya están implementadas.
-4. Finanzas: catálogo administrable y tarifas por año/modalidad; generación idempotente de cargos. Migrar/conciliar deudas, abonos y pagos antiguos sin operar dos libros paralelos. Recibo único con varias aplicaciones, pagador, número común, IdOperacion estable; validar cargos/estudiante e importes en una transacción. Incorporar saldo anterior y final antes de habilitar ReciboMultiple. Estado de cuenta sin duplicar ingresos; anulaciones con contrapartida, sin DELETE.
+4. Finanzas: catálogo y captura preparatoria implementados; falta conciliación aprobada, corte de escrituras anteriores y generación idempotente de cargos. Migrar/conciliar deudas, abonos y pagos antiguos sin operar dos libros paralelos. Recibo único con varias aplicaciones, pagador, número común, IdOperacion estable; validar cargos/estudiante e importes en una transacción. Incorporar saldo anterior y final antes de habilitar ReciboMultiple. Estado de cuenta sin duplicar ingresos; anulaciones con contrapartida, sin DELETE.
 5. Cuentas: al incorporar desactivación y cambio de rol, impedir eliminar el último administrador y renovar las sesiones afectadas. Creación ya tiene auditoría persistente.
-6. UI: completar aranceles, estado de cuenta y enlaces de módulos anteriores que aún sean solo formularios; validar visualmente y con usuarios autenticados el módulo nuevo de notas.
+6. UI: probar aranceles con usuarios autenticados, completar estado de cuenta y enlaces de módulos anteriores que aún sean solo formularios; validar visualmente y con usuarios autenticados el módulo nuevo de notas.
 7. Colegio: confirmar fotos, datos de contacto, formato de traslado, escala de notas, catálogo de niveles y política de preinscripción. No inventar información institucional ni normativa.
 8. Pruebas pendientes: autorización directa de páginas/POST, cruces concurrentes, cupo lleno, docente ajeno, nota fuera de rango, doble cobro, reintento idempotente, rollback, recibo multiconcepto y conciliación.
 
@@ -81,4 +88,4 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 Portal de padres, notificaciones automáticas y preinscripción/reserva de cupo quedan fuera de esta entrega; la política de preinscripción requiere confirmación del colegio. Matutino es turno; dominical describe jornada/frecuencia: no confundir con niveles Preescolar/Primaria/Secundaria. No cambiar SQL Server a PostgreSQL.
 
 ## Punto exacto para retomar
-Leer este documento y git log. Instalar 007, actualizar Notas.sql y ejecutar CierreAcademico.sql. Ejecutar pruebas SQL 006/007 y de autorización/concurrencia. Continuar con adaptación financiera, primero analizando y conciliando el modelo anterior; después completar reasignaciones/edición académica pendientes. Esta rama aún no completa todos los requerimientos del profesor.
+Leer este documento y docs/AdaptacionFinanciera.md y docs/CatalogoFinanciero.md. Instalar la migración 008 y Aranceles.sql; ejecutar pruebas SQL 009 y permisos. Continuar con conciliación aprobada, saldos iniciales y corte de escrituras antiguas antes de generar cargos y habilitar recibos multiconcepto. No interpretar la captura preparatoria como migración completada. Esta rama aún no completa todos los requerimientos del profesor.
