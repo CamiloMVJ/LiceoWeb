@@ -89,3 +89,6 @@ Portal de padres, notificaciones automáticas y preinscripción/reserva de cupo 
 
 ## Punto exacto para retomar
 Leer este documento y docs/AdaptacionFinanciera.md y docs/CatalogoFinanciero.md. Instalar la migración 008 y Aranceles.sql; ejecutar pruebas SQL 009 y permisos. Continuar con conciliación aprobada, saldos iniciales y corte de escrituras antiguas antes de generar cargos y habilitar recibos multiconcepto. No interpretar la captura preparatoria como migración completada. Esta rama aún no completa todos los requerimientos del profesor.
+
+## Continuación: backend de revisión de obligaciones
+Migración 009_RevisionObligaciones.sql y procedures/Conciliacion.sql agregan decisiones con historial, correspondencia de tarifa y detección de fuentes cambiadas. No hay interfaz conectada ni migración a cargos en esta etapa. Scripts no ejecutados ni compilados en SQL Server en este turno; ver docs/ConciliacionObligaciones.md para contrato y pruebas obligatorias. Próximo paso: interfaz de revisión, recaptura con historial, saldos/pagos y corte financiero.
