@@ -1,0 +1,62 @@
+@page
+@model LiceoWeb.Pages.Finanzas.CuentaModel
+@using System.Data
+@{ ViewData["Title"] = "Estado de cuenta y cobros"; }
+<h1>Estado de cuenta y cobros</h1>
+<p>Consulta por código de estudiante. Los importes están expresados en córdobas (C$).</p>
+<form method="get" class="d-flex gap-2 mb-3">
+    <label for="registro" class="visually-hidden">Código del estudiante</label>
+    <input id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" required class="form-control" placeholder="Código del estudiante" />
+    <button class="btn btn-liceo-primary">Consultar</button>
+</form>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (Model.Cargado)
+{
+    var resumen = Model.Datos.Tables["Resumen"]!.Rows[0];
+    <h2>@resumen["NombreEstudiante"] <small class="text-muted">@resumen["Registro"]</small></h2>
+    @if (!Model.Migrado)
+    { <div class="alert alert-warning">El corte financiero aún no está aplicado. Los cobros nuevos están bloqueados; los totales siguientes no representan todavía toda la cuenta histórica.</div> }
+    <div class="row my-3">
+        <div class="col-sm-6"><div class="card card-body">Deuda del libro nuevo <strong>C$ @Model.Deuda.ToString("N2")</strong></div></div>
+        <div class="col-sm-6"><div class="card card-body">Saldo a favor disponible <strong>C$ @(((decimal)resumen["SaldoFavor"]).ToString("N2"))</strong></div></div>
+    </div>
+    <h3>Cargos del estudiante</h3>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Concepto</th><th>Vencimiento</th><th>Importe</th><th>Aplicado</th><th>Pendiente</th></tr></thead><tbody>
+    @foreach (DataRow r in Model.Datos.Tables["Cargos"]!.Rows)
+    { <tr><td>@r["DescripcionHistorica"]</td><td>@(r.IsNull("Vencimiento") ? "Sin fecha registrada" : ((DateTime)r["Vencimiento"]).ToString("dd/MM/yyyy"))</td><td>@(((decimal)r["Importe"]).ToString("N2"))</td><td>@(((decimal)r["Pagado"]).ToString("N2"))</td><td>@(((decimal)r["Pendiente"]).ToString("N2"))</td></tr> }
+    </tbody></table></div>
+    @if (Model.Migrado && Model.Input.Aplicaciones.Count > 0)
+    {
+        <h3>Registrar cobro</h3><p>Indica cuánto aplicar a cada cargo; deja cero para omitirlo. Se permiten abonos parciales. El sobrante de efectivo se devuelve como vuelto.</p>
+        <form method="post" class="card card-body mb-4">
+            <input type="hidden" asp-for="Input.Registro" /><input type="hidden" asp-for="Input.Operacion" />
+            <div class="row g-3">
+                <div class="col-md-6"><label asp-for="Input.Pagador">Nombre de quien paga</label><input asp-for="Input.Pagador" class="form-control" maxlength="200" required /></div>
+                <div class="col-md-6"><label asp-for="Input.Metodo">Método</label><select asp-for="Input.Metodo" class="form-select"><option>Efectivo</option><option>Transferencia</option><option value="Saldo">Solo saldo a favor</option></select></div>
+                <div class="col-md-4"><label asp-for="Input.Recibido">Dinero recibido (C$)</label><input asp-for="Input.Recibido" type="number" min="0" step="0.01" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Input.SaldoAplicado">Saldo a favor a utilizar (C$)</label><input asp-for="Input.SaldoAplicado" type="number" min="0" step="0.01" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Input.Referencia">Referencia de transferencia</label><input asp-for="Input.Referencia" class="form-control" maxlength="100" /></div>
+            </div>
+            @for (var i = 0; i < Model.Input.Aplicaciones.Count; i++)
+            {
+                var cargo = Model.Datos.Tables["Cargos"]!.AsEnumerable().FirstOrDefault(r => r.Field<long>("Id") == Model.Input.Aplicaciones[i].CargoId);
+                <div class="row mt-3 align-items-center"><div class="col-md-8"><label asp-for="Input.Aplicaciones[i].Importe">@(cargo?["DescripcionHistorica"] ?? "Cargo no disponible") — pendiente C$ @(cargo is null ? "?" : ((decimal)cargo["Pendiente"]).ToString("N2"))</label></div>
+                <div class="col-md-4"><input type="hidden" asp-for="Input.Aplicaciones[i].CargoId" /><input asp-for="Input.Aplicaciones[i].Importe" type="number" min="0" step="0.01" class="form-control" /></div></div>
+            }
+            <p class="mt-3">Las transferencias deben cubrir exactamente lo seleccionado. Para pagar solo con saldo, deja el dinero recibido en cero.</p>
+            <button class="btn btn-liceo-primary align-self-start">Confirmar cobro y emitir recibo</button>
+            <small class="text-muted mt-2">Operación: @Model.Input.Operacion. Ante un error, conserva este formulario para reintentar sin duplicar el cobro.</small>
+        </form>
+        @if (Model.CargoPagina > 1) { <a asp-page="Cuenta" asp-route-registro="@Model.Input.Registro" asp-route-cargoPagina="@(Model.CargoPagina-1)">Cargos anteriores</a> }
+        @if (Model.MasCargos) { <a asp-page="Cuenta" asp-route-registro="@Model.Input.Registro" asp-route-cargoPagina="@(Model.CargoPagina+1)">Siguientes 50 cargos</a> }
+    }
+    <h3>Recibos del libro nuevo</h3>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Número</th><th>Fecha (UTC)</th><th>Método</th><th>Dinero neto</th><th>Saldo utilizado</th><th>Aplicado a deuda</th></tr></thead><tbody>
+    @foreach (DataRow r in Model.Datos.Tables["Recibos"]!.Rows)
+    { <tr><td><a asp-page="Recibo" asp-route-id="@r["Id"]">@r["Numero"]</a></td><td>@(((DateTime)r["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</td><td>@r["Metodo"]</td><td>@(((decimal)r["Recibido"]-(decimal)r["Cambio"]).ToString("N2"))</td><td>@(((decimal)r["SaldoAplicado"]).ToString("N2"))</td><td>@(((decimal)r["TotalAplicado"]).ToString("N2"))</td></tr> }
+    </tbody></table></div>
+    <details><summary>Pagos históricos del libro anterior</summary><p>Referencia documental: no se suman otra vez al saldo ni a los ingresos del libro nuevo.</p>
+    <table class="table"><thead><tr><th>Comprobante</th><th>Fecha</th><th>Concepto</th><th>Monto registrado</th></tr></thead><tbody>
+    @foreach (DataRow r in Model.Datos.Tables["Historicos"]!.Rows) { <tr><td>@r["Id_Comprobante"]</td><td>@(((DateTime)r["Fecha_Pago"]).ToString("dd/MM/yyyy"))</td><td>@r["Concepto"]</td><td>@(((decimal)r["Monto"]).ToString("N2"))</td></tr> }
+    </tbody></table></details>
+}

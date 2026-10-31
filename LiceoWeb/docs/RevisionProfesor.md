@@ -104,3 +104,11 @@ Nueva pantalla /Finanzas/Saldos exclusiva de Administración, saldo de Abonos y 
 
 ## Continuación: corte financiero
 Migración 012_CorteFinanciero.sql y procedures/CorteFinanciero.sql implementan simulación por defecto, validación bajo bloqueo, generación de cargos por deuda aprobada, saldos iniciales y barreras del libro antiguo. Aplicación solo con confirmación explícita en desarrollo; no ejecutada aquí. Guía docs/CorteFinanciero.md y prueba verification/011_VerificarSimulacionCorte.sql. El corte aplicado bloquearía los cobros antiguos aunque el módulo nuevo todavía no esté disponible; usar simulación en esta etapa. Próximo bloque: recibos multiconcepto, operación idempotente, reversos, estado de cuenta y navegación financiera nueva.
+
+## Continuación: recibos multiconcepto y estado de cuenta
+Migración 013 y procedures/CobroMultiple.sql; páginas /Finanzas/Cuenta y /Finanzas/Recibo para Administrador/Cajero. Pago parcial de varios cargos, efectivo/transferencia/saldo conciliado, vuelto, número común, transacción/auditoría y reintento por GUID. Históricos separados del libro nuevo. Ver docs/RecibosMultiples.md para instalación, pruebas y límites. No se ha ejecutado contra SQL Server.
+
+## Punto vigente para continuar más tarde
+Este punto sustituye los puntos de reanudación anteriores: probar 013 y CobroMultiple.sql en SQL Server; implementar generación idempotente de cargos desde tarifas, reversos documentados, navegación que retire cobros antiguos tras el corte e impresión dedicada. Los otros pendientes académicos, de cuentas y pruebas integradas siguen abiertos. No aplicar el corte a la base cotidiana mientras estas limitaciones impidan operar.
+
+Validación de esta continuación: compilación 0 errores/40 advertencias previas; 19 pruebas de entrada aprobadas; 3 scripts analizados con ScriptDom; acceso anónimo a ambas páginas redirige a login. SQL Server, concurrencia y navegación autenticada pendientes.

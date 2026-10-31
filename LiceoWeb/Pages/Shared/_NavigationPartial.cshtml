@@ -29,6 +29,7 @@
 
     @if (User.IsInRole("Administrador") || User.IsInRole("Cajero"))
     {
+    <a asp-area="" asp-page="/Finanzas/Cuenta" class="@(EstaActivo("/Finanzas/Cuenta") ? "active" : "")">Estado de cuenta y cobros</a>
     <a asp-area=""
        asp-page="/Estudiantes/Index"
        class="@(EstaActivo("/Estudiantes/Index") ? "active" : "")"

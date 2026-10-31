@@ -1,0 +1,20 @@
+@page "{id:long}"
+@model LiceoWeb.Pages.Finanzas.ReciboModel
+@using System.Data
+@{ ViewData["Title"] = "Recibo"; var r = Model.Datos.Tables["Recibo"]!.Rows[0]; }
+<article class="card card-body">
+    <h1>Liceo Hispanidad</h1><h2>Recibo @r["Numero"]</h2>
+    <p>Fecha (UTC): @(((DateTime)r["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</p>
+    <p>Estudiante: <strong>@r["NombreEstudiante"]</strong> · @r["Registro"]<br />Pagador: @r["Pagador"]<br />Responsable: @r["Responsable"]</p>
+    <p>Método: @r["Metodo"] · Referencia: @r["Referencia"]</p>
+    <table class="table"><thead><tr><th>Concepto</th><th class="text-end">Aplicado (C$)</th></tr></thead><tbody>
+    @foreach (DataRow d in Model.Datos.Tables["Detalle"]!.Rows) { <tr><td>@d["DescripcionHistorica"]</td><td class="text-end">@(((decimal)d["Importe"]).ToString("N2"))</td></tr> }
+    </tbody></table>
+    <dl class="row">
+    @foreach (var (col, label) in new[] { ("TotalAplicado", "Total aplicado a deuda"), ("Recibido", "Dinero recibido"), ("Cambio", "Vuelto"), ("SaldoAnterior", "Saldo a favor anterior"), ("SaldoAplicado", "Saldo utilizado"), ("SaldoFinal", "Saldo a favor restante") })
+    { <dt class="col-8">@label</dt><dd class="col-4 text-end">C$ @(((decimal)r[col]).ToString("N2"))</dd> }
+    </dl>
+    <small>Operación: @r["Operacion"]</small>
+</article>
+<p class="mt-3"><a class="btn btn-liceo-primary" asp-page="Cuenta" asp-route-registro="@r["Registro"]">Volver al estado de cuenta</a></p>
+<p class="text-muted">Puedes imprimir este comprobante desde el menú de impresión del navegador.</p>
