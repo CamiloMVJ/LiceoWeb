@@ -16,7 +16,7 @@ Requiere 004_RevisionProfesor.sql, 006_Calificaciones.sql y Registrar_Auditoria.
 ## Integridad
 La autorización se comprueba en PageModels y procedimientos. Todas las mutaciones toman el bloqueo de aplicación Liceo.Planificacion con dueño Transaction, y escriben auditoría. Este bloqueo serializa cambios de planificación para el volumen de un colegio; futuros procedimientos de cambios de horarios deben respetarlo. La asignación de estudiante también bloquea su fila conforme al contrato financiero.
 
-Catálogos permiten alta, consulta, edición antes de uso y activación/inactivación (períodos no usan esa operación). No hay DELETE. Los objetos ya usados no cambian su definición histórica. La inactivación impide nuevas selecciones de catálogo al crear planes/grupos, pero no borra las clases existentes. Cierre de período y sustitución de asignaciones requieren integración con notas y permanecen pendientes.
+Catálogos permiten alta, consulta, edición antes de uso y activación/inactivación (períodos no usan esa operación). No hay DELETE. Los objetos ya usados no cambian su definición histórica. La inactivación impide nuevas selecciones de catálogo al crear planes/grupos, pero no borra las clases existentes. El cierre de período está implementado desde 007 (CierreAcademico.md); la sustitución de asignaciones sigue pendiente.
 
 Los números Id visibles en algunas tablas son referencias de los catálogos; los desplegables muestran etiquetas. No hay datos de demostración ni inserciones automáticas de materias o turnos.
 
@@ -29,7 +29,7 @@ Los números Id visibles en algunas tablas son referencias de los catálogos; lo
 - Como dos profesores distintos, comprobar separación de MiHorario.
 
 ## Límites de esta etapa
-No se implementó aún edición/reasignación de grupos con historial, traslado entre grupos, cancelación de horarios ni cierre de período. Las calificaciones y su publicación están descritas en Calificaciones.md; el cierre integral de período sigue pendiente. No confundir las pruebas C# sin DB con la ejecución integral de SQL Server.
+No se implementó aún edición/reasignación de grupos con historial, traslado entre grupos, cancelación de horarios; el cierre de período está disponible en CierreAcademico.md. Las calificaciones y su publicación están descritas en Calificaciones.md; el cierre integral de período está disponible desde 007. No confundir las pruebas C# sin DB con la ejecución integral de SQL Server.
 
 ## Verificación de esta entrega
 Build de solución y Razor completado: 0 errores, 40 advertencias preexistentes. Doce pruebas de validación de planificación y ocho de expediente pasan. ScriptDom acepta los scripts nuevos. Arranque HTTP comprobado: portada/login públicos; registro cerrado; rutas internas redirigen a login sin sesión. Falta ejecutar SQL Server y pruebas autenticadas/concurrentes.

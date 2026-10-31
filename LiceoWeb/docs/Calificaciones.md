@@ -18,7 +18,7 @@
 7. Revisar el resumen: suma de nota/máximo × peso. Por ejemplo, 21/30×30 + 56/70×70 = 77. El acumulado parcial no es una calificación final; se muestra cantidad de pendientes y peso configurado. Consultar resultados cualitativos en cada evaluación.
 8. Revisar publicación → Confirmar publicación y bloquear. Exige estudiantes, evaluaciones, todos los resultados y peso numérico exactamente 100 % si hay evaluaciones numéricas. Las asignaturas solo cualitativas no necesitan pesos.
 
-Publicar es una operación interna. No envía notificaciones, no crea portal de padres y no cierra todo el período. Una asignatura publicada no admite cambios; su grupo tampoco admite estudiantes nuevos. Revisar todo ANTES de confirmar. La reapertura administrativa con historial y el cierre integral del período todavía están pendientes.
+Publicar es una operación interna. No envía notificaciones, no crea portal de padres y no cierra todo el período. Una asignatura publicada no admite cambios; su grupo tampoco admite estudiantes nuevos. Revisar todo ANTES de confirmar. La reapertura administrativa con historial y el cierre integral del período están disponibles instalando 007; ver CierreAcademico.md.
 
 ## Archivos y responsabilidades
 - `ViewModels/NotasInput.cs`: validación de formularios, precisión decimal y definición de escala.
@@ -31,7 +31,7 @@ Publicar es una operación interna. No envía notificaciones, no crea portal de 
 
 ## Concurrencia e integridad
 Las escrituras usan una transacción y el bloqueo de aplicación Liceo.Planificacion compartido con planificación. Serializa cambios para el volumen de un colegio y evita publicar mientras se incorpora un alumno. Reemplaza el bloqueo solo por asignación propuesto inicialmente para cubrir también esta interacción. Todas las futuras mutaciones académicas deben respetarlo.
-Cada nota usa rowversion. Dos formularios sobre la misma versión no se sobreescriben: el segundo recibe conflicto y debe recargar. Las modificaciones registran auditoría de operación, no el texto de las observaciones. Esta etapa no incluye historial completo del valor anterior de cada calificación.
+Cada nota usa rowversion. Dos formularios sobre la misma versión no se sobreescriben: el segundo recibe conflicto y debe recargar. Las modificaciones registran auditoría de operación, no el texto de las observaciones. Desde 007, cada modificación exige motivo y conserva valor y observación anterior/nuevo; no se reconstruye historia previa.
 No se habilita edición/eliminación de la definición de evaluaciones ni edición/inactivación de tipos. Esto evita cambiar silenciosamente la escala aplicada; esas operaciones requieren un flujo de corrección posterior.
 
 ## Pruebas
@@ -41,3 +41,5 @@ No se habilita edición/eliminación de la definición de evaluaciones ni edici�
 - Las comprobaciones de sintaxis y C# NO sustituyen la ejecución en SQL Server ni las pruebas autenticadas.
 
 Verificación de esta entrega: compilación completa y Razor con 0 errores y 40 advertencias anteriores; 16 pruebas nuevas C# aprobadas; scripts aceptados por ScriptDom. HTTP sin sesión: portada/login 200, registro 404 y /Notas y /Planificacion redirigen al login (302). No se ejecutaron los procedimientos en SQL Server ni las pruebas con docentes autenticados.
+
+Actualización 007: la versión actual de Notas.sql requiere 007_HistorialCierreAcademico.sql. Instalar también CierreAcademico.sql. El motivo es obligatorio para modificar notas existentes.

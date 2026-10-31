@@ -23,7 +23,7 @@ public sealed class NotasRepository(SqlConnectionFactory factory)
   await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();
   cmd.CommandText="dbo.Notas_Guardar";cmd.CommandType=CommandType.StoredProcedure;
   // Valores se obtiene en servidor de las líneas del formulario.
-  var datos=new{input.Accion,input.AsignacionId,input.EvaluacionId,input.TipoId,input.Nombre,input.Fecha,input.Modo,input.Maximo,input.Peso,Valores=input.Valores(),input.Registro,input.Nota,input.Resultado,input.Observacion,input.Version};
+  var datos=new{input.Accion,input.AsignacionId,input.EvaluacionId,input.TipoId,input.Nombre,input.Fecha,input.Modo,input.Maximo,input.Peso,Valores=input.Valores(),input.Registro,input.Nota,input.Resultado,input.Observacion,input.Version,input.Motivo};
   cmd.Parameters.Add("@UsuarioId",SqlDbType.NVarChar,450).Value=usuario;
   cmd.Parameters.Add("@Datos",SqlDbType.NVarChar,-1).Value=JsonSerializer.Serialize(datos);
   await cmd.ExecuteNonQueryAsync();

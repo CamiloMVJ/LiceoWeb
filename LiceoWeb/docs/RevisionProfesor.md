@@ -59,10 +59,18 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 - Verificado en esta continuación: solución y Razor compilan con 0 errores y 40 advertencias preexistentes; 16 pruebas nuevas C# satisfactorias; sintaxis de los scripts revisada con ScriptDom. No se ejecutó SQL Server. Preparada prueba SQL de siete escenarios con rollback. HTTP sin sesión: /Notas y /Planificacion redirigen al login; portada/login responden 200 y registro 404.
 - Pendiente: reapertura/corrección con historial de valores, edición de evaluaciones/tipos y cierre integral del período. La publicación es interna; no existe portal de padres.
 
+## Avance de continuación: cierre y correcciones
+- Nuevo menú administrativo Cierre e historial académico: cerrar período, reabrir período y autorizar corrección de una asignatura publicada, con motivo y rowversion.
+- El cierre exige grupos con alumnos, materias asignadas, publicaciones vigentes, pesos y resultados completos. La reapertura del período conserva bloqueadas las asignaturas hasta autorización individual.
+- HistorialCalificacion conserva valor/observación anterior y nuevo de cada cambio a partir de 007. EventoAcademico guarda eventos e instantáneas; no reconstruye historia anterior a esta migración.
+- Publicaciones se marcan no vigentes al reabrir; no se borran. Una republicación genera otro evento. Los grupos que alguna vez publicaron siguen sin admitir nuevas inscripciones.
+- Instalar 007_HistorialCierreAcademico.sql, actualizar Notas.sql y ejecutar CierreAcademico.sql. Guía: docs/CierreAcademico.md.
+- Solución y Razor compilados sin errores (40 advertencias anteriores). Pasan doce pruebas C# nuevas y las dieciséis de notas. Scripts de cinco escenarios SQL preparados; HTTP sin sesión redirige /Notas/Cierre al login. Sintaxis SQL validada; ejecución SQL y autorización autenticada pendientes.
+
 ## Continuar más tarde — trabajo obligatorio restante
 1. Ejecutar pruebas integradas SQL y de autorización en una base de desarrollo. Verificar la integración completa, incluidos los módulos financieros previos.
-2. Completar cambios de grupos/asignaciones y cancelación de horarios conservando historial. La etapa actual permite crearlos, pero no reasignarlos ni cerrar períodos.
-3. Notas: ejecutar verificación SQL y pruebas autenticadas/concurrentes. Completar corrección/reapertura administrativa con historial de valores y cierre de período sobre todas sus asignaciones. No modificar resultados publicados mediante SQL manual. La captura, escalas cualitativas, ponderación y publicación por asignación ya están implementadas.
+2. Completar cambios de grupos/asignaciones y cancelación de horarios conservando historial. La etapa actual permite crearlos y cerrar períodos, pero no reasignarlos ni cancelar horarios.
+3. Notas: ejecutar verificación SQL y pruebas autenticadas/concurrentes. Validar la corrección/reapertura administrativa con historial y el cierre de período ya implementados en 007; completar edición de definiciones de evaluación con historial y consulta paginada de eventos. No modificar resultados publicados mediante SQL manual. La captura, escalas cualitativas, ponderación y publicación por asignación ya están implementadas.
 4. Finanzas: catálogo administrable y tarifas por año/modalidad; generación idempotente de cargos. Migrar/conciliar deudas, abonos y pagos antiguos sin operar dos libros paralelos. Recibo único con varias aplicaciones, pagador, número común, IdOperacion estable; validar cargos/estudiante e importes en una transacción. Incorporar saldo anterior y final antes de habilitar ReciboMultiple. Estado de cuenta sin duplicar ingresos; anulaciones con contrapartida, sin DELETE.
 5. Cuentas: al incorporar desactivación y cambio de rol, impedir eliminar el último administrador y renovar las sesiones afectadas. Creación ya tiene auditoría persistente.
 6. UI: completar aranceles, estado de cuenta y enlaces de módulos anteriores que aún sean solo formularios; validar visualmente y con usuarios autenticados el módulo nuevo de notas.
@@ -73,4 +81,4 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 Portal de padres, notificaciones automáticas y preinscripción/reserva de cupo quedan fuera de esta entrega; la política de preinscripción requiere confirmación del colegio. Matutino es turno; dominical describe jornada/frecuencia: no confundir con niveles Preescolar/Primaria/Secundaria. No cambiar SQL Server a PostgreSQL.
 
 ## Punto exacto para retomar
-Leer este documento y git log. Instalar 006 y procedimientos actualizados; ejecutar pruebas SQL de planificación/notas y autorización por docente. Continuar con correcciones y cierre de períodos, después adaptación financiera con conciliación del modelo anterior. Esta rama aún no completa todos los requerimientos del profesor.
+Leer este documento y git log. Instalar 007, actualizar Notas.sql y ejecutar CierreAcademico.sql. Ejecutar pruebas SQL 006/007 y de autorización/concurrencia. Continuar con adaptación financiera, primero analizando y conciliando el modelo anterior; después completar reasignaciones/edición académica pendientes. Esta rama aún no completa todos los requerimientos del profesor.

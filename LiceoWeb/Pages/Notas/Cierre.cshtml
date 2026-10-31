@@ -1,0 +1,21 @@
+@page
+@using System.Data
+@model LiceoWeb.Pages.Notas.CierreModel
+@{ViewData["Title"]="Cierre e historial académico";}
+<h1>Cierre e historial académico</h1>
+<p>Revisa publicaciones y autoriza correcciones con un motivo registrado.</p>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<form method="get" class="liceo-card mb-4"><label for="periodoId" class="form-label">Período académico</label><select id="periodoId" name="periodoId" class="form-select mb-3"><option value="0">Seleccionar</option>@foreach(var p in Model.Filas("Periodos")){<option value="@p["Id"]" selected="@((int)p["Id"]==Model.Input.PeriodoId)">@p["Etiqueta"] · @((bool)p["Cerrado"]?"Cerrado":"Abierto")</option>}</select><button class="btn btn-liceo-primary">Consultar</button></form>
+@if(Model.Periodo is not null){
+ var titulo=Model.Input.Accion switch{"ReabrirAsignacion"=>"Reabrir asignatura para correcciones","ReabrirPeriodo"=>"Reabrir período",_=>"Cerrar período"};
+ <form method="post" class="liceo-card mb-4"><h2 class="h4">@titulo</h2>
+ <input asp-for="Input.PeriodoId" type="hidden"/><input asp-for="Input.AsignacionId" type="hidden"/><input asp-for="Input.Accion" type="hidden"/><input asp-for="Input.Version" type="hidden"/>
+ @if(Model.Input.Accion=="ReabrirAsignacion"){<p>Asignación @Model.Input.AsignacionId. Su publicación dejará de estar vigente. El docente podrá corregir y deberá publicar nuevamente. El grupo conservará sus estudiantes.</p>}
+ else if(Model.Input.Accion=="ReabrirPeriodo"){<p>Reabre el período, pero conserva las asignaturas publicadas bloqueadas. Después selecciona la asignatura que requiere corrección.</p>}
+ else{<p>El cierre exige grupos con estudiantes, materias con docente, publicaciones vigentes y resultados completos. Bloquea la captura de notas y la planificación del período.</p>}
+ <label asp-for="Input.Motivo" class="form-label">Motivo de la operación</label><textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea><button class="btn btn-liceo-primary">Confirmar: @titulo</button></form>
+ <section class="liceo-card mb-4"><h2 class="h4">Publicaciones</h2><div class="table-responsive"><table class="table"><thead><tr><th>Asignatura y grupo</th><th>Estado</th><th>Acción</th></tr></thead><tbody>@foreach(var a in Model.Filas("Asignaciones")){<tr><td>@a["Etiqueta"]</td><td>@((bool)a["Publicado"]?"Publicada":"Pendiente de publicación")</td><td>@if((bool)a["Publicado"] && !(bool)Model.Periodo["Cerrado"]){<a asp-route-periodoId="@Model.Input.PeriodoId" asp-route-accion="ReabrirAsignacion" asp-route-asignacionId="@a["Id"]">Autorizar corrección</a>}</td></tr>}</tbody></table></div></section>
+ <section class="liceo-card mb-4"><h2 class="h4">Historial de notas</h2><p>Últimos 200 registros del período, desde la instalación de esta función. Los cambios anteriores no se reconstruyen.</p><partial name="~/Pages/Planificacion/_Tabla.cshtml" model='Model.Datos.Tables["Historial"]!'/></section>
+ <section class="liceo-card"><h2 class="h4">Publicaciones, cierres y reaperturas</h2><p>Últimos 200 eventos. Las instantáneas completas se conservan en la base para revisión administrativa.</p><partial name="~/Pages/Planificacion/_Tabla.cshtml" model='Model.Datos.Tables["Eventos"]!'/></section>
+}

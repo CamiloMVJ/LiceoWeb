@@ -17,6 +17,6 @@ n.Nota=-1;Check(!Valida(n),"Nota negativa rechazada");
 n.Nota=2.001m;Check(!Valida(n),"Precisión de nota rechazada");
 n.Nota=20;n.Resultado="Logrado";Check(!Valida(n),"No mezclar tipos de resultado");
 n=Nota();n.Version="incorrecta";Check(!Valida(n),"Token de concurrencia mal formado");
-n.Version="0x0000000000000001";Check(Valida(n),"Token válido");
+n.Version="0x0000000000000001";n.Motivo="Corrección";Check(Valida(n),"Token válido");
 Check(!Valida(new(){Accion="Borrar"}),"Acción desconocida rechazada");
 Check(!Valida(new(){Accion="Tipo",Nombre=" "}),"Tipo sin nombre rechazado");

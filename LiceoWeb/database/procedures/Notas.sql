@@ -14,7 +14,7 @@ BEGIN
  @Peso decimal(5,2)=TRY_CONVERT(decimal(5,2),JSON_VALUE(@Datos,'$.Peso')),@Registro nvarchar(10)=JSON_VALUE(@Datos,'$.Registro'),
  @Nota decimal(7,2)=TRY_CONVERT(decimal(7,2),JSON_VALUE(@Datos,'$.Nota')),@Resultado nvarchar(100)=NULLIF(TRIM(JSON_VALUE(@Datos,'$.Resultado')),''),
  @Observacion nvarchar(500)=NULLIF(TRIM(JSON_VALUE(@Datos,'$.Observacion')),''),@Version binary(8)=TRY_CONVERT(binary(8),JSON_VALUE(@Datos,'$.Version'),1),
- @Grupo int,@Periodo int,@Lock int,@Operacion uniqueidentifier=NEWID();
+ @Motivo nvarchar(500)=NULLIF(TRIM(JSON_VALUE(@Datos,'$.Motivo')),''),@Grupo int,@Periodo int,@Lock int,@Operacion uniqueidentifier=NEWID();
  IF @Accion IS NULL OR @Accion NOT IN ('Tipo','Evaluacion','Nota','Publicar') THROW 52400,N'Operación inválida.',1;
  BEGIN TRY
  BEGIN TRANSACTION;
@@ -33,7 +33,7 @@ BEGIN
   WHERE A.Id=@Asignacion AND (@Admin=1 OR A.UsuarioId=@UsuarioId);
   IF @Grupo IS NULL THROW 52401,N'Asignación no disponible para tu cuenta.',1;
   IF EXISTS(SELECT 1 FROM dbo.PeriodoAcademico WHERE Id=@Periodo AND Cerrado=1) THROW 52403,N'El período está cerrado.',1;
-  IF EXISTS(SELECT 1 FROM dbo.PublicacionNotas WHERE AsignacionId=@Asignacion) THROW 52403,N'Las notas ya fueron publicadas; no se pueden modificar.',1;
+  IF EXISTS(SELECT 1 FROM dbo.PublicacionNotas WHERE AsignacionId=@Asignacion AND Vigente=1) THROW 52403,N'Las notas ya fueron publicadas; no se pueden modificar.',1;
   IF @Accion='Evaluacion'
   BEGIN
    IF @Nombre IS NULL OR @Modo IS NULL OR @Modo NOT IN ('Cuantitativa','Cualitativa') OR NOT EXISTS(SELECT 1 FROM dbo.TipoEvaluacion WHERE Id=@Tipo AND Activo=1) THROW 52400,N'Nombre, modalidad o tipo inválido.',1;
@@ -67,11 +67,16 @@ BEGIN
    IF EXISTS(SELECT 1 FROM dbo.Calificacion WHERE EvaluacionId=@Evaluacion AND Registro=@Registro)
    BEGIN
     IF @Version IS NULL OR NOT EXISTS(SELECT 1 FROM dbo.Calificacion WHERE EvaluacionId=@Evaluacion AND Registro=@Registro AND Version=@Version) THROW 52408,N'Otra persona modificó esta nota. Recarga antes de guardar.',1;
+    IF @Motivo IS NULL THROW 52400,N'Indica el motivo de la modificación.',1;
+    INSERT dbo.HistorialCalificacion(EvaluacionId,Registro,NotaAnterior,NotaNueva,ResultadoAnterior,ResultadoNuevo,ObservacionAnterior,ObservacionNueva,UsuarioId,Motivo)
+     SELECT EvaluacionId,Registro,Nota,@Nota,Resultado,@Resultado,Observacion,@Observacion,@UsuarioId,@Motivo FROM dbo.Calificacion WHERE EvaluacionId=@Evaluacion AND Registro=@Registro;
     UPDATE dbo.Calificacion SET Nota=@Nota,Resultado=@Resultado,Observacion=@Observacion,UsuarioId=@UsuarioId WHERE EvaluacionId=@Evaluacion AND Registro=@Registro;
    END
    ELSE
    BEGIN
     IF @Version IS NOT NULL THROW 52408,N'La nota cambió. Recarga antes de guardar.',1;
+    INSERT dbo.HistorialCalificacion(EvaluacionId,Registro,NotaNueva,ResultadoNuevo,ObservacionNueva,UsuarioId,Motivo)
+     VALUES(@Evaluacion,@Registro,@Nota,@Resultado,@Observacion,@UsuarioId,N'Registro inicial');
     INSERT dbo.Calificacion(EvaluacionId,Registro,Nota,Resultado,Observacion,UsuarioId) VALUES(@Evaluacion,@Registro,@Nota,@Resultado,@Observacion,@UsuarioId);
    END;
   END;
@@ -81,7 +86,11 @@ BEGIN
    IF EXISTS(SELECT 1 FROM dbo.Evaluacion WHERE AsignacionId=@Asignacion AND Modo='Cuantitativa') AND (SELECT SUM(Peso) FROM dbo.Evaluacion WHERE AsignacionId=@Asignacion AND Modo='Cuantitativa')<>100 THROW 52409,N'Los pesos numéricos deben sumar exactamente 100 %.',1;
    IF EXISTS(SELECT 1 FROM dbo.Evaluacion E CROSS JOIN dbo.GrupoEstudiante G LEFT JOIN dbo.Calificacion C ON C.EvaluacionId=E.Id AND C.Registro=G.Registro
     WHERE E.AsignacionId=@Asignacion AND G.GrupoId=@Grupo AND ((E.Modo='Cuantitativa' AND C.Nota IS NULL) OR (E.Modo='Cualitativa' AND C.Resultado IS NULL))) THROW 52409,N'Hay resultados pendientes. No se publicaron las notas.',1;
-   INSERT dbo.PublicacionNotas(AsignacionId,UsuarioId) VALUES(@Asignacion,@UsuarioId);
+   IF EXISTS(SELECT 1 FROM dbo.PublicacionNotas WHERE AsignacionId=@Asignacion)
+    UPDATE dbo.PublicacionNotas SET Vigente=1,Fecha=SYSUTCDATETIME(),UsuarioId=@UsuarioId WHERE AsignacionId=@Asignacion;
+   ELSE INSERT dbo.PublicacionNotas(AsignacionId,UsuarioId) VALUES(@Asignacion,@UsuarioId);
+   DECLARE @Foto nvarchar(max)=(SELECT E.Id,E.Nombre,E.Modo,E.Maximo,E.Peso,C.Registro,C.Nota,C.Resultado,C.Observacion FROM dbo.Evaluacion E JOIN dbo.Calificacion C ON C.EvaluacionId=E.Id WHERE E.AsignacionId=@Asignacion FOR JSON PATH,INCLUDE_NULL_VALUES);
+   INSERT dbo.EventoAcademico(PeriodoId,AsignacionId,Accion,UsuarioId,Motivo,Instantanea) VALUES(@Periodo,@Asignacion,N'Publicar',@UsuarioId,N'Publicación de resultados completos',@Foto);
   END;
  END;
  DECLARE @AccionAudit nvarchar(100)=N'Notas_'+@Accion,@Id nvarchar(100)=CONCAT(@Asignacion,':',@Evaluacion,':',@Registro);
@@ -108,7 +117,7 @@ BEGIN
  CONVERT(bit,CASE WHEN PN.AsignacionId IS NULL THEN 0 ELSE 1 END) Publicado
  FROM dbo.AsignacionDocente A JOIN dbo.GrupoAcademico G ON G.Id=A.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId
  JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.Pensum PS ON PS.Id=G.PensumId JOIN dbo.Asignatura S ON S.Id=A.AsignaturaId
- LEFT JOIN dbo.PublicacionNotas PN ON PN.AsignacionId=A.Id WHERE @Admin=1 OR A.UsuarioId=@UsuarioId ORDER BY Y.Anio DESC,P.Nombre,PS.Nivel,G.Seccion,S.Nombre;
+ LEFT JOIN dbo.PublicacionNotas PN ON PN.AsignacionId=A.Id AND PN.Vigente=1 WHERE @Admin=1 OR A.UsuarioId=@UsuarioId ORDER BY Y.Anio DESC,P.Nombre,PS.Nivel,G.Seccion,S.Nombre;
  SELECT Id,Nombre Etiqueta FROM dbo.TipoEvaluacion WHERE Activo=1 ORDER BY Nombre;
  SELECT E.Id,E.Nombre,E.Fecha,T.Nombre Tipo,E.Modo,E.Maximo,E.Peso FROM dbo.Evaluacion E JOIN dbo.TipoEvaluacion T ON T.Id=E.TipoId WHERE E.AsignacionId=@AsignacionId ORDER BY E.Fecha,E.Id;
  SELECT G.Registro,S.NombreEstudiante,C.Nota,C.Resultado,C.Observacion,CONVERT(varchar(18),C.Version,1) Version

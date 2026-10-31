@@ -49,7 +49,7 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM dbo.Calificacion WHERE EvaluacionId=@Eval AND Registro=@Registro AND Nota=0) THROW 52501,N'No se guardó cero.',1;
  SELECT @Version=CONVERT(varchar(18),Version,1) FROM dbo.Calificacion WHERE EvaluacionId=@Eval AND Registro=@Registro;
  IF @Caso=4 EXEC dbo.Notas_Guardar @Json,@Docente; -- Token ausente sobre nota existente.
- SET @Json=JSON_MODIFY(JSON_MODIFY(@Json,'$.Version',@Version),'$.Nota',15);
+ SET @Json=JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(@Json,'$.Version',@Version),'$.Nota',15),'$.Motivo','Corrección de prueba');
  EXEC dbo.Notas_Guardar @Json,@Docente;
  IF (SELECT C.Nota/E.Maximo*E.Peso FROM dbo.Calificacion C JOIN dbo.Evaluacion E ON E.Id=C.EvaluacionId WHERE E.Id=@Eval AND C.Registro=@Registro)<>50 THROW 52501,N'Cálculo ponderado incorrecto.',1;
  IF @Caso IN (1,7)
