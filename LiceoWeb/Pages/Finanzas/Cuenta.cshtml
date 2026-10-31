@@ -20,6 +20,7 @@
         <div class="col-sm-6"><div class="card card-body">Deuda del libro nuevo <strong>C$ @Model.Deuda.ToString("N2")</strong></div></div>
         <div class="col-sm-6"><div class="card card-body">Saldo a favor disponible <strong>C$ @(((decimal)resumen["SaldoFavor"]).ToString("N2"))</strong></div></div>
     </div>
+    @if (User.IsInRole("Administrador")) { <a asp-page="Cargos" asp-route-registro="@Model.Input.Registro" class="btn btn-outline-secondary mb-3">Generar cargo</a> }
     <h3>Cargos del estudiante</h3>
     <div class="table-responsive"><table class="table"><thead><tr><th>Concepto</th><th>Vencimiento</th><th>Importe</th><th>Aplicado</th><th>Pendiente</th></tr></thead><tbody>
     @foreach (DataRow r in Model.Datos.Tables["Cargos"]!.Rows)

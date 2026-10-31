@@ -112,3 +112,9 @@ Migración 013 y procedures/CobroMultiple.sql; páginas /Finanzas/Cuenta y /Fina
 Este punto sustituye los puntos de reanudación anteriores: probar 013 y CobroMultiple.sql en SQL Server; implementar generación idempotente de cargos desde tarifas, reversos documentados, navegación que retire cobros antiguos tras el corte e impresión dedicada. Los otros pendientes académicos, de cuentas y pruebas integradas siguen abiertos. No aplicar el corte a la base cotidiana mientras estas limitaciones impidan operar.
 
 Validación de esta continuación: compilación 0 errores/40 advertencias previas; 19 pruebas de entrada aprobadas; 3 scripts analizados con ScriptDom; acceso anónimo a ambas páginas redirige a login. SQL Server, concurrencia y navegación autenticada pendientes.
+
+## Continuación: generación de cargos (014)
+Se agregó /Finanzas/Cargos para Administración, configuración de periodicidad por arancel y generación individual desde tarifa vigente. Precio de servidor, rowversion, instantánea, GUID para reintentos, auditoría y validación de duplicados por concepto/año/período, incluyendo obligaciones históricas pagadas. Instalar 014_GeneracionCargos.sql y procedures/GeneracionCargos.sql; guía docs/GeneracionCargos.md. No genera cargos automáticamente al matricular ni sustituye la inscripción académica.
+
+Punto vigente para continuar: probar generación y cobro en SQL Server; implementar anulaciones/contrapartidas, retirada de formularios antiguos tras el corte e impresión dedicada. Luego resolver integración con matrícula y restantes pendientes académicos/cuentas. Las secciones anteriores son historial de avances; los pendientes resueltos por 013 y 014 no deben reiniciarse.
+Validación de 014: compilación C#/Razor y 13 pruebas de entrada aprobadas; 3 scripts sin errores de sintaxis ScriptDom; prueba HTTP anónima redirige a login. Pruebas SQL Server y roles autenticados pendientes.
