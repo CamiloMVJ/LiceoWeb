@@ -73,7 +73,7 @@ BEGIN
  WHERE @Registro=N'' OR P.Registro=@Registro
  ORDER BY P.Origen,P.OrigenId OFFSET ((@Pagina-1)*50) ROWS FETCH NEXT 51 ROWS ONLY;
  SELECT P.*,ISNULL(R.Id,0) RevisionAnterior,CASE WHEN R.Generacion=P.Generacion THEN R.Decision ELSE N'REQUIERE_NUEVA_REVISION' END Decision
- FROM dbo.PreparacionObligacion P OUTER APPLY(SELECT TOP(1) Id,Decision FROM dbo.RevisionObligacion R WHERE R.Origen=P.Origen AND R.OrigenId=P.OrigenId ORDER BY Id DESC) R
+ FROM dbo.PreparacionObligacion P OUTER APPLY(SELECT TOP(1) Id,Decision,Generacion FROM dbo.RevisionObligacion R WHERE R.Origen=P.Origen AND R.OrigenId=P.OrigenId ORDER BY Id DESC) R
  WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId;
  SELECT T.Id,CONCAT(A.Nombre,N' / ',Y.Anio,N' / ',M.Nombre,N' / precio actual ',T.Importe) Etiqueta
  FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId
