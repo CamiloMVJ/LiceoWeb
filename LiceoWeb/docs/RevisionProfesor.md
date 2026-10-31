@@ -49,13 +49,23 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 - Guía: docs/PlanificacionAcademica.md. Pruebas: tests/PlanificacionValidation y database/verification/005_VerificarPlanificacion.sql.
 - Doce pruebas C# de validación y compilación de solución completa satisfactorias. Sintaxis SQL revisada con ScriptDom (no equivale a ejecutar SQL Server).
 
+## Avance de continuación: calificaciones
+- Tipos de evaluación creados por administración; evaluaciones cuantitativas con máximo/peso y cualitativas con escala configurable por evaluación.
+- Profesor limitado a sus asignaciones en GET/POST y SQL; administrador puede gestionar todas. Cajero excluido.
+- Captura individual con cero distinto de pendiente; validación contra el máximo o la escala de la base. Rowversion evita sobrescrituras.
+- Resumen ponderado y publicación interna por asignación: exige resultados completos y pesos numéricos exactamente 100 %. Después de publicar se bloquean cambios y nuevas inscripciones al grupo.
+- Se usa el bloqueo compartido Liceo.Planificacion, en lugar de solo por asignación, para serializar publicación e inscripción. Las escrituras generan auditoría.
+- Instalar 006_Calificaciones.sql, luego Notas.sql y actualizar Planificacion.sql. La nueva versión de planificación depende de 006. Detalles: docs/Calificaciones.md.
+- Verificado en esta continuación: solución y Razor compilan con 0 errores y 40 advertencias preexistentes; 16 pruebas nuevas C# satisfactorias; sintaxis de los scripts revisada con ScriptDom. No se ejecutó SQL Server. Preparada prueba SQL de siete escenarios con rollback. HTTP sin sesión: /Notas y /Planificacion redirigen al login; portada/login responden 200 y registro 404.
+- Pendiente: reapertura/corrección con historial de valores, edición de evaluaciones/tipos y cierre integral del período. La publicación es interna; no existe portal de padres.
+
 ## Continuar más tarde — trabajo obligatorio restante
 1. Ejecutar pruebas integradas SQL y de autorización en una base de desarrollo. Verificar la integración completa, incluidos los módulos financieros previos.
 2. Completar cambios de grupos/asignaciones y cancelación de horarios conservando historial. La etapa actual permite crearlos, pero no reasignarlos ni cerrar períodos.
-3. Notas: validar pertenencia del alumno al grupo y docente a asignación en cada GET/POST; no basta pertenecer al rol Profesor. Bloquear períodos cerrados. Nota 0..Maximo; ausente NULL no cero. Peso total <=100 durante configuración, exactamente 100 al cerrar/publicar. Calcular suma(Nota/Maximo*Peso), no suma de notas brutas. Usar bloqueo por asignación y rowversion para concurrencia. Añadir evaluación cualitativa configurable.
+3. Notas: ejecutar verificación SQL y pruebas autenticadas/concurrentes. Completar corrección/reapertura administrativa con historial de valores y cierre de período sobre todas sus asignaciones. No modificar resultados publicados mediante SQL manual. La captura, escalas cualitativas, ponderación y publicación por asignación ya están implementadas.
 4. Finanzas: catálogo administrable y tarifas por año/modalidad; generación idempotente de cargos. Migrar/conciliar deudas, abonos y pagos antiguos sin operar dos libros paralelos. Recibo único con varias aplicaciones, pagador, número común, IdOperacion estable; validar cargos/estudiante e importes en una transacción. Incorporar saldo anterior y final antes de habilitar ReciboMultiple. Estado de cuenta sin duplicar ingresos; anulaciones con contrapartida, sin DELETE.
 5. Cuentas: al incorporar desactivación y cambio de rol, impedir eliminar el último administrador y renovar las sesiones afectadas. Creación ya tiene auditoría persistente.
-6. UI: completar notas, aranceles, estado de cuenta y enlaces de módulos anteriores que aún sean solo formularios.
+6. UI: completar aranceles, estado de cuenta y enlaces de módulos anteriores que aún sean solo formularios; validar visualmente y con usuarios autenticados el módulo nuevo de notas.
 7. Colegio: confirmar fotos, datos de contacto, formato de traslado, escala de notas, catálogo de niveles y política de preinscripción. No inventar información institucional ni normativa.
 8. Pruebas pendientes: autorización directa de páginas/POST, cruces concurrentes, cupo lleno, docente ajeno, nota fuera de rango, doble cobro, reintento idempotente, rollback, recibo multiconcepto y conciliación.
 
@@ -63,4 +73,4 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 Portal de padres, notificaciones automáticas y preinscripción/reserva de cupo quedan fuera de esta entrega; la política de preinscripción requiere confirmación del colegio. Matutino es turno; dominical describe jornada/frecuencia: no confundir con niveles Preescolar/Primaria/Secundaria. No cambiar SQL Server a PostgreSQL.
 
 ## Punto exacto para retomar
-Leer este documento y git log. Probar la planificación en SQL Server; luego implementar registro de notas y cierre de períodos sobre las asignaciones existentes, antes de abordar la adaptación financiera. Esta rama aún no completa todos los requerimientos del profesor.
+Leer este documento y git log. Instalar 006 y procedimientos actualizados; ejecutar pruebas SQL de planificación/notas y autorización por docente. Continuar con correcciones y cierre de períodos, después adaptación financiera con conciliación del modelo anterior. Esta rama aún no completa todos los requerimientos del profesor.

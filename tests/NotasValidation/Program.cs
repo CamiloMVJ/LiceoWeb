@@ -1,0 +1,22 @@
+using System.ComponentModel.DataAnnotations;
+using LiceoWeb.ViewModels;
+static bool Valida(NotasInput x)=>Validator.TryValidateObject(x,new ValidationContext(x),new List<ValidationResult>(),true);
+static void Check(bool ok,string nombre){if(!ok)throw new Exception(nombre);Console.WriteLine("OK: "+nombre);}
+static NotasInput Evaluacion()=>new(){AsignacionId=1,TipoId=1,Nombre="Examen",Fecha=new(2027,3,1),Maximo=30,Peso=30};
+static NotasInput Nota()=>new(){Accion="Nota",AsignacionId=1,EvaluacionId=1,Registro="E00001"};
+Check(Valida(Evaluacion()),"Evaluación de 30 puntos");
+var e=Evaluacion();e.Peso=101;Check(!Valida(e),"Peso individual mayor a 100");
+e=Evaluacion();e.Maximo=0;Check(!Valida(e),"Máximo cero rechazado");
+e=Evaluacion();e.Peso=10.001m;Check(!Valida(e),"No redondear peso silenciosamente");
+e=Evaluacion();e.Modo="Cualitativa";e.Opciones="Logrado\nEn proceso";Check(Valida(e),"Escala cualitativa configurable");
+e.Opciones="Logrado\nlogrado";Check(!Valida(e),"Opciones duplicadas rechazadas");
+e.Opciones="Única";Check(!Valida(e),"Escala incompleta rechazada");
+var n=Nota();Check(Valida(n),"Pendiente nulo permitido");
+n.Nota=0;Check(Valida(n),"Cero válido distinto de pendiente");
+n.Nota=-1;Check(!Valida(n),"Nota negativa rechazada");
+n.Nota=2.001m;Check(!Valida(n),"Precisión de nota rechazada");
+n.Nota=20;n.Resultado="Logrado";Check(!Valida(n),"No mezclar tipos de resultado");
+n=Nota();n.Version="incorrecta";Check(!Valida(n),"Token de concurrencia mal formado");
+n.Version="0x0000000000000001";Check(Valida(n),"Token válido");
+Check(!Valida(new(){Accion="Borrar"}),"Acción desconocida rechazada");
+Check(!Valida(new(){Accion="Tipo",Nombre=" "}),"Tipo sin nombre rechazado");

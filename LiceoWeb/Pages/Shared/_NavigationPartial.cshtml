@@ -110,6 +110,9 @@
             Reportes
         </a>
     }
+    @if(User.IsInRole("Administrador") || User.IsInRole("Profesor")) {
+        <a asp-page="/Notas/Index" class="@(EstaActivo("/Notas/Index") ? "active" : "")">Calificaciones</a>
+    }
     @if(User.IsInRole("Profesor")) {
         <a asp-page="/Planificacion/MiHorario" class="@(EstaActivo("/Planificacion/MiHorario") ? "active" : "")">Mi horario</a>
     }

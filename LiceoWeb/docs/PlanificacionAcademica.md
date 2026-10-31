@@ -1,7 +1,7 @@
 # Planificación académica
 
 ## Instalación
-Requiere 004_RevisionProfesor.sql y Registrar_Auditoria. No hay nueva migración de tablas en esta etapa. Ejecutar completo database/procedures/Planificacion.sql en LiceoWeb_Dev (SSMS, incluye GO). Compilar y ejecutar la aplicación.
+Requiere 004_RevisionProfesor.sql, 006_Calificaciones.sql y Registrar_Auditoria. La versión actual protege los grupos con notas publicadas. No hay nueva migración de tablas en esta etapa. Ejecutar completo database/procedures/Planificacion.sql en LiceoWeb_Dev (SSMS, incluye GO). Compilar y ejecutar la aplicación.
 
 ## Flujo del administrador
 1. Catálogos académicos: crear año; período (fechas del mismo año); modalidades, turnos, aulas con ubicación/capacidad; asignaturas con código. Los horarios dominicales se representan con día 7; no confundir día/turno con nivel educativo.
@@ -29,7 +29,7 @@ Los números Id visibles en algunas tablas son referencias de los catálogos; lo
 - Como dos profesores distintos, comprobar separación de MiHorario.
 
 ## Límites de esta etapa
-No se implementó aún edición/reasignación de grupos con historial, traslado entre grupos, cancelación de horarios ni cierre de período. Las calificaciones y su publicación corresponden a la siguiente etapa. No confundir las pruebas C# sin DB con la ejecución integral de SQL Server.
+No se implementó aún edición/reasignación de grupos con historial, traslado entre grupos, cancelación de horarios ni cierre de período. Las calificaciones y su publicación están descritas en Calificaciones.md; el cierre integral de período sigue pendiente. No confundir las pruebas C# sin DB con la ejecución integral de SQL Server.
 
 ## Verificación de esta entrega
 Build de solución y Razor completado: 0 errores, 40 advertencias preexistentes. Doce pruebas de validación de planificación y ocho de expediente pasan. ScriptDom acepta los scripts nuevos. Arranque HTTP comprobado: portada/login públicos; registro cerrado; rutas internas redirigen a login sin sesión. Falta ejecutar SQL Server y pruebas autenticadas/concurrentes.

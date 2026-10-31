@@ -159,6 +159,8 @@ BEGIN
  END;
  IF @Accion='Estudiante'
  BEGIN
+  IF EXISTS(SELECT 1 FROM dbo.PeriodoAcademico P JOIN dbo.GrupoAcademico G ON G.PeriodoId=P.Id WHERE G.Id=@Grupo AND P.Cerrado=1) THROW 52316,N'El período está cerrado.',1;
+  IF EXISTS(SELECT 1 FROM dbo.PublicacionNotas N JOIN dbo.AsignacionDocente A ON A.Id=N.AsignacionId WHERE A.GrupoId=@Grupo) THROW 52316,N'El grupo ya tiene notas publicadas; no se pueden incorporar estudiantes.',1;
   -- Bloqueo compartido con el contrato financiero por estudiante.
   DECLARE @Estado nvarchar(10),@Capacidad int,@AnioNumero int,@ModalidadNombre nvarchar(80);
   SELECT @Estado=Estado FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Estudiante;
