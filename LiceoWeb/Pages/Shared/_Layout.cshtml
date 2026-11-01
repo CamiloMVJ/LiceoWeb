@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity
 @inject SignInManager<IdentityUser> SignInManager
 
 @{
@@ -41,9 +41,11 @@
     <link rel="stylesheet"
           href="~/css/site.css"
           asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ui-system.css" asp-append-version="true" />
 </head>
 
-<body>
+<body class="@(mostrarMenu ? "liceo-app" : "liceo-public")">
+    <a href="#contenido-principal" class="skip-link">Saltar al contenido</a>
 
     <header class="liceo-header">
         <div class="liceo-header-inner">
@@ -53,6 +55,7 @@
                 Liceo Hispanidad
             </a>
 
+            @if (mostrarMenu) { <button id="liceo-menu-toggle" class="liceo-menu-toggle" type="button" aria-controls="liceo-sidebar" aria-expanded="true" hidden>Menú del sistema</button> }
             <partial name="_LoginPartial" />
         </div>
     </header>
@@ -60,7 +63,7 @@
     <div class="liceo-shell">
         @if (mostrarMenu)
         {
-            <aside class="liceo-sidebar">
+            <aside id="liceo-sidebar" class="liceo-sidebar" aria-label="Navegación del sistema">
                 <partial name="_NavigationPartial" />
             </aside>
         }
@@ -79,6 +82,8 @@
 
     <script src="~/js/site.js"
             asp-append-version="true"></script>
+
+    <script src="~/js/ui-navigation.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

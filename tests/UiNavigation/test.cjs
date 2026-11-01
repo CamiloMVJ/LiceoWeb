@@ -1,0 +1,16 @@
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
+const path = require('node:path');
+const script=fs.readFileSync(path.resolve(__dirname,'../../LiceoWeb/wwwroot/js/ui-navigation.js'),'utf8');
+let focused=false;
+const button={hidden:true,events:{},attrs:{},setAttribute(n,v){this.attrs[n]=v},addEventListener(n,f){this.events[n]=f},focus(){focused=true}};
+const sidebar={hidden:false,events:{},addEventListener(n,f){this.events[n]=f}};
+const media={matches:true,addEventListener(n,f){this.change=f}};
+vm.runInNewContext(script,{document:{getElementById:id=>id==='liceo-menu-toggle'?button:sidebar},window:{matchMedia:()=>media}});
+assert.equal(sidebar.hidden,true);assert.equal(button.attrs['aria-expanded'],'false');
+button.events.click();assert.equal(sidebar.hidden,false);assert.equal(button.attrs['aria-expanded'],'true');
+sidebar.events.keydown({key:'Escape'});assert.equal(sidebar.hidden,true);assert.equal(focused,true);
+media.matches=false;media.change();assert.equal(sidebar.hidden,false);
+sidebar.events.keydown({key:'Escape'});assert.equal(sidebar.hidden,false);
+console.log('PASS menú móvil cerrado, abrir, Escape/foco, escritorio visible, Escape escritorio');

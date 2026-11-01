@@ -2,7 +2,7 @@
 @model LiceoWeb.Pages.Planificacion.IndexModel
 @{ViewData["Title"]="Planificación académica";}
 <div class="liceo-page-heading"><h1>Planificación académica</h1><p>Construye el pensum, organiza grupos y asigna docentes y horarios.</p><a asp-page="Catalogos">Administrar catálogos</a></div>
-<nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Operaciones">@foreach(var accion in LiceoWeb.Pages.Planificacion.IndexModel.Acciones){<a asp-route-accion="@accion" class="btn btn-liceo-secondary">@accion</a>}</nav>
+<nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Operaciones">@foreach(var accion in LiceoWeb.Pages.Planificacion.IndexModel.Acciones){<a asp-route-accion="@accion" class="btn @(Model.Input.Accion==accion ? "btn-liceo-primary" : "btn-liceo-secondary")" aria-current="@(Model.Input.Accion==accion ? "page" : null)">@accion</a>}</nav>
 @if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
 <form method="post" class="liceo-card mb-4"><h2 class="h4">Agregar · @Model.Input.Accion</h2><div asp-validation-summary="All" class="text-danger" role="alert"></div><input asp-for="Input.Accion" type="hidden" /><div class="row g-3">
 @if(Model.Input.Accion=="Pensum"){<div class="col-md-6"><label asp-for="Input.AnioId" class="form-label">Año</label><select asp-for="Input.AnioId" asp-items='Model.Opciones("Anios")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AnioId" class="text-danger"></span></div>

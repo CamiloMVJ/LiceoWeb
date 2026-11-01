@@ -1,0 +1,93 @@
+/* Liceo Hispanidad — sistema visual compartido. Sin fuentes ni servicios externos. */
+:root {
+    --ui-ink: #1b264f;
+    --ui-text: #28354b;
+    --ui-muted: #536176;
+    --ui-line: #dce2ea;
+    --ui-control: #7c899b;
+    --ui-soft: #edf1f7;
+    --ui-radius: 14px;
+    --ui-shadow: 0 4px 20px rgb(27 38 79 / 4%);
+}
+html { font-size: 16px; }
+body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; }
+.skip-link { position: fixed; top: 8px; left: 8px; transform: translateY(-160%); z-index: 1100; background: #fff; color: var(--ui-ink); padding: 12px 20px; border: 2px solid var(--ui-ink); border-radius: 8px; }
+.skip-link:focus { transform: none; }
+a, button, input, select, textarea, summary { touch-action: manipulation; }
+a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--ui-ink); outline-offset: 3px; }
+.liceo-header a:focus-visible, .liceo-header button:focus-visible { outline-color: #ffd41f; }
+.liceo-header-inner { max-width: none; padding: 16px 28px; gap: 16px; }
+.liceo-brand { font-weight: 750; letter-spacing: -.03em; font-size: 1.2rem; }
+.liceo-session-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.liceo-app { color: var(--ui-text); }
+.liceo-app .liceo-sidebar { flex-basis: 258px; padding: 24px 16px; }
+.liceo-app .liceo-main { padding: clamp(20px, 3vw, 44px); max-width: 1700px; }
+.liceo-app h1 { font-size: clamp(1.65rem, 2.4vw, 2.25rem); font-weight: 750; letter-spacing: -.045em; line-height: 1.2; color: var(--ui-ink); margin: 0 0 12px; text-wrap: balance; }
+.liceo-app h2 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.025em; color: var(--ui-ink); line-height: 1.35; }
+.liceo-app h3 { font-size: 1.1rem; font-weight: 700; color: var(--ui-ink); }
+.liceo-app .text-muted, .liceo-app .liceo-page-heading p { color: var(--ui-muted) !important; }
+.liceo-menu-title { font-size: .75rem; letter-spacing: .1em; color: var(--ui-muted); padding-inline: 12px; margin-top: 12px; }
+.liceo-menu { gap: 4px; }
+.liceo-menu a { min-height: 44px; display: flex; align-items: center; font-size: .9rem; font-weight: 600; padding: 11px 14px; border-radius: 9px; transition: background-color 160ms, color 160ms; }
+.liceo-menu a:hover { background: var(--ui-soft); }
+.liceo-menu a.active { background: var(--ui-ink); color: #fff; box-shadow: inset 3px 0 0 #c99700; }
+.liceo-menu-divider { margin: 16px 8px 8px; }
+.liceo-app .liceo-card, .liceo-app .card { border: 1px solid var(--ui-line); border-radius: var(--ui-radius); box-shadow: var(--ui-shadow); background: #fff; }
+.liceo-app .liceo-card, .liceo-app .card-body { padding: clamp(18px, 2.2vw, 28px); }
+.liceo-app .liceo-page-heading { margin-bottom: 28px; }
+.liceo-app .liceo-main > form:not(.card):not(.liceo-card) { padding: 20px; background: #fff; border: 1px solid var(--ui-line); border-radius: var(--ui-radius); }
+.liceo-app label { font-size: .9rem; font-weight: 650; color: var(--ui-ink); margin-bottom: 6px; }
+.liceo-app .form-control, .liceo-app .form-select { min-height: 46px; border: 1px solid var(--ui-control); border-radius: 8px; padding: 10px 12px; color: var(--ui-text); background-color: #fff; font-size: 1rem; }
+.liceo-app textarea.form-control { min-height: 112px; }
+.liceo-app .form-control:focus, .liceo-app .form-select:focus { border-color: var(--ui-ink); box-shadow: 0 0 0 3px rgb(27 38 79 / 12%); }
+.liceo-app .form-check-input { border-color: var(--ui-control); }
+.liceo-app .form-check-input:checked { background-color: var(--ui-ink); border-color: var(--ui-ink); }
+.liceo-app .btn { min-height: 44px; padding: 10px 16px; border-radius: 8px; font-weight: 650; font-size: .9rem; line-height: 1.4; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.liceo-app .btn-liceo-primary { background: var(--ui-ink); border-color: var(--ui-ink); color: #fff; }
+.liceo-app .btn-liceo-primary:hover { background: #303f70; border-color: #303f70; color: #fff; }
+.liceo-app .btn-liceo-secondary, .liceo-app .btn-outline-secondary { background: #fff; color: var(--ui-ink); border: 1px solid var(--ui-control); }
+.liceo-app .btn-liceo-secondary:hover, .liceo-app .btn-outline-secondary:hover { background: var(--ui-soft); }
+.liceo-app .btn:disabled { opacity: .55; cursor: not-allowed; }
+.liceo-app .liceo-main > nav { gap: 8px; flex-wrap: wrap; }
+.liceo-app .table-responsive { border: 1px solid var(--ui-line); border-radius: 10px; background: #fff; margin-bottom: 20px; }
+.liceo-app .table { margin-bottom: 0; color: var(--ui-text); font-size: .9rem; }
+.liceo-app .table th { background: var(--ui-soft); color: var(--ui-ink); font-size: .78rem; font-weight: 750; letter-spacing: .025em; padding: 14px 16px; border-bottom: 1px solid var(--ui-line); vertical-align: middle; }
+.liceo-app .table td { padding: 14px 16px; vertical-align: middle; border-color: var(--ui-line); }
+.liceo-app .table tbody tr:hover { background: #f8fafc; }
+.liceo-app .table a { font-weight: 600; text-underline-offset: 3px; }
+.liceo-app .alert { border-radius: 10px; padding: 16px 20px; line-height: 1.6; }
+.liceo-app .validation-summary-valid { display: none; }
+.liceo-app .validation-summary-errors { padding: 16px 20px; border-left: 4px solid #a12929; background: #fff2f2; margin-bottom: 20px; }
+.liceo-app .field-validation-error, .liceo-app .text-danger { color: #a12929 !important; }
+.liceo-app details > summary { cursor: pointer; min-height: 44px; font-weight: 700; color: var(--ui-ink); }
+.liceo-app details[open] > summary { margin-bottom: 16px; }
+.liceo-menu-toggle { display: none; border: 1px solid #aebbd9; color: #fff; background: transparent; border-radius: 8px; padding: 9px 14px; min-height: 44px; }
+.liceo-sidebar[hidden] { display: none !important; }
+.ui-kicker { text-transform: uppercase; font-size: .75rem; font-weight: 750; letter-spacing: .14em; color: var(--ui-muted); }
+.ui-welcome { border-left: 4px solid #c99700; padding-left: 20px; margin-bottom: 32px; }
+.ui-module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; }
+.ui-module { display: flex; flex-direction: column; padding: 26px; border: 1px solid var(--ui-line); border-radius: var(--ui-radius); background: #fff; box-shadow: var(--ui-shadow); color: var(--ui-text); text-decoration: none; min-height: 190px; transition: border-color 160ms, box-shadow 160ms; }
+.ui-module:hover { color: var(--ui-text); border-color: var(--ui-control); box-shadow: 0 8px 28px rgb(27 38 79 / 8%); }
+.ui-module p { color: var(--ui-muted); font-size: .95rem; }
+.ui-module span { margin-top: auto; font-size: .9rem; font-weight: 700; color: var(--ui-ink); }
+.ui-module h2 { margin: 10px 0; }
+.liceo-login-card { border: 1px solid var(--ui-line); border-radius: 20px; box-shadow: 0 16px 60px rgb(27 38 79 / 9%); }
+.liceo-login-input { border-color: var(--ui-control); min-height: 48px; }
+@media (max-width: 767px) {
+    .liceo-header-inner { flex-wrap: wrap; padding: 14px 16px; }
+    .liceo-brand { font-size: 1.05rem; }
+    .liceo-session { margin-left: auto; gap: 8px; flex-wrap: wrap; }
+    .liceo-session-button { font-size: .85rem; padding: 9px 12px; }
+    .liceo-app .liceo-shell { display: block; }
+    .liceo-app .liceo-sidebar { width: 100%; padding: 16px; border-bottom: 1px solid var(--ui-line); }
+    .liceo-app .liceo-menu-toggle:not([hidden]) { display: inline-flex; align-items: center; }
+    .liceo-app .liceo-main { width: 100%; padding: 24px 16px; }
+    .liceo-app .d-flex { flex-wrap: wrap; }
+    .liceo-app .table th, .liceo-app .table td { padding: 12px; }
+    .liceo-app .table-responsive { overflow-x: auto; }
+    .liceo-login-intro, .liceo-login-content { padding: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; scroll-behavior: auto !important; }
+}
+@media print { .skip-link, .liceo-menu-toggle { display: none !important; } }
