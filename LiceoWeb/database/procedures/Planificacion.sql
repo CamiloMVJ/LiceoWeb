@@ -159,7 +159,7 @@ BEGIN
   DECLARE @Desde date,@Hasta date;
   SELECT @Grupo=G.Id,@Aula=G.AulaId,@Docente=D.UsuarioId,@Desde=P.Inicio,@Hasta=P.Fin FROM dbo.AsignacionDocente D JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId WHERE D.Id=@Asignacion AND P.Cerrado=0;
   IF @Desde IS NULL OR @Dia IS NULL OR @Dia NOT BETWEEN 1 AND 7 OR @Inicio IS NULL OR @Fin IS NULL OR @Fin<=@Inicio THROW 52312,N'Asignación u horario inválido.',1;
-  IF EXISTS(SELECT 1 FROM dbo.HorarioClase H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId
+  IF EXISTS(SELECT 1 FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId
    WHERE H.Dia=@Dia AND H.Inicio<@Fin AND @Inicio<H.Fin AND P.Inicio<=@Hasta AND @Desde<=P.Fin AND (G.Id=@Grupo OR G.AulaId=@Aula OR D.UsuarioId=@Docente)) THROW 52313,N'El horario se cruza con otra clase del docente, aula o grupo.',1;
   INSERT dbo.HorarioClase(AsignacionId,Dia,Inicio,Fin) VALUES(@Asignacion,@Dia,@Inicio,@Fin);SET @Resultado=CONVERT(int,SCOPE_IDENTITY());
  END;
@@ -220,7 +220,7 @@ BEGIN
  IF @SoloDocente=1
  BEGIN
   SELECT Y.Anio,P.Nombre Periodo,G.Seccion,S.Nombre Asignatura,A.Nombre Aula,A.Ubicacion,H.Dia,H.Inicio,H.Fin
-  FROM dbo.AsignacionDocente D JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Pensum N ON N.Id=G.PensumId JOIN dbo.AnioLectivo Y ON Y.Id=N.AnioId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.Aula A ON A.Id=G.AulaId LEFT JOIN dbo.HorarioClase H ON H.AsignacionId=D.Id
+  FROM dbo.AsignacionDocente D JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Pensum N ON N.Id=G.PensumId JOIN dbo.AnioLectivo Y ON Y.Id=N.AnioId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.Aula A ON A.Id=G.AulaId LEFT JOIN dbo.HorarioClaseVigente H ON H.AsignacionId=D.Id
   WHERE D.UsuarioId=@UsuarioId ORDER BY Y.Anio DESC,P.Inicio,H.Dia,H.Inicio;
   RETURN;
  END;
@@ -235,7 +235,7 @@ BEGIN
  SELECT G.Id,G.PensumId,G.PeriodoId,G.TurnoId,G.AulaId,G.Seccion,CONCAT(Y.Anio,' / ',P.Nivel,' ',G.Seccion,' / ',T.Nombre) Etiqueta FROM dbo.GrupoAcademico G JOIN dbo.Pensum P ON P.Id=G.PensumId JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.PeriodoAcademico T ON T.Id=G.PeriodoId ORDER BY Y.Anio DESC,P.Nivel,G.Seccion;
  SELECT U.Id,U.UserName Etiqueta FROM dbo.AspNetUsers U WHERE EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor') ORDER BY U.UserName;
  SELECT D.Id,D.GrupoId,S.Nombre Asignatura,U.UserName Docente,CONCAT(D.GrupoId,' / ',S.Nombre,' / ',U.UserName) Etiqueta FROM dbo.AsignacionDocente D JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId;
- SELECT H.Id,H.AsignacionId,G.Seccion,S.Nombre Asignatura,U.UserName Docente,A.Nombre Aula,H.Dia,H.Inicio,H.Fin FROM dbo.HorarioClase H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId JOIN dbo.Aula A ON A.Id=G.AulaId ORDER BY H.Dia,H.Inicio;
+ SELECT H.Id,H.AsignacionId,G.Seccion,S.Nombre Asignatura,U.UserName Docente,A.Nombre Aula,H.Dia,H.Inicio,H.Fin FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId JOIN dbo.Aula A ON A.Id=G.AulaId ORDER BY H.Dia,H.Inicio;
  SELECT E.GrupoId,E.Registro,S.NombreEstudiante FROM dbo.GrupoEstudiante E JOIN dbo.Estudiantes S ON S.Registro=E.Registro ORDER BY E.GrupoId,S.NombreEstudiante;
 END;
 GO

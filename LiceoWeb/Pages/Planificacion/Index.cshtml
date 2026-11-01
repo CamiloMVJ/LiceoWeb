@@ -33,8 +33,9 @@
 <div class="col-md-6"><label asp-for="Input.Registro" class="form-label">Código del estudiante con matrícula vigente</label><input asp-for="Input.Registro" type="text" class="form-control" /><span asp-validation-for="Input.Registro" class="text-danger"></span></div>
 }
 </div><button class="btn btn-liceo-primary mt-4">Guardar planificación</button></form>
-<p class="text-muted">Completa las materias antes de crear grupos. Los estudiantes requieren respaldo de matrícula del año, modalidad y nivel correspondientes. Crear un cargo por sí solo no confirma su inscripción al grupo. La gestión de notas y cambios de asignaciones se incorporará en la siguiente etapa.</p>
+<p class="text-muted">Completa las materias antes de crear grupos. Los estudiantes requieren respaldo de matrícula del año, modalidad y nivel correspondientes. Crear un cargo por sí solo no confirma su inscripción al grupo. Las notas se gestionan desde su módulo. Los cambios de asignación docente siguen pendientes.</p>
+<p><a asp-page="HistorialHorarios" class="btn btn-liceo-secondary">Historial de horarios cancelados</a></p>
 @foreach(var nombre in new[]{"Pensums","Materias","Grupos","Asignaciones","Horario","EstudiantesGrupo"}){
-<section class="liceo-card mb-3"><h2 class="h4">@nombre</h2>@if(Model.Datos.Tables.Contains(nombre)){<partial name="_Tabla" model="Model.Datos.Tables[nombre]!" />}</section>
+<section class="liceo-card mb-3"><h2 class="h4">@nombre</h2>@if(Model.Datos.Tables.Contains(nombre)){<partial name='@(nombre=="Horario" ? "_Horarios" : "_Tabla")' model="Model.Datos.Tables[nombre]!" />}</section>
 }
 @section Scripts{<partial name="_ValidationScriptsPartial" />}

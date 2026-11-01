@@ -1,0 +1,6 @@
+@model System.Data.DataTable
+@using System.Data
+<div class="table-responsive"><table class="table liceo-table"><thead><tr><th>Horario</th><th>Sección</th><th>Asignatura</th><th>Docente</th><th>Aula</th><th>Día (1–7)</th><th>Inicio</th><th>Fin</th><th>Acciones</th></tr></thead><tbody>
+@foreach(DataRow h in Model.Rows){<tr><td>@h["Id"]</td><td>@h["Seccion"]</td><td>@h["Asignatura"]</td><td>@h["Docente"]</td><td>@h["Aula"]</td><td>@h["Dia"]</td><td>@h["Inicio"]</td><td>@h["Fin"]</td><td><a asp-page="/Planificacion/CancelarHorario" asp-route-id="@h["Id"]" class="btn btn-outline-danger" aria-label="Cancelar horario @h["Id"]">Cancelar</a></td></tr>}
+</tbody></table></div>
+@if(Model.Rows.Count==0){<p class="text-muted">Todavía no hay horarios vigentes.</p>}

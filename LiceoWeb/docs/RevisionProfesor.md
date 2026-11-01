@@ -2,12 +2,14 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
-## Punto vigente — 2026-11-01
-UI/UX integrado en esta rama. Retirado el instalador automático desde 015. Los tres procedimientos tienen archivo propio en `database/procedures`: `Cargos_ConfigurarMatricula.sql`, `Mensualidades_GenerarLote.sql` y `ReporteFinanciero_Consultar.sql`. Sus definiciones se separaron de los archivos agrupados, sin cambiar su lógica ni duplicarlas. Las migraciones existentes se conservan sin cambios. Exportación CSV del reporte financiero completa por rango (hasta 50 000 movimientos, sin truncar). No ejecutado contra SQL Server aquí.
+## Punto vigente — cancelación de horarios (018)
+Cancelación administrativa con motivo, versión, reintento y auditoría. Se conserva el horario original y una instantánea histórica; los horarios cancelados ya no bloquean cruces ni muestran horas en Mi horario. Nueva página de confirmación y listado de historial paginado. No permite cancelar períodos cerrados. Ejecutar manualmente 018_CancelacionHorarios.sql, los tres Horario_*.sql y actualizar Planificacion.sql; ver docs/CancelacionHorarios.md. No se agregó instalador automático.
 
-Pendientes prioritarios: ejecutar instalación y pruebas SQL/autenticadas en copia; cambios de grupo/asignaciones y cancelación de horarios con historial; edición de definiciones de evaluación; desactivación/cambio de rol con protección del último administrador; revisión visual autenticada. Portal de padres y notificaciones siguen fuera de alcance. Las secciones siguientes conservan el historial, no son una lista vigente de instalación.
+Validación de esta entrega: compilación C#/Razor sin errores (40 advertencias previas), 12 pruebas nuevas de cancelación y 12 de planificación aprobadas; seis archivos SQL analizados con ScriptDom. Acceso HTTP anónimo a cancelación, historial, planificación y Mi horario redirige al login. No se ejecutó SQL Server ni se probaron sesiones autenticadas o concurrencia real.
 
-Validación de esta integración: compilación C#/Razor con 0 errores y 40 advertencias previas; 17 pruebas de filtros/CSV, 10 de desplazamiento y pruebas del menú móvil aprobadas. SQL revisado con ScriptDom. HTTP sin sesión: reporte y descarga CSV redirigen al login; portada, login y recursos UI responden 200. No hay validación de ejecución SQL, cifras o permisos con sesiones reales.
+Se conservan UI/UX y exportación CSV. Los tres procedimientos financieros tienen sus archivos individuales: Cargos_ConfigurarMatricula.sql, Mensualidades_GenerarLote.sql y ReporteFinanciero_Consultar.sql.
+
+Pendientes prioritarios: pruebas SQL/autenticadas y concurrencia; cambios de asignación docente y traslado de grupos con historial; edición de definiciones de evaluación; desactivación/cambio de rol con protección del último administrador; revisión visual autenticada. Portal de padres y notificaciones siguen fuera de alcance. Las secciones siguientes son historial de avances, no una lista vigente de instalación.
 
 ## Estado real
 Esta entrega es parcial. NO habilitar el esquema financiero nuevo para cobros reales.

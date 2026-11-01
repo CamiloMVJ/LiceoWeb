@@ -1,0 +1,26 @@
+@page "{id:int}"
+@model LiceoWeb.Pages.Planificacion.CancelarHorarioModel
+@{ViewData["Title"]="Cancelar horario";}
+<div class="liceo-page-heading"><h1>Cancelar horario</h1><p>Se conservará la clase original y quedará registrado quién la canceló y por qué.</p></div>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if(Model.Horario is { } h)
+{
+ <section class="liceo-card mb-3" aria-label="Horario seleccionado"><h2 class="h4">@h["Asignatura"] · sección @h["Seccion"]</h2>
+ <dl class="row"><dt class="col-sm-4">Año y período</dt><dd class="col-sm-8">@h["Anio"] · @h["Periodo"]</dd>
+ <dt class="col-sm-4">Docente</dt><dd class="col-sm-8">@h["Docente"]</dd>
+ <dt class="col-sm-4">Aula</dt><dd class="col-sm-8">@h["Aula"]</dd>
+ <dt class="col-sm-4">Día y horas</dt><dd class="col-sm-8">Día @h["Dia"] (1 lunes–7 domingo) · @h["Inicio"]–@h["Fin"]</dd></dl></section>
+ if(Model.PuedeCancelar)
+ {
+  <form method="post" class="liceo-card">
+   <input asp-for="Input.HorarioId" type="hidden"/><input asp-for="Input.Version" type="hidden"/><input asp-for="Input.Operacion" type="hidden"/>
+   <label asp-for="Input.Motivo" class="form-label">Motivo de la cancelación</label>
+   <textarea asp-for="Input.Motivo" class="form-control" rows="3" maxlength="500" aria-describedby="motivo-ayuda"></textarea>
+   <span asp-validation-for="Input.Motivo" class="text-danger"></span><p id="motivo-ayuda" class="text-muted">Entre 10 y 500 caracteres. El espacio quedará disponible para otro horario. Esta acción no cancela la asignatura ni modifica notas o matrículas.</p>
+   <button class="btn btn-danger">Confirmar cancelación</button>
+  </form>
+ }
+ else {<p class="alert alert-info">El horario ya está cancelado o su período está cerrado. No admite cancelación.</p>}
+}
+<div class="d-flex flex-wrap gap-2 mt-3"><a asp-page="Index" asp-route-accion="Horario" class="btn btn-liceo-secondary">Volver a planificación</a><a asp-page="HistorialHorarios" class="btn btn-liceo-secondary">Ver historial</a></div>
+@section Scripts{<partial name="_ValidationScriptsPartial"/>}
