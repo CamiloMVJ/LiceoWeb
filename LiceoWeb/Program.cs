@@ -97,6 +97,7 @@ builder.Services.AddScoped<ExpedienteRepository>();
 builder.Services.AddScoped<ExpedienteService>();
 builder.Services.AddScoped<PlanificacionRepository>();
 builder.Services.AddScoped<HorarioRepository>();
+builder.Services.AddScoped<CambioPlanificacionRepository>();
 builder.Services.AddScoped<PlanificacionService>();
 builder.Services.AddScoped<NotasRepository>();
 builder.Services.AddScoped<ArancelRepository>();

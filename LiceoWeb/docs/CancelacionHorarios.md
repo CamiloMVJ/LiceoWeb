@@ -28,6 +28,6 @@ La versión oculta permite rechazar una página antigua si cambió el registro. 
 
 Las pruebas SQL y con sesiones autenticadas no se han ejecutado en este entorno. La revisión sintáctica no sustituye ejecutar SQL Server ni validar concurrencia real.
 
-Siguiente pendiente académico: cambios de asignación docente y traslados de grupo con historial. Siguen pendientes edición de evaluaciones y administración de cuentas existentes.
+Los cambios de docente y traslados previos a calificaciones/publicaciones se incorporan en 019 (CambiosPlanificacion.md). Siguen pendientes edición de evaluaciones y administración de cuentas existentes.
 
 Validación de esta entrega: compilación C#/Razor sin errores (40 advertencias previas), 12 pruebas nuevas de cancelación y 12 de planificación aprobadas; seis archivos SQL analizados con ScriptDom. Acceso HTTP anónimo a cancelación, historial, planificación y Mi horario redirige al login. No se ejecutó SQL Server ni se probaron sesiones autenticadas o concurrencia real.

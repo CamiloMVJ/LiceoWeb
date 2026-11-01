@@ -1,0 +1,20 @@
+@page
+@model LiceoWeb.Pages.Planificacion.HistorialCambiosModel
+@using System.Data
+@{ViewData["Title"]="Historial de cambios académicos";}
+<div class="liceo-page-heading"><h1>Historial de cambios académicos</h1><p>Docentes y traslados de estudiantes. Fechas en hora de Nicaragua (UTC−6).</p><a asp-page="Index" class="btn btn-liceo-secondary">Volver a planificación</a></div>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if(Model.Cargado)
+{
+ <p>@Model.Total cambios · hasta 50 por página.</p>
+ <div class="table-responsive"><table class="table liceo-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Registro</th><th>Período</th><th>Anterior</th><th>Nuevo</th><th>Responsable</th><th>Motivo</th></tr></thead><tbody>
+ @foreach(DataRow h in Model.Datos.Tables["Historial"]!.Rows){<tr><td>@(((DateTime)h["FechaLocal"]).ToString("dd/MM/yyyy HH:mm"))</td><td>@h["Tipo"]</td><td>@h["Registro"]</td><td>@h["Periodo"]</td><td>@h["Anterior"]</td><td>@h["Nuevo"]</td><td>@h["Responsable"]</td><td>@h["Motivo"]</td></tr>}
+ </tbody></table></div>
+ @if(Model.Total==0){<p>Todavía no hay cambios registrados.</p>}
+ <nav aria-label="Páginas del historial" class="d-flex align-items-center gap-2">
+ @if(Model.Pagina>1){<a asp-route-Pagina="@(Model.Pagina-1)" class="btn btn-liceo-secondary">Anterior</a>}
+ <span>Página @Model.Pagina</span>
+ @if((long)Model.Pagina*50<Model.Total){<a asp-route-Pagina="@(Model.Pagina+1)" class="btn btn-liceo-secondary">Siguiente</a>}
+ </nav>
+}

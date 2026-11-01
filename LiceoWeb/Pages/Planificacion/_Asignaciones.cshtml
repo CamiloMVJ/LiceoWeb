@@ -1,0 +1,6 @@
+@model System.Data.DataTable
+@using System.Data
+<div class="table-responsive"><table class="table liceo-table"><thead><tr><th>Asignación</th><th>Grupo</th><th>Asignatura</th><th>Docente</th><th>Acciones</th></tr></thead><tbody>
+@foreach(DataRow r in Model.Rows){<tr><td>@r["Id"]</td><td>@r["GrupoId"]</td><td>@r["Asignatura"]</td><td>@r["Docente"]</td><td><a asp-page="/Planificacion/Cambiar" asp-route-tipo="Docente" asp-route-origenId="@r["Id"]" class="btn btn-liceo-secondary">Cambiar docente</a></td></tr>}
+</tbody></table></div>
+@if(Model.Rows.Count==0){<p>Todavía no hay asignaciones.</p>}

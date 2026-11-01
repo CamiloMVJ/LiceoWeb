@@ -2,14 +2,14 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
-## Punto vigente — cancelación de horarios (018)
-Cancelación administrativa con motivo, versión, reintento y auditoría. Se conserva el horario original y una instantánea histórica; los horarios cancelados ya no bloquean cruces ni muestran horas en Mi horario. Nueva página de confirmación y listado de historial paginado. No permite cancelar períodos cerrados. Ejecutar manualmente 018_CancelacionHorarios.sql, los tres Horario_*.sql y actualizar Planificacion.sql; ver docs/CancelacionHorarios.md. No se agregó instalador automático.
+## Punto vigente — cambios de planificación (019)
+Cambiar docente y trasladar estudiante desde las filas de Planificación, con confirmación, motivo, versión, reintento e historial paginado. Solo Administración. El cambio de docente comprueba cruces y conserva la autoría de notas. El traslado permite grupos del mismo pensum/período, con matrícula compatible y cupo, sin registros de calificaciones del alumno ni publicaciones en los grupos. Conserva matrícula/cargos y la instantánea del origen; no mueve notas ni cambia nivel/año.
 
-Validación de esta entrega: compilación C#/Razor sin errores (40 advertencias previas), 12 pruebas nuevas de cancelación y 12 de planificación aprobadas; seis archivos SQL analizados con ScriptDom. Acceso HTTP anónimo a cancelación, historial, planificación y Mi horario redirige al login. No se ejecutó SQL Server ni se probaron sesiones autenticadas o concurrencia real.
+Ejecutar manualmente 019_CambiosPlanificacion.sql y los tres archivos Planificacion_Cambiar.sql, Planificacion_CambioConsultar.sql y Planificacion_CambiosHistorial.sql. Ver docs/CambiosPlanificacion.md. No se agregó instalador automático. Se conservan cancelación de horarios (018), UI/UX, finanzas y CSV.
 
-Se conservan UI/UX y exportación CSV. Los tres procedimientos financieros tienen sus archivos individuales: Cargos_ConfigurarMatricula.sql, Mensualidades_GenerarLote.sql y ReporteFinanciero_Consultar.sql.
+Validación: compilación C#/Razor sin errores (40 advertencias previas), 19 pruebas nuevas de entradas y 12 de cancelación, análisis ScriptDom y accesos HTTP anónimos redirigidos al login. Preparados 13 escenarios SQL con rollback, sin ejecución en SQL Server aquí.
 
-Pendientes prioritarios: pruebas SQL/autenticadas y concurrencia; cambios de asignación docente y traslado de grupos con historial; edición de definiciones de evaluación; desactivación/cambio de rol con protección del último administrador; revisión visual autenticada. Portal de padres y notificaciones siguen fuera de alcance. Las secciones siguientes son historial de avances, no una lista vigente de instalación.
+Pendientes: pruebas SQL/autenticadas/concurrentes y revisión visual; edición de definiciones de evaluación; desactivación/cambio de rol con protección del último administrador. Traslados con notas o publicaciones requieren definir el tratamiento académico; no se implementaron equivalencias automáticas. Portal de padres y notificaciones siguen fuera de alcance. Las secciones siguientes son historial, no una lista vigente de instalación.
 
 ## Estado real
 Esta entrega es parcial. NO habilitar el esquema financiero nuevo para cobros reales.
