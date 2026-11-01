@@ -1,0 +1,37 @@
+@page
+@model LiceoWeb.Pages.Finanzas.ReporteModel
+@using System.Data
+@{ ViewData["Title"]="Cobros y devoluciones"; }
+<h1>Cobros y devoluciones</h1>
+<p>Movimientos del libro nuevo. Fechas inclusivas en hora de Nicaragua (UTC−6). Importes en córdobas.</p>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4"><label asp-for="Filtro.Desde">Desde</label><input asp-for="Filtro.Desde" class="form-control" /></div>
+    <div class="col-md-4"><label asp-for="Filtro.Hasta">Hasta</label><input asp-for="Filtro.Hasta" class="form-control" /></div>
+    <div class="col-md-4 align-self-end"><button class="btn btn-liceo-primary">Consultar</button></div>
+</form>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if(Model.Cargado)
+{
+    var r=Model.Datos.Tables["Resumen"]!.Rows[0];
+    <div class="row g-3 mb-4">
+    @foreach(var (col,label) in new[]{("Cobrado","Dinero cobrado, descontando vuelto"),("Devuelto","Dinero devuelto por anulaciones"),("DineroNeto","Dinero neto del período"),("SaldoNeto","Saldo a favor utilizado menos restituido"),("AplicadoNeto","Aplicado a deuda menos revertido")})
+    { <div class="col-md-4"><div class="card card-body"><span>@label</span><strong>C$ @(((decimal)r[col]).ToString("N2"))</strong></div></div> }
+    </div>
+    <p>El saldo utilizado no es dinero nuevo. Las devoluciones se registran en su fecha de anulación, aunque el cobro original sea de otro período; por eso los netos pueden ser negativos.</p>
+    <h2 class="h4">Por método</h2>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Método</th><th>Cobrado</th><th>Devuelto</th><th>Dinero neto</th><th>Saldo neto</th></tr></thead><tbody>
+    @foreach(DataRow m in Model.Datos.Tables["Metodos"]!.Rows){<tr><td>@m["Metodo"]</td><td>@(((decimal)m["Cobrado"]).ToString("N2"))</td><td>@(((decimal)m["Devuelto"]).ToString("N2"))</td><td>@(((decimal)m["DineroNeto"]).ToString("N2"))</td><td>@(((decimal)m["SaldoNeto"]).ToString("N2"))</td></tr>}
+    </tbody></table></div>
+    <h2 class="h4">Detalle · @Model.Total movimientos</h2>
+    <p>Los totales incluyen todo el rango; el detalle muestra hasta 100 movimientos por página.</p>
+    @if(Model.Total==0){<p>No hay movimientos para estas fechas.</p>}
+    <div class="table-responsive"><table class="table"><thead><tr><th>Fecha local</th><th>Recibo</th><th>Estudiante</th><th>Movimiento</th><th>Método</th><th>Responsable</th><th>Dinero</th><th>Saldo</th><th>Aplicado</th></tr></thead><tbody>
+    @foreach(DataRow m in Model.Datos.Tables["Movimientos"]!.Rows){<tr><td>@(((DateTime)m["FechaLocal"]).ToString("dd/MM/yyyy HH:mm"))</td><td><a asp-page="Recibo" asp-route-id="@m["ReciboId"]">@m["Numero"]</a></td><td>@m["NombreEstudiante"] · @m["Registro"]</td><td>@m["Tipo"]</td><td>@m["Metodo"]</td><td>@m["Responsable"]</td><td>@(((decimal)m["Dinero"]).ToString("N2"))</td><td>@(((decimal)m["Saldo"]).ToString("N2"))</td><td>@(((decimal)m["Aplicado"]).ToString("N2"))</td></tr>}
+    </tbody></table></div>
+    <nav aria-label="Páginas del reporte">
+    @if(Model.Filtro.Pagina>1){<a class="btn btn-outline-secondary" asp-route-Filtro.Desde="@Model.Filtro.Desde.ToString("yyyy-MM-dd")" asp-route-Filtro.Hasta="@Model.Filtro.Hasta.ToString("yyyy-MM-dd")" asp-route-Filtro.Pagina="@(Model.Filtro.Pagina-1)">Anterior</a>}
+    <span>Página @Model.Filtro.Pagina</span>
+    @if((long)Model.Filtro.Pagina*100<Model.Total){<a class="btn btn-outline-secondary" asp-route-Filtro.Desde="@Model.Filtro.Desde.ToString("yyyy-MM-dd")" asp-route-Filtro.Hasta="@Model.Filtro.Hasta.ToString("yyyy-MM-dd")" asp-route-Filtro.Pagina="@(Model.Filtro.Pagina+1)">Siguiente</a>}
+    </nav>
+    <p class="text-muted mt-3">No incluye pagos del libro anterior ni representa la deuda total o un arqueo de caja. Los movimientos nuevos pueden cambiar los resultados al consultar otra página.</p>
+}

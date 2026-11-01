@@ -1,0 +1,37 @@
+CREATE OR ALTER PROCEDURE dbo.ReporteFinanciero_Consultar
+ @UsuarioId nvarchar(450),@Desde date,@Hasta date,@Pagina int=1
+AS
+BEGIN
+ SET NOCOUNT ON;SET XACT_ABORT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ IF @Desde IS NULL OR @Hasta IS NULL OR @Desde<'20000101' OR @Hasta>'99981231' OR @Hasta<@Desde OR DATEDIFF(day,@Desde,@Hasta)>365 OR @Pagina IS NULL OR @Pagina NOT BETWEEN 1 AND 1000000 THROW 54002,N'Indica un rango de hasta 366 días y página válida.',1;
+ DECLARE @Inicio datetime2=DATEADD(hour,6,CONVERT(datetime2,@Desde)),@Fin datetime2=DATEADD(hour,6,DATEADD(day,1,CONVERT(datetime2,@Hasta))),@Lock int;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ EXEC @Lock=sys.sp_getapplock @Resource='Liceo.Finanzas.Configuracion',@LockMode='Shared',@LockOwner='Transaction',@LockTimeout=10000;
+ IF @Lock<0 THROW 54003,N'Finanzas está ocupado. Reintenta la consulta.',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 54002,N'El reporte requiere el corte aplicado; no incluye el libro anterior.',1;
+ -- Conservar ambos eventos; una anulación posterior no cambia el ingreso de la fecha original.
+ SELECT R.Id ReciboId,R.Numero,R.Registro,R.NombreEstudiante,R.Fecha FechaUTC,CONVERT(nvarchar(12),'Cobro') Tipo,R.Metodo,R.UsuarioId,
+ R.Recibido-R.Cambio Dinero,R.SaldoAplicado Saldo,R.TotalAplicado Aplicado
+ INTO #Movimientos FROM dbo.ReciboMultiple R WHERE R.Fecha>=@Inicio AND R.Fecha<@Fin
+ UNION ALL
+ SELECT R.Id,R.Numero,R.Registro,R.NombreEstudiante,X.Fecha,N'Devolución',R.Metodo,X.UsuarioId,-X.DineroDevuelto,-X.SaldoRestituido,-X.TotalRevertido
+ FROM dbo.AnulacionRecibo X JOIN dbo.ReciboMultiple R ON R.Id=X.ReciboId WHERE X.Fecha>=@Inicio AND X.Fecha<@Fin;
+ COMMIT;
+ SELECT COUNT_BIG(*) Movimientos,
+ ISNULL(SUM(CASE WHEN Tipo='Cobro' THEN Dinero ELSE 0 END),0) Cobrado,
+ -ISNULL(SUM(CASE WHEN Tipo=N'Devolución' THEN Dinero ELSE 0 END),0) Devuelto,
+ ISNULL(SUM(Dinero),0) DineroNeto,ISNULL(SUM(Saldo),0) SaldoNeto,ISNULL(SUM(Aplicado),0) AplicadoNeto FROM #Movimientos;
+ SELECT Metodo,ISNULL(SUM(CASE WHEN Tipo='Cobro' THEN Dinero ELSE 0 END),0) Cobrado,
+ -ISNULL(SUM(CASE WHEN Tipo=N'Devolución' THEN Dinero ELSE 0 END),0) Devuelto,SUM(Dinero) DineroNeto,SUM(Saldo) SaldoNeto FROM #Movimientos GROUP BY Metodo ORDER BY Metodo;
+ SELECT M.ReciboId,M.Numero,M.Registro,M.NombreEstudiante,DATEADD(hour,-6,M.FechaUTC) FechaLocal,M.Tipo,M.Metodo,U.UserName Responsable,M.Dinero,M.Saldo,M.Aplicado
+ FROM #Movimientos M JOIN dbo.AspNetUsers U ON U.Id=M.UsuarioId ORDER BY M.FechaUTC DESC,M.ReciboId DESC,M.Tipo
+ OFFSET ((@Pagina-1)*100) ROWS FETCH NEXT 100 ROWS ONLY;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;
+GO

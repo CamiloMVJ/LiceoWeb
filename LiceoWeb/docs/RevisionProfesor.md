@@ -138,3 +138,6 @@ Generar cargos permite generar varios meses de una tarifa mensual para un estudi
 
 ## Continuación: posición de navegación y configuración de matrícula
 Navegación interna conserva desplazamiento por pestaña sin interferir con anclas, historial o login. Generar cargos permite seleccionar desde la web el arancel anual de matrícula cuando aún no está configurado; autorización y auditoría SQL, sin sustituir configuraciones existentes. Actualizar GeneracionCargos.sql y aplicación juntos; sin migración adicional. Ver docs/NavegacionYConfiguracionMatricula.md. Pruebas SQL/autenticadas y visuales pendientes.
+
+## Continuación: reporte financiero
+Nuevo /Finanzas/Reporte para Administración: rango de hasta 366 días locales de Nicaragua, cobros y devoluciones por fecha de cada evento, dinero neto separado del saldo utilizado/restituido, agrupación por método y detalle de 100 movimientos por página. Totales de todo el rango. Instalar procedures/ReporteFinanciero.sql; sin migración nueva. No incluye ingresos históricos del libro anterior ni representa arqueo de caja. Guía docs/ReporteFinanciero.md. Pruebas SQL, concurrencia y sesiones autenticadas pendientes.
