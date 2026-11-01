@@ -1,7 +1,7 @@
 # Posición al navegar y configuración de matrícula
 
 ## Actualización
-Actualizar la rama, detener la aplicación, reinstalar `database/procedures/GeneracionCargos.sql` completo y compilar/reiniciar. No hay migración nueva; requiere las anteriores hasta 017. Si el navegador conserva recursos anteriores, recargar con Ctrl+F5 una vez.
+Actualizar la rama, detener la aplicación, ejecutar `database/procedures/GeneracionCargos.sql` y después `database/procedures/Cargos_ConfigurarMatricula.sql` y compilar/reiniciar. No hay migración nueva; requiere las anteriores hasta 017. Si el navegador conserva recursos anteriores, recargar con Ctrl+F5 una vez.
 
 ## Navegación
 `wwwroot/js/site.js` conserva coordenadas de ventana, panel principal y barra lateral al seguir enlaces internos dentro del sistema. Utiliza sessionStorage por pestaña y consume la posición solo si coincide con el destino inmediatamente siguiente. No cambia la navegación atrás/adelante, anclas, enlaces externos, nuevas pestañas ni autenticación. Si la página destino es más corta, el navegador limita la posición al final disponible. No cambia los envíos de formularios ni desplaza automáticamente hacia abajo los errores de validación.
@@ -15,7 +15,7 @@ En **Generar cargos → Arancel de matrícula académica**, Administración pued
 
 Si ya se configuró desde la migración 016 o por SQL, se muestra el nombre existente. No se sustituye desde esta pantalla: cambiar el concepto requiere revisar el historial. Repetir la misma selección no duplica la configuración; una selección distinta cuando ya existe se rechaza, incluso ante envíos simultáneos. No hace falta modificar el mapeo del libro anterior ni reabrir el corte.
 
-Se actualiza `Cargos_Pantalla` para devolver un quinto conjunto de resultados y se agrega `Cargos_ConfigurarMatricula` en GeneracionCargos.sql. Actualizar procedimiento y aplicación juntos. La autorización administrativa se valida en Razor y SQL; los formularios conservan protección antifalsificación.
+Se actualiza `Cargos_Pantalla` para devolver un quinto conjunto de resultados y se agrega `Cargos_ConfigurarMatricula` en su archivo propio Cargos_ConfigurarMatricula.sql. Actualizar procedimiento y aplicación juntos. La autorización administrativa se valida en Razor y SQL; los formularios conservan protección antifalsificación.
 
 Pruebas SQL pendientes: configuración vacía, arancel mensual/inactivo, mismo arancel reenviado, dos administradores intentando elegir aranceles distintos, fallo de auditoría con rollback y acceso como Cajero/Profesor. No ejecutadas en SQL Server aquí.
 

@@ -6,7 +6,7 @@ Nueva pantalla `/Finanzas/Cargos`, exclusiva de Administración. El cajero conse
 1. Actualiza `revision-profesor-2026-10-29` después de guardar tus cambios locales.
 2. En una copia de `LiceoWeb_Dev`, completa las migraciones anteriores hasta 013 y sus procedimientos. No repitas migraciones instaladas.
 3. Ejecuta `database/migrations/014_GeneracionCargos.sql` una vez.
-4. Ejecuta todo `database/procedures/GeneracionCargos.sql` (con los GO). Es reinstalable.
+4. Ejecuta todo `database/procedures/GeneracionCargos.sql` (con los GO). Es reinstalable. La configuración del arancel de matrícula está separada en `database/procedures/Cargos_ConfigurarMatricula.sql`; ejecuta ese archivo después de GeneracionCargos.sql, con la migración 016 ya aplicada.
 5. Abre **Administración → Generar cargos**. Puedes revisar la configuración antes del corte. Para generar deuda, el corte 012 debe estar aplicado y validado en esa copia; consulta `CorteFinanciero.md`.
 6. En **Periodicidad de los aranceles**, configura los conceptos que aún no tienen periodicidad. Los mapeados desde mensualidades se inicializan como mensuales; los otros conceptos históricos como anuales, únicamente si todos los mapeos del arancel coinciden. Mapeos contradictorios bloquean la configuración: requieren revisión, no se adivina una frecuencia.
 7. Busca el estudiante por código. Debe estar activo. La tarifa debe estar activa, ser positiva, pertenecer a un año activo y coincidir con la modalidad del estudiante. Configura las tarifas faltantes en **Aranceles y preparación**.

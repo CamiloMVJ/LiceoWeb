@@ -1,6 +1,6 @@
 # Reporte de cobros y devoluciones
 
-Instalación: actualizar la rama, detener la aplicación y ejecutar completo `database/procedures/ReporteFinanciero.sql` sobre LiceoWeb_Dev. Compilar/reiniciar. No hay migración nueva; mantener instaladas las etapas hasta 017 y sus procedimientos. Requiere corte aplicado.
+Instalación: actualizar la rama, detener la aplicación y ejecutar completo `database/procedures/ReporteFinanciero_Consultar.sql` sobre LiceoWeb_Dev. Compilar/reiniciar. No hay migración nueva; mantener instaladas las etapas hasta 017 y sus procedimientos. Requiere corte aplicado.
 
 Entrar como Administrador en **Cobros y devoluciones**. Elegir fechas desde/hasta (ambas incluidas), máximo 366 días. Las fechas corresponden a Nicaragua (UTC−6); los datos UTC se filtran usando límites equivalentes. Por defecto muestra el mes actual.
 
@@ -36,4 +36,4 @@ Descargar movimientos CSV usa las fechas consultadas y trae todo el rango en una
 
 Archivo UTF-8 con BOM, separador coma, fechas locales y decimales con punto. En Excel puede importarse desde Datos > Desde texto/CSV si la configuración regional utiliza otro separador. Comillas, comas y saltos de línea se escapan; textos que podrían interpretarse como fórmulas se prefijan con apóstrofo, sin modificar los datos originales. Los importes negativos permanecen numéricos. Contiene datos personales: misma autorización de Administrador y NoStore que la pantalla. No incluye información médica.
 
-Reinstalar ReporteFinanciero.sql junto con la aplicación: agrega el parámetro opcional @Exportar. La descarga es una consulta nueva y podría diferir de una pantalla anterior si hubo nuevos movimientos. El CSV contiene detalle, no las tarjetas de resumen. Pruebas de formato/seguridad y validación de filtros automatizadas; autorización real y cifras contra SQL Server pendientes.
+Reinstalar ReporteFinanciero_Consultar.sql junto con la aplicación: agrega el parámetro opcional @Exportar. La descarga es una consulta nueva y podría diferir de una pantalla anterior si hubo nuevos movimientos. El CSV contiene detalle, no las tarjetas de resumen. Pruebas de formato/seguridad y validación de filtros automatizadas; autorización real y cifras contra SQL Server pendientes.

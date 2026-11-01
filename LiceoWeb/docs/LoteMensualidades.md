@@ -1,6 +1,6 @@
 # Mensualidades por rango para estudiantes matriculados
 
-Instalación: con aplicación detenida y base de desarrollo respaldada, instalar migraciones previas hasta 016, ejecutar 017_LoteMensualidades.sql una vez, reinstalar procedures/GeneracionCargos.sql y ejecutar procedures/LoteMensualidades.sql completo. Compilar/reiniciar.
+Instalación: con aplicación detenida y base de desarrollo respaldada, instalar migraciones previas hasta 016, ejecutar 017_LoteMensualidades.sql una vez, reinstalar procedures/GeneracionCargos.sql y ejecutar procedures/Mensualidades_GenerarLote.sql completo. Compilar/reiniciar.
 
 En Generar cargos, buscar estudiante y seleccionar una tarifa de periodicidad Mensual. Marcar Generar rango de mensualidades; indicar mes inicial, mes final y día de vencimiento entre 1 y 28. Dejar vacíos evento y fecha individual. El importe mostrado es por mes: el total nuevo será importe por cantidad de meses. La matrícula académica debe corresponder al año y modalidad de la tarifa. Registrar el expediente no basta: confirmar inscripción en Planificación primero.
 

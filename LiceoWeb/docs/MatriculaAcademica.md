@@ -7,7 +7,7 @@
 4. La configuración toma el arancel de matrícula del mapeo antiguo si existía. En una base vacía que ya aplicó el corte puede faltar ese mapeo: no modificar las tablas antiguas cerradas.
 
 ## Configurar el arancel si no existía
-Crear el arancel y tarifa desde Aranceles y definir periodicidad Anual desde Generar cargos. En **Generar cargos → Arancel de matrícula académica**, seleccionar el arancel y confirmar. Solo Administración puede hacerlo. Si ya estaba configurado, se muestra la selección existente y no se reemplaza. Requiere reinstalar GeneracionCargos.sql de la versión actual; no editar MapaConceptoLegado ni reabrir el corte.
+Crear el arancel y tarifa desde Aranceles y definir periodicidad Anual desde Generar cargos. En **Generar cargos → Arancel de matrícula académica**, seleccionar el arancel y confirmar. Solo Administración puede hacerlo. Si ya estaba configurado, se muestra la selección existente y no se reemplaza. Requiere GeneracionCargos.sql y el archivo independiente Cargos_ConfigurarMatricula.sql de la versión actual; no editar MapaConceptoLegado ni reabrir el corte.
 
 ## Flujo para una matrícula nueva
 1. Registrar/actualizar el expediente; modalidad y grado deben coincidir con el pensum del grupo.

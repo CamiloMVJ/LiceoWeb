@@ -52,7 +52,7 @@ public class ReporteModel(SqlConnectionFactory factory,UsuarioActual usuario,ILo
         }
         catch(SqlException ex) when(ex.Number==53601){return Forbid();}
         catch(SqlException ex) when(ex.Number is 54002 or 54003){ModelState.AddModelError("",ex.Message);}
-        catch(Exception ex){logger.LogError("Reporte financiero: {Tipo}",ex.GetType().Name);ModelState.AddModelError("","No se pudo consultar. Revisa la conexión y la instalación de ReporteFinanciero.sql.");}
+        catch(Exception ex){logger.LogError("Reporte financiero: {Tipo}",ex.GetType().Name);ModelState.AddModelError("","No se pudo consultar. Revisa la conexión y la instalación de ReporteFinanciero_Consultar.sql.");}
         return Page();
     }
 }
