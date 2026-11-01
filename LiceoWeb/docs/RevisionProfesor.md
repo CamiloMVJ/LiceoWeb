@@ -132,3 +132,6 @@ Validación de transición/impresión: compilación sin errores, 13 pruebas del 
 
 ## Continuación: matrícula académica vinculada (016)
 Nueva MatriculaAcademica por estudiante/año y ConfiguracionMatricula. Planificación deja de exigir escritura en Matriculas antigua después del corte: vincula un cargo anual previamente revisado/generado o una matrícula histórica compatible y guarda inscripción/matrícula/auditoría en una transacción. Se mantiene generación y confirmación como dos pasos; no crea cargos automáticamente ni exige pago previo. Guía docs/MatriculaAcademica.md. Configuración inicial del arancel puede requerir asignación administrativa en SQL si no existía mapeo al cortar. Pruebas SQL y flujo autenticado pendientes.
+
+## Continuación: mensualidades por rango (017)
+Generar cargos permite generar varios meses de una tarifa mensual para un estudiante con MatriculaAcademica compatible. Mes inicial/final y vencimiento seleccionados por Administración, transacción integral, auditoría y GUID para reintentos. Mes existente rechaza todo el lote sin escrituras parciales. No se ejecuta automáticamente al guardar expediente o matrícula. Guía docs/LoteMensualidades.md; instalar 017, actualizar GeneracionCargos.sql e instalar LoteMensualidades.sql. Pruebas SQL y concurrencia pendientes.

@@ -35,12 +35,12 @@ BEGIN
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.Cargos_Generar
- @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Registro nvarchar(10),@TarifaId int,@VersionTarifa binary(8),@Mes int=NULL,@Evento nvarchar(30)=NULL,@Vencimiento date=NULL
+ @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Registro nvarchar(10),@TarifaId int,@VersionTarifa binary(8),@Mes int=NULL,@Evento nvarchar(30)=NULL,@Vencimiento date=NULL,@PermitirTransaccion bit=0
 AS
 BEGIN
  SET NOCOUNT ON;SET XACT_ABORT ON;
  EXEC dbo.Cargos_Autorizar @UsuarioId;
- IF @@TRANCOUNT<>0 THROW 53600,N'No usar transacción externa.',1;
+ IF @@TRANCOUNT<>0 AND ISNULL(@PermitirTransaccion,0)=0 THROW 53600,N'No usar transacción externa.',1;
  IF @Operacion IS NULL OR @Operacion='00000000-0000-0000-0000-000000000000' OR @VersionTarifa IS NULL THROW 53602,N'Falta operación o versión de tarifa.',1;
  SET @Evento=NULLIF(UPPER(LTRIM(RTRIM(@Evento))),'');
  DECLARE @Solicitud nvarchar(max)=(SELECT @UsuarioId UsuarioId,@Registro Registro,@TarifaId TarifaId,CONVERT(varchar(18),@VersionTarifa,1) VersionTarifa,@Mes Mes,@Evento Evento,@Vencimiento Vencimiento FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
@@ -54,7 +54,7 @@ BEGIN
  IF @CargoId IS NOT NULL
  BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.GeneracionCargo WHERE Operacion=@Operacion AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId) THROW 53602,N'La operación ya se usó con otros datos. Consulte la cuenta.',1;
-  COMMIT;SELECT @CargoId CargoId;RETURN;
+  COMMIT;IF @PermitirTransaccion=0 SELECT @CargoId CargoId;RETURN;
  END;
  -- El precio procede siempre de la tarifa y la modalidad debe coincidir con el expediente.
  SELECT @ArancelId=A.Id,@AnioId=Y.Id,@Anio=Y.Anio,@Importe=T.Importe,@Nombre=A.Nombre,@Periodicidad=F.Periodicidad
@@ -81,7 +81,7 @@ BEGIN
  INSERT dbo.GeneracionCargo(Operacion,CargoId,SolicitudHash,UsuarioId) VALUES(@Operacion,@CargoId,@Hash,@UsuarioId);
  DECLARE @Id nvarchar(100)=CONVERT(nvarchar(100),@CargoId),@Json nvarchar(max)=(SELECT @Registro Registro,@TarifaId TarifaId,@Referencia Referencia,@Descripcion Descripcion,@Importe Importe,@Vencimiento Vencimiento FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
  EXEC dbo.Registrar_Auditoria @UsuarioId,'GenerarCargo','CargoEstudiante',@Id,@Operacion,NULL,@Json;
- COMMIT;SELECT @CargoId CargoId;
+ COMMIT;IF @PermitirTransaccion=0 SELECT @CargoId CargoId;
  END TRY
  BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK;

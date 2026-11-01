@@ -47,6 +47,13 @@
                 { <label asp-for="Input.Mes">Mes de la obligación</label><select asp-for="Input.Mes" class="form-select mb-3" required><option value="">Selecciona</option>@for(var m=1;m<=12;m++){<option value="@m">@m</option>}</select> }
                 @if ((string)tarifa["Periodicidad"] == "Eventual")
                 { <label asp-for="Input.Evento">Código único del evento</label><input asp-for="Input.Evento" class="form-control mb-3" maxlength="30" required /><small>Ejemplo: EXCURSION_01. Usa el mismo código para el mismo evento; otro código representa otra obligación.</small> }
+                @if ((string)tarifa["Periodicidad"] == "Mensual") {
+                    <div class="alert alert-info">Para generar varias mensualidades, marca la opción e indica el rango. El mes elegido arriba será el inicial. Requiere matrícula académica. Si cualquier mes ya existe, se rechaza todo el lote; selecciona solo meses nuevos.</div>
+                    <label><input asp-for="Input.GenerarRango" /> Generar rango de mensualidades</label>
+                    <label asp-for="Input.MesFinal">Mes final (1–12)</label><input asp-for="Input.MesFinal" class="form-control" />
+                    <label asp-for="Input.DiaVencimiento">Día de vencimiento para cada mes (1–28)</label><input asp-for="Input.DiaVencimiento" class="form-control" />
+                    <p>El importe mostrado se aplica a cada mes del rango. Para el lote, deja vacía la fecha individual siguiente.</p>
+                }
                 <label asp-for="Input.Vencimiento">Vencimiento (opcional, dentro del año de la tarifa)</label><input asp-for="Input.Vencimiento" class="form-control mb-3" />
                 <button class="btn btn-liceo-primary align-self-start">Confirmar y generar cargo</button>
                 <small class="text-muted mt-2">Operación: @Model.Input.Operacion. Conserva este formulario si necesitas reintentar tras un error.</small>
