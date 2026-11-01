@@ -7,17 +7,7 @@
 4. La configuración toma el arancel de matrícula del mapeo antiguo si existía. En una base vacía que ya aplicó el corte puede faltar ese mapeo: no modificar las tablas antiguas cerradas.
 
 ## Configurar el arancel si no existía
-Crear el arancel y tarifa desde Aranceles, y definir periodicidad Anual desde Generar cargos. Un administrador de la base debe asignar una sola vez ese arancel al registro nuevo, en SSMS:
-
-```sql
-USE LiceoWeb_Dev;
-SELECT Id,Codigo,Nombre FROM dbo.Arancel WHERE Activo=1;
-SELECT * FROM dbo.ConfiguracionMatricula;
--- Solo si ConfiguracionMatricula está vacía: sustituir 123 por el Id real revisado.
--- INSERT dbo.ConfiguracionMatricula(Id,ArancelId) VALUES(1,123);
-```
-
-No cambiar esta configuración después de crear matrículas: la interfaz de mantenimiento de esta configuración queda pendiente. No se necesita reabrir el corte ni editar MapaConceptoLegado.
+Crear el arancel y tarifa desde Aranceles y definir periodicidad Anual desde Generar cargos. En **Generar cargos → Arancel de matrícula académica**, seleccionar el arancel y confirmar. Solo Administración puede hacerlo. Si ya estaba configurado, se muestra la selección existente y no se reemplaza. Requiere reinstalar GeneracionCargos.sql de la versión actual; no editar MapaConceptoLegado ni reabrir el corte.
 
 ## Flujo para una matrícula nueva
 1. Registrar/actualizar el expediente; modalidad y grado deben coincidir con el pensum del grupo.
@@ -41,4 +31,4 @@ Una matrícula histórica de igual año/modalidad/nivel sirve como respaldo sin 
 Inscribir estudiante con cargo anual pendiente/pagado; reconocer matrícula histórica; rechazar sin cargo, modalidad/nivel incorrectos y cargo ajeno; grupo lleno/cerrado/publicado; dos inscripciones concurrentes; siguiente período sin segundo cargo; fallo de auditoría con rollback académico; acceso directo como Cajero/Profesor denegado. Ejecutar en copia: estas pruebas no se han ejecutado aquí.
 
 ## Continuar más tarde
-Crear pantalla de configuración del arancel de matrícula; facilitar revisión conjunta de cargo/cupo antes de confirmar; implementar traslados/bajas con historial, reportes académicos y pruebas SQL integradas. Sigue pendiente automatización opcional de mensualidades según la política del colegio.
+Facilitar revisión conjunta de cargo/cupo antes de confirmar; implementar traslados/bajas con historial, reportes académicos y pruebas SQL integradas. Sigue pendiente automatización opcional de mensualidades según la política del colegio.

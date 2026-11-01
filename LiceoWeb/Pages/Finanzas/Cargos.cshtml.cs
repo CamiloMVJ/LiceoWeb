@@ -48,7 +48,7 @@ public class CargosModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
             await using var c = factory.Create(); await c.OpenAsync(); await using var cmd = Comando(c, "dbo.Cargos_Pantalla");
             cmd.Parameters.Add("@Registro", SqlDbType.NVarChar, 10).Value = Input.Registro.Length <= 10 ? Input.Registro : "";
             await using var reader = await cmd.ExecuteReaderAsync(); var ds = new DataSet();
-            foreach (var n in new[] { "Control", "Aranceles", "Estudiante", "Tarifas" }) { var t = new DataTable(n); t.Load(reader); ds.Tables.Add(t); }
+            foreach (var n in new[] { "Control", "Aranceles", "Estudiante", "Tarifas", "Matricula" }) { var t = new DataTable(n); t.Load(reader); ds.Tables.Add(t); }
             Datos = ds;
         }
         catch (Exception ex) { logger.LogError("Consulta de cargos: {Tipo}", ex.GetType().Name); ModelState.AddModelError("", "No se pudo consultar. Revisa conexión, migración 014 y GeneracionCargos.sql."); }
@@ -110,4 +110,21 @@ public class CargosModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
         }
         await CargarAsync(); return Page();
     }
+    public async Task<IActionResult> OnPostMatriculaAsync(int arancelId)
+    {
+        ModelState.Clear();
+        if(arancelId<=0) ModelState.AddModelError("", "Selecciona un arancel anual para matrícula.");
+        if(ModelState.IsValid) try
+        {
+            await using var c=factory.Create(); await c.OpenAsync();
+            await using var cmd=Comando(c,"dbo.Cargos_ConfigurarMatricula");
+            cmd.Parameters.Add("@ArancelId",SqlDbType.Int).Value=arancelId;
+            await cmd.ExecuteNonQueryAsync(); Mensaje="Arancel de matrícula configurado.";return RedirectToPage();
+        }
+        catch(SqlException ex) when(ex.Number==53601){return Forbid();}
+        catch(SqlException ex) when(ex.Number is >=53600 and <=53603){ModelState.AddModelError("",ex.Message);}
+        catch(Exception ex){logger.LogError("Configuración de matrícula: {Tipo}",ex.GetType().Name);ModelState.AddModelError("","No se pudo confirmar. Vuelve a consultar antes de reintentar.");}
+        await CargarAsync();return Page();
+    }
+
 }

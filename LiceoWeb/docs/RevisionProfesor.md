@@ -135,3 +135,6 @@ Nueva MatriculaAcademica por estudiante/año y ConfiguracionMatricula. Planifica
 
 ## Continuación: mensualidades por rango (017)
 Generar cargos permite generar varios meses de una tarifa mensual para un estudiante con MatriculaAcademica compatible. Mes inicial/final y vencimiento seleccionados por Administración, transacción integral, auditoría y GUID para reintentos. Mes existente rechaza todo el lote sin escrituras parciales. No se ejecuta automáticamente al guardar expediente o matrícula. Guía docs/LoteMensualidades.md; instalar 017, actualizar GeneracionCargos.sql e instalar LoteMensualidades.sql. Pruebas SQL y concurrencia pendientes.
+
+## Continuación: posición de navegación y configuración de matrícula
+Navegación interna conserva desplazamiento por pestaña sin interferir con anclas, historial o login. Generar cargos permite seleccionar desde la web el arancel anual de matrícula cuando aún no está configurado; autorización y auditoría SQL, sin sustituir configuraciones existentes. Actualizar GeneracionCargos.sql y aplicación juntos; sin migración adicional. Ver docs/NavegacionYConfiguracionMatricula.md. Pruebas SQL/autenticadas y visuales pendientes.

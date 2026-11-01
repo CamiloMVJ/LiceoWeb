@@ -9,6 +9,24 @@
 @if (Model.Cargado)
 {
     @if (!Model.Migrado) { <div class="alert alert-warning">El corte financiero no está aplicado. Puedes revisar tarifas y periodicidades, pero todavía no generar cargos.</div> }
+    <section class="card card-body mb-3">
+        <h2 class="h4">Arancel de matrícula académica</h2>
+        @if (Model.Datos.Tables["Matricula"]!.Rows.Count > 0)
+        { <p>Configurado: <strong>@Model.Datos.Tables["Matricula"]!.Rows[0]["Nombre"]</strong>. Esta selección se conserva para mantener el historial.</p> }
+        else
+        {
+            <p>Selecciona el arancel anual que respaldará la matrícula. Configurarlo no genera deuda ni inscribe estudiantes.</p>
+            <form method="post" asp-page-handler="Matricula">
+                <label for="arancel-matricula">Arancel anual activo</label>
+                <select id="arancel-matricula" name="arancelId" class="form-select mb-2" required><option value="">Selecciona</option>
+                @foreach (DataRow a in Model.Datos.Tables["Aranceles"]!.Rows)
+                { if (a["Periodicidad"].ToString()=="Anual") { <option value="@a["Id"]">@a["Nombre"]</option> } }
+                </select>
+                <button class="btn btn-liceo-primary">Confirmar arancel de matrícula</button>
+            </form>
+            <p class="mt-2">Si no aparece, crea el arancel en Aranceles y define su periodicidad Anual en el apartado siguiente.</p>
+        }
+    </section>
     <details class="card card-body mb-4"><summary>Periodicidad de los aranceles</summary>
         <p>Anual: una vez por año y tarifa. Mensual: una vez por mes. Eventual: una vez por código de evento. La configuración queda fija para evitar duplicados por cambios de criterio.</p>
         <table class="table"><thead><tr><th>Arancel</th><th>Periodicidad</th></tr></thead><tbody>
