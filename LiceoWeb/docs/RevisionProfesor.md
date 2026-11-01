@@ -2,6 +2,13 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
+## Punto vigente — 2026-11-01
+UI/UX integrado en esta rama. Instalador desde 015: `docs/ActualizarDesde015.md` y `database/install/ActualizarDesde015.sql`; instala 016/017 ausentes y actualiza procedimientos relacionados. Exportación CSV del reporte financiero completa por rango (hasta 50 000 movimientos, sin truncar). No ejecutado contra SQL Server aquí.
+
+Pendientes prioritarios: ejecutar instalación y pruebas SQL/autenticadas en copia; cambios de grupo/asignaciones y cancelación de horarios con historial; edición de definiciones de evaluación; desactivación/cambio de rol con protección del último administrador; revisión visual autenticada. Portal de padres y notificaciones siguen fuera de alcance. Las secciones siguientes conservan el historial, no son una lista vigente de instalación.
+
+Validación de esta integración: compilación C#/Razor con 0 errores y 40 advertencias previas; 17 pruebas de filtros/CSV, 10 de desplazamiento y pruebas del menú móvil aprobadas. Instalador expandido y SQL revisados con ScriptDom. HTTP sin sesión: reporte y descarga CSV redirigen al login; portada, login y recursos UI responden 200. No hay validación de ejecución SQL, cifras o permisos con sesiones reales.
+
 ## Estado real
 Esta entrega es parcial. NO habilitar el esquema financiero nuevo para cobros reales.
 Implementado: portada comercial adaptable sin tarifas fijas, formulario de cuentas internas exclusivo del administrador, ajuste de EF Tools a versión 8, migración aditiva de estructura académica/expedientes/finanzas.

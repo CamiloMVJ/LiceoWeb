@@ -26,7 +26,15 @@ public class ReporteModel(SqlConnectionFactory factory,UsuarioActual usuario,ILo
     public DataSet Datos {get;private set;}=new();
     public bool Cargado=>Datos.Tables.Contains("Movimientos");
     public long Total=>Cargado?(long)Datos.Tables["Resumen"]!.Rows[0]["Movimientos"]:0;
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync() => await CargarAsync(false) ?? Page();
+    public async Task<IActionResult> OnGetExportarAsync()
+    {
+        var error = await CargarAsync(true);
+        if (error is not null) return error;
+        return File(ReporteFinancieroCsv.Crear(Datos.Tables["Movimientos"]!),
+            "text/csv; charset=utf-8", $"cobros-devoluciones-{Filtro.Desde:yyyy-MM-dd}-{Filtro.Hasta:yyyy-MM-dd}.csv");
+    }
+    private async Task<IActionResult?> CargarAsync(bool exportar)
     {
         if(!ModelState.IsValid)return Page();
         try
@@ -37,8 +45,10 @@ public class ReporteModel(SqlConnectionFactory factory,UsuarioActual usuario,ILo
             cmd.Parameters.Add("@Desde",SqlDbType.Date).Value=Filtro.Desde.Date;
             cmd.Parameters.Add("@Hasta",SqlDbType.Date).Value=Filtro.Hasta.Date;
             cmd.Parameters.Add("@Pagina",SqlDbType.Int).Value=Filtro.Pagina;
+            cmd.Parameters.Add("@Exportar",SqlDbType.Bit).Value=exportar;
             await using var reader=await cmd.ExecuteReaderAsync();var ds=new DataSet();
             foreach(var name in new[]{"Resumen","Metodos","Movimientos"}){var t=new DataTable(name);t.Load(reader);ds.Tables.Add(t);}Datos=ds;
+            return null;
         }
         catch(SqlException ex) when(ex.Number==53601){return Forbid();}
         catch(SqlException ex) when(ex.Number is 54002 or 54003){ModelState.AddModelError("",ex.Message);}

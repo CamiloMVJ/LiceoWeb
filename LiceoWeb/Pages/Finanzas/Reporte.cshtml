@@ -22,6 +22,10 @@
     <div class="table-responsive"><table class="table"><thead><tr><th>Método</th><th>Cobrado</th><th>Devuelto</th><th>Dinero neto</th><th>Saldo neto</th></tr></thead><tbody>
     @foreach(DataRow m in Model.Datos.Tables["Metodos"]!.Rows){<tr><td>@m["Metodo"]</td><td>@(((decimal)m["Cobrado"]).ToString("N2"))</td><td>@(((decimal)m["Devuelto"]).ToString("N2"))</td><td>@(((decimal)m["DineroNeto"]).ToString("N2"))</td><td>@(((decimal)m["SaldoNeto"]).ToString("N2"))</td></tr>}
     </tbody></table></div>
+    <a class="btn btn-outline-secondary mb-3" asp-page-handler="Exportar"
+       asp-route-Filtro.Desde="@Model.Filtro.Desde.ToString("yyyy-MM-dd")"
+       asp-route-Filtro.Hasta="@Model.Filtro.Hasta.ToString("yyyy-MM-dd")">Descargar movimientos CSV</a>
+    <p class="text-muted">Exporta todo el rango, hasta 50 000 movimientos. Si lo supera, reduce las fechas. La descarga realiza una nueva consulta y puede incluir movimientos posteriores a esta pantalla.</p>
     <h2 class="h4">Detalle · @Model.Total movimientos</h2>
     <p>Los totales incluyen todo el rango; el detalle muestra hasta 100 movimientos por página.</p>
     @if(Model.Total==0){<p>No hay movimientos para estas fechas.</p>}

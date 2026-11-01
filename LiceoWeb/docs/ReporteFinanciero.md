@@ -14,7 +14,7 @@ Entrar como Administrador en **Cobros y devoluciones**. Elegir fechas desde/hast
 
 El reporte conserva el cobro original aunque el recibo se anule después. Por ejemplo: cobro de C$100 el lunes y anulación el martes muestran +100 el lunes y −100 el martes; consultar ambos días arroja cero neto. No se excluye el lunes retroactivamente. Los totales se calculan sobre todo el rango y el detalle muestra 100 movimientos por página. La consulta toma una instantánea temporal bajo el bloqueo financiero; al cambiar de página se realiza otra consulta y podrían existir nuevos movimientos.
 
-No incluye Pagos históricos anteriores al corte ni constituye un balance de deuda, cierre de caja o conciliación bancaria. No exporta a Excel/PDF en esta etapa. Acceso solo para Administrador tanto en Razor como SQL; sin caché de datos personales.
+No incluye Pagos históricos anteriores al corte ni constituye un balance de deuda, cierre de caja o conciliación bancaria. Permite descargar CSV; no genera documentos XLSX/PDF. Acceso solo para Administrador tanto en Razor como SQL; sin caché de datos personales.
 
 ## Pruebas pendientes en SQL Server y navegador
 1. Cobro efectivo recibido 120/vuelto 20: cobrado 100.
@@ -30,3 +30,10 @@ No incluye Pagos históricos anteriores al corte ni constituye un balance de deu
 No ejecutado contra SQL Server en esta entrega. Las pruebas de entrada y la revisión sintáctica no validan estas reglas en ejecución.
 
 Validación realizada: compilación C#/Razor sin errores, 8 pruebas de entrada aprobadas, revisión sintáctica ScriptDom sin errores y acceso HTTP anónimo redirigido a login. Persisten 40 advertencias anteriores de nulabilidad. SQL Server, sesiones autenticadas y revisión de cifras quedan pendientes.
+
+## Exportación CSV
+Descargar movimientos CSV usa las fechas consultadas y trae todo el rango en una consulta, independientemente de la página. Hasta 50 000 filas; si excede el límite, rechaza la descarga completa y pide reducir el rango. No se exportan resultados truncados. Se conserva el bloqueo y la instantánea temporal de la consulta; no se recorren páginas entre consultas independientes.
+
+Archivo UTF-8 con BOM, separador coma, fechas locales y decimales con punto. En Excel puede importarse desde Datos > Desde texto/CSV si la configuración regional utiliza otro separador. Comillas, comas y saltos de línea se escapan; textos que podrían interpretarse como fórmulas se prefijan con apóstrofo, sin modificar los datos originales. Los importes negativos permanecen numéricos. Contiene datos personales: misma autorización de Administrador y NoStore que la pantalla. No incluye información médica.
+
+Reinstalar ReporteFinanciero.sql junto con la aplicación: agrega el parámetro opcional @Exportar. La descarga es una consulta nueva y podría diferir de una pantalla anterior si hubo nuevos movimientos. El CSV contiene detalle, no las tarjetas de resumen. Pruebas de formato/seguridad y validación de filtros automatizadas; autorización real y cifras contra SQL Server pendientes.

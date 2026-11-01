@@ -1,6 +1,6 @@
 # Mejora de interfaces con UI/UX Pro Max
 
-Rama independiente: `mejora-ui-ux-2026-11-01`, basada en `revision-profesor-2026-10-29` (20d334f). No se modifica la rama de origen ni el esquema de la base.
+Integrado en `revision-profesor-2026-10-29` desde la rama visual `mejora-ui-ux-2026-11-01` (9f611ea). Los cambios visuales no requieren modificar el esquema de la base.
 
 ## Cambios
 - Sistema visual compartido para formularios, tablas, tarjetas, avisos y botones administrativos.
@@ -17,7 +17,8 @@ Con cambios locales guardados:
 
 ```powershell
 git fetch origin
-git switch mejora-ui-ux-2026-11-01
+git switch revision-profesor-2026-10-29
+git pull --ff-only origin revision-profesor-2026-10-29
 dotnet build .\LiceoWeb\LiceoWeb.csproj
 ```
 
@@ -30,4 +31,4 @@ Revisar con Administrador, Cajero y Profesor: menú por rol, formularios, tablas
 - Pruebas Node: apertura/cierre móvil, Escape y devolución de foco, cambio a escritorio; 10 pruebas previas de conservación de desplazamiento.
 - Contraste calculado: azul/blanco 14.62:1; texto secundario/blanco 6.29:1; texto/fondo 11.4:1; azul/dorado 5.51:1. No constituye auditoría completa de todos los componentes.
 - HTTP de portada/login y recursos visuales comprobados sin base de datos.
-- Revisión visual con capturas no completada: Chromium no estaba instalado y la descarga del navegador falló en el entorno. No se probaron pantallas autenticadas con SQL Server. Revisar antes de integrar la rama.
+- Revisión visual con capturas no completada: Chromium no estaba instalado y la descarga del navegador falló en el entorno. No se probaron pantallas autenticadas con SQL Server. Revisar antes de utilizar en producción.
