@@ -121,8 +121,8 @@ BEGIN
  JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.Pensum PS ON PS.Id=G.PensumId JOIN dbo.Asignatura S ON S.Id=A.AsignaturaId
  LEFT JOIN dbo.PublicacionNotas PN ON PN.AsignacionId=A.Id AND PN.Vigente=1 WHERE @Admin=1 OR A.UsuarioId=@UsuarioId ORDER BY Y.Anio DESC,P.Nombre,PS.Nivel,G.Seccion,S.Nombre;
  SELECT Id,Nombre Etiqueta FROM dbo.TipoEvaluacion WHERE Activo=1 ORDER BY Nombre;
- SELECT E.Id,E.Nombre,E.Fecha,T.Nombre Tipo,E.Modo,E.Maximo,E.Peso,CONVERT(varchar(18),E.Version,1) Version FROM dbo.Evaluacion E JOIN dbo.TipoEvaluacion T ON T.Id=E.TipoId WHERE E.AsignacionId=@AsignacionId ORDER BY E.Fecha,E.Id;
- SELECT G.Registro,S.NombreEstudiante,C.Nota,C.Resultado,C.Observacion,CONVERT(varchar(18),C.Version,1) Version
+ SELECT E.Id,E.Nombre,E.Fecha,T.Nombre Tipo,E.Modo,E.Maximo,E.Peso,CONVERT(varchar(18),CONVERT(binary(8),E.Version),1) Version FROM dbo.Evaluacion E JOIN dbo.TipoEvaluacion T ON T.Id=E.TipoId WHERE E.AsignacionId=@AsignacionId ORDER BY E.Fecha,E.Id;
+ SELECT G.Registro,S.NombreEstudiante,C.Nota,C.Resultado,C.Observacion,CONVERT(varchar(18),CONVERT(binary(8),C.Version),1) Version
  FROM dbo.AsignacionDocente A JOIN dbo.GrupoEstudiante G ON G.GrupoId=A.GrupoId
  JOIN dbo.Estudiantes S ON S.Registro=G.Registro LEFT JOIN dbo.Calificacion C ON C.Registro=G.Registro AND C.EvaluacionId=@EvaluacionId WHERE A.Id=@AsignacionId AND @EvaluacionId<>0 ORDER BY G.Registro;
  SELECT Valor FROM dbo.OpcionEvaluacion WHERE EvaluacionId=@EvaluacionId ORDER BY Valor;

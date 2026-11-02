@@ -6,7 +6,7 @@ BEGIN
  WHERE E.Id=@EvaluacionId AND EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId
  WHERE U.UserId=@UsuarioId AND (R.Name='Administrador' OR (R.Name='Profesor' AND D.UsuarioId=@UsuarioId)))) THROW 54401,N'Evaluación no disponible para tu cuenta.',1;
  IF @Pagina IS NULL OR @Pagina NOT BETWEEN 1 AND 1000000 THROW 54402,N'Página inválida.',1;
- SELECT E.Id,E.AsignacionId,E.TipoId,E.Nombre,E.Fecha,E.Modo,E.Maximo,E.Peso,CONVERT(varchar(18),E.Version,1) Version,
+ SELECT E.Id,E.AsignacionId,E.TipoId,E.Nombre,E.Fecha,E.Modo,E.Maximo,E.Peso,CONVERT(varchar(18),CONVERT(binary(8),E.Version),1) Version,
  CONVERT(bit,CASE WHEN P.Cerrado=1 OR EXISTS(SELECT 1 FROM dbo.PublicacionNotas WHERE AsignacionId=E.AsignacionId)
  OR EXISTS(SELECT 1 FROM dbo.Calificacion WHERE EvaluacionId=E.Id) OR EXISTS(SELECT 1 FROM dbo.HistorialCalificacion WHERE EvaluacionId=E.Id) THEN 1 ELSE 0 END) Bloqueada
  FROM dbo.Evaluacion E JOIN dbo.AsignacionDocente D ON D.Id=E.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId WHERE E.Id=@EvaluacionId;

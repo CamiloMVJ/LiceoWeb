@@ -56,8 +56,8 @@ AS
 BEGIN
  SET NOCOUNT ON;
  IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name='Administrador') THROW 52601,N'Solo administración puede consultar este historial.',1;
- SELECT P.Id,CONCAT(A.Anio,' / ',P.Nombre) Etiqueta,P.Cerrado,CONVERT(varchar(18),P.Version,1) Version FROM dbo.PeriodoAcademico P JOIN dbo.AnioLectivo A ON A.Id=P.AnioId ORDER BY A.Anio DESC,P.Inicio;
- SELECT A.Id,CONCAT(P.Nivel,' ',G.Seccion,' / ',S.Nombre) Etiqueta,ISNULL(N.Vigente,0) Publicado,CONVERT(varchar(18),N.Version,1) Version
+ SELECT P.Id,CONCAT(A.Anio,' / ',P.Nombre) Etiqueta,P.Cerrado,CONVERT(varchar(18),CONVERT(binary(8),P.Version),1) Version FROM dbo.PeriodoAcademico P JOIN dbo.AnioLectivo A ON A.Id=P.AnioId ORDER BY A.Anio DESC,P.Inicio;
+ SELECT A.Id,CONCAT(P.Nivel,' ',G.Seccion,' / ',S.Nombre) Etiqueta,ISNULL(N.Vigente,0) Publicado,CONVERT(varchar(18),CONVERT(binary(8),N.Version),1) Version
  FROM dbo.AsignacionDocente A JOIN dbo.GrupoAcademico G ON G.Id=A.GrupoId JOIN dbo.Pensum P ON P.Id=G.PensumId JOIN dbo.Asignatura S ON S.Id=A.AsignaturaId LEFT JOIN dbo.PublicacionNotas N ON N.AsignacionId=A.Id WHERE G.PeriodoId=@PeriodoId ORDER BY P.Nivel,G.Seccion,S.Nombre;
  SELECT TOP(200) H.Id,H.Fecha,E.Nombre Evaluacion,H.Registro,H.NotaAnterior,H.NotaNueva,H.ResultadoAnterior,H.ResultadoNuevo,H.ObservacionAnterior,H.ObservacionNueva,H.Motivo,U.UserName Responsable FROM dbo.HistorialCalificacion H JOIN dbo.Evaluacion E ON E.Id=H.EvaluacionId JOIN dbo.AsignacionDocente A ON A.Id=E.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=A.GrupoId JOIN dbo.AspNetUsers U ON U.Id=H.UsuarioId WHERE G.PeriodoId=@PeriodoId ORDER BY H.Id DESC;
  SELECT TOP(200) E.Id,E.Fecha,E.AsignacionId,E.Accion,E.Motivo,U.UserName Responsable FROM dbo.EventoAcademico E JOIN dbo.AspNetUsers U ON U.Id=E.UsuarioId WHERE E.PeriodoId=@PeriodoId ORDER BY E.Id DESC;

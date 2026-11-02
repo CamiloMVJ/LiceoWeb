@@ -3,7 +3,7 @@ AS
 BEGIN
  SET NOCOUNT ON;
  DECLARE @Json nvarchar(max), @Version varchar(18);
- SELECT @Json=FormularioJson,@Version=CONVERT(varchar(18),Version,1)
+ SELECT @Json=FormularioJson,@Version=CONVERT(varchar(18),CONVERT(binary(8),Version),1)
  FROM dbo.ExpedienteAmpliado WHERE Registro=@Registro;
  IF @Json IS NOT NULL
  BEGIN
@@ -52,7 +52,7 @@ BEGIN
  BEGIN
   SELECT @Existe=1 FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
   IF @Existe=0 THROW 52115,N'Estudiante inexistente.',1;
-  SELECT @Anterior=FormularioJson,@VersionActual=CONVERT(varchar(18),Version,1) FROM dbo.ExpedienteAmpliado WHERE Registro=@Registro;
+  SELECT @Anterior=FormularioJson,@VersionActual=CONVERT(varchar(18),CONVERT(binary(8),Version),1) FROM dbo.ExpedienteAmpliado WHERE Registro=@Registro;
   IF ISNULL(@Version,'')<>ISNULL(@VersionActual,'') THROW 52116,N'Otro usuario actualizó el expediente. Recargue antes de guardar.',1;
   UPDATE dbo.Estudiantes SET NombreEstudiante=@Nombre,Modalidad=@Modalidad,Grado=@Grado,FechaNacimiento=@Nacimiento,Sexo=@Sexo,Direccion=@Direccion,NombreTutor=@TutorNombre,Telefono=@Telefono WHERE Registro=@Registro;
  END
