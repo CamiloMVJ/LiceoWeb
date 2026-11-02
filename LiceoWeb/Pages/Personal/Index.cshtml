@@ -3,6 +3,7 @@
 @{ ViewData["Title"] = "Cuentas del personal"; }
 <div class="liceo-page-heading"><h1>Cuentas del personal</h1><p>Asigna acceso interno a cada integrante del colegio.</p></div>
 @if (Model.Mensaje is not null) { <div class="alert alert-success" role="status">@Model.Mensaje</div> }
+<p><a asp-page="Administrar" class="btn btn-outline-secondary">Administrar cuentas existentes</a></p>
 <form method="post" class="liceo-card">
     <div asp-validation-summary="All" class="text-danger" role="alert"></div>
     <label asp-for="Input.Correo" class="form-label">Correo del empleado</label>

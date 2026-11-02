@@ -40,7 +40,7 @@ BEGIN
    IF @Actual<>CONVERT(binary(8),@Version,1) THROW 54306,N'La asignación cambió. Recargue antes de confirmar.',1;
    IF @Cerrado=1 OR EXISTS(SELECT 1 FROM dbo.PublicacionNotas WHERE AsignacionId=@OrigenId) THROW 54307,N'No se permite cambiar docente en períodos cerrados o asignaturas con publicaciones.',1;
    IF @AnteriorDocente=@DocenteId THROW 54302,N'Seleccione un docente diferente.',1;
-   IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUsers U JOIN dbo.AspNetUserRoles UR ON UR.UserId=U.Id JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE U.Id=@DocenteId AND R.Name='Profesor' AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME())) THROW 54308,N'El destino debe ser una cuenta Profesor habilitada.',1;
+   IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUsers U JOIN dbo.AspNetUserRoles UR ON UR.UserId=U.Id JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE U.Id=@DocenteId AND R.Name='Profesor' AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND U.EmailConfirmed=1 AND NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0)) THROW 54308,N'El destino debe ser una cuenta Profesor habilitada.',1;
    IF EXISTS(SELECT 1 FROM dbo.HorarioClaseVigente H JOIN dbo.HorarioClaseVigente X ON X.AsignacionId<>H.AsignacionId AND X.Dia=H.Dia AND X.Inicio<H.Fin AND H.Inicio<X.Fin
     JOIN dbo.AsignacionDocente D ON D.Id=X.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId JOIN dbo.PeriodoAcademico O ON O.Id=@Periodo
     WHERE H.AsignacionId=@OrigenId AND D.UsuarioId=@DocenteId AND P.Inicio<=O.Fin AND O.Inicio<=P.Fin)

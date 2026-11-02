@@ -150,7 +150,7 @@ BEGIN
  END;
  IF @Accion='Docente'
  BEGIN
-  IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@Docente AND R.Name='Profesor') THROW 52310,N'La cuenta no tiene rol Profesor.',1;
+  IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUsers U JOIN dbo.AspNetUserRoles UR ON UR.UserId=U.Id JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId LEFT JOIN dbo.EstadoCuentaPersonal E ON E.UsuarioId=U.Id WHERE U.Id=@Docente AND R.Name='Profesor' AND ISNULL(E.Activa,1)=1 AND U.EmailConfirmed=1 AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME())) THROW 52310,N'La cuenta debe ser un Profesor habilitado.',1;
   IF NOT EXISTS(SELECT 1 FROM dbo.GrupoAcademico G JOIN dbo.PensumAsignatura P ON P.PensumId=G.PensumId JOIN dbo.Asignatura A ON A.Id=P.AsignaturaId WHERE G.Id=@Grupo AND P.AsignaturaId=@Asignatura AND A.Activo=1) THROW 52311,N'La asignatura no pertenece al pensum del grupo.',1;
   INSERT dbo.AsignacionDocente(GrupoId,AsignaturaId,UsuarioId) VALUES(@Grupo,@Asignatura,@Docente);SET @Resultado=CONVERT(int,SCOPE_IDENTITY());
  END;
@@ -233,7 +233,7 @@ BEGIN
  SELECT P.Id,P.AnioId,P.ModalidadId,P.Nivel,CONCAT(Y.Anio,' / ',M.Nombre,' / ',P.Nivel) Etiqueta FROM dbo.Pensum P JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=P.ModalidadId ORDER BY Y.Anio DESC,M.Nombre,P.Nivel;
  SELECT P.PensumId,A.Nombre Asignatura FROM dbo.PensumAsignatura P JOIN dbo.Asignatura A ON A.Id=P.AsignaturaId ORDER BY P.PensumId,A.Nombre;
  SELECT G.Id,G.PensumId,G.PeriodoId,G.TurnoId,G.AulaId,G.Seccion,CONCAT(Y.Anio,' / ',P.Nivel,' ',G.Seccion,' / ',T.Nombre) Etiqueta FROM dbo.GrupoAcademico G JOIN dbo.Pensum P ON P.Id=G.PensumId JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.PeriodoAcademico T ON T.Id=G.PeriodoId ORDER BY Y.Anio DESC,P.Nivel,G.Seccion;
- SELECT U.Id,U.UserName Etiqueta FROM dbo.AspNetUsers U WHERE EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor') ORDER BY U.UserName;
+ SELECT U.Id,U.UserName Etiqueta FROM dbo.AspNetUsers U WHERE NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0) AND U.EmailConfirmed=1 AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor') ORDER BY U.UserName;
  SELECT D.Id,D.GrupoId,S.Nombre Asignatura,U.UserName Docente,CONCAT(D.GrupoId,' / ',S.Nombre,' / ',U.UserName) Etiqueta FROM dbo.AsignacionDocente D JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId;
  SELECT H.Id,H.AsignacionId,G.Seccion,S.Nombre Asignatura,U.UserName Docente,A.Nombre Aula,H.Dia,H.Inicio,H.Fin FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId JOIN dbo.Aula A ON A.Id=G.AulaId ORDER BY H.Dia,H.Inicio;
  SELECT E.GrupoId,E.Registro,S.NombreEstudiante FROM dbo.GrupoEstudiante E JOIN dbo.Estudiantes S ON S.Registro=E.Registro ORDER BY E.GrupoId,S.NombreEstudiante;

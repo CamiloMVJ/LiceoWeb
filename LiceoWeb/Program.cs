@@ -23,7 +23,13 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     options.User.RequireUniqueEmail = true;
 })
     .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager<PersonalSignInManager>();
+
+builder.Services.AddScoped<IEstadoCuentaPersonal, EstadoCuentaPersonal>();
+builder.Services.AddScoped<PersonalRepository>();
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+    options.ValidationInterval = TimeSpan.Zero);
 
 //Politicas y auth
 

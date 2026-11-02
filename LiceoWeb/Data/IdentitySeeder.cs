@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace LiceoWeb.Data;
@@ -69,6 +69,7 @@ public static class IdentitySeeder
 
         try
         {
+            await db.Database.ExecuteSqlRawAsync("DECLARE @r int; EXEC @r=sys.sp_getapplock @Resource=N'Liceo.Personal', @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; IF @r<0 THROW 54502,N'Personal ocupado.',1;");
             foreach (var nombreRol in RolesPermitidos)
             {
                 if (!await roles.RoleExistsAsync(nombreRol))

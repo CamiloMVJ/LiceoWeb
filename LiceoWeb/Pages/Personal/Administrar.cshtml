@@ -1,0 +1,54 @@
+@page
+@model LiceoWeb.Pages.Personal.AdministrarModel
+@using System.Data
+@using LiceoWeb.ViewModels
+@{ ViewData["Title"] = "Administrar personal"; }
+<div class="liceo-page-heading"><h1>Administrar personal</h1><p>Controla los roles y el acceso del equipo; el historial del colegio se conserva.</p></div>
+<div class="d-flex gap-2 mb-3"><a asp-page="/Personal/Index" class="btn btn-liceo-primary">Crear cuenta</a><a asp-page="Administrar" class="btn btn-outline-secondary">Ver todas las cuentas</a></div>
+@if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
+@if(Model.Cuenta is not null)
+{
+ <section class="liceo-card mb-4" aria-labelledby="cuenta-titulo">
+  <h2 id="cuenta-titulo">@Model.Cuenta["Email"]</h2>
+  <p>Estado actual: @(Convert.ToBoolean(Model.Cuenta["Activa"]) ? "Activa" : "Desactivada") · @Model.Cuenta["Roles"]</p>
+  @if(Model.Editable)
+  {
+   <form method="post" asp-route-id="@Model.Id">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <input type="hidden" asp-for="Input.CuentaId"/><input type="hidden" asp-for="Input.Version"/><input type="hidden" asp-for="Input.Operacion"/>
+    <div class="row g-3">
+     <div class="col-md-6"><label asp-for="Input.Rol" class="form-label">Rol</label><select asp-for="Input.Rol" class="form-select">@foreach(var rol in PersonalInput.Roles){<option value="@rol">@rol</option>}</select></div>
+     <div class="col-md-6"><div class="form-check mt-4"><input asp-for="Input.Activa" class="form-check-input"/><label asp-for="Input.Activa" class="form-check-label">Cuenta activa</label></div></div>
+     <div class="col-12"><label asp-for="Input.Motivo" class="form-label">Motivo del cambio</label><textarea asp-for="Input.Motivo" class="form-control" rows="3" maxlength="500" aria-describedby="motivo-ayuda"></textarea><small id="motivo-ayuda">De 10 a 500 caracteres. No incluya contraseñas.</small></div>
+    </div>
+    <p class="mt-3">Guardar cerrará las sesiones anteriores en su siguiente solicitud. Para retirar el acceso de un docente, reasigne primero sus clases de períodos abiertos.</p>
+    <button type="submit" class="btn btn-liceo-primary">Confirmar cambios</button>
+    <a asp-page="Administrar" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Recargar cuenta</a>
+   </form>
+  }
+  else {<div class="alert alert-info">Su propia cuenta no se puede modificar aquí. Las cuentas con varios roles o roles no reconocidos requieren revisión técnica.</div>}
+ </section>
+ <section class="liceo-card mb-4"><h2>Últimos 50 cambios</h2>
+ @if(Model.Datos.Tables["Historial"]!.Rows.Count==0){<p>No hay cambios de administración registrados.</p>}
+ else{<div class="table-responsive"><table class="table"><thead><tr><th>Fecha (UTC)</th><th>Responsable</th><th>Antes</th><th>Después</th><th>Motivo</th></tr></thead><tbody>
+ @foreach(DataRow row in Model.Datos.Tables["Historial"]!.Rows){<tr><td>@row["Fecha"]</td><td>@row["Responsable"]</td><td>@LiceoWeb.Pages.Personal.AdministrarModel.Estado(row["AntesJson"].ToString()!)</td><td>@LiceoWeb.Pages.Personal.AdministrarModel.Estado(row["DespuesJson"].ToString()!)</td><td>@row["Motivo"]</td></tr>}
+ </tbody></table></div>}
+ </section>
+}
+<section class="liceo-card"><h2>Cuentas del colegio</h2>
+ <form method="get" class="d-flex gap-2 mb-3"><label for="busqueda" class="visually-hidden">Buscar por correo</label><input id="busqueda" name="Busqueda" value="@Model.Busqueda" maxlength="100" class="form-control" placeholder="Buscar por correo"/><button class="btn btn-liceo-primary">Buscar</button></form>
+ <p>@Model.Total cuentas · Página @Model.Pagina</p>
+ <div class="table-responsive"><table class="table"><thead><tr><th>Correo</th><th>Roles</th><th>Acceso</th><th>Acción</th></tr></thead><tbody>
+ @foreach(DataRow row in Model.Datos.Tables["Cuentas"]!.Rows)
+ {<tr><td>@row["Email"]</td><td>@row["Roles"]</td><td>@(Convert.ToBoolean(row["Activa"]) ? "Activa" : "Desactivada")
+ @if(Convert.ToBoolean(row["Bloqueada"])){<span> · Bloqueada por Identity</span>}
+ @if(!Convert.ToBoolean(row["EmailConfirmed"])){<span> · Correo sin confirmar</span>}
+ </td><td><a asp-page="Administrar" asp-route-id="@row["Id"]" class="btn btn-sm btn-outline-secondary">Ver y administrar</a></td></tr>}
+ </tbody></table></div>
+ @if(Model.Total==0){<p>No se encontraron cuentas.</p>}
+ <nav aria-label="Páginas de personal" class="d-flex gap-2">
+ @if(Model.Pagina>1){<a asp-page="Administrar" asp-route-busqueda="@Model.Busqueda" asp-route-pagina="@(Model.Pagina-1)" class="btn btn-outline-secondary">Anterior</a>}
+ @if((long)Model.Pagina*50<Model.Total){<a asp-page="Administrar" asp-route-busqueda="@Model.Busqueda" asp-route-pagina="@(Model.Pagina+1)" class="btn btn-outline-secondary">Siguiente</a>}
+ </nav>
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

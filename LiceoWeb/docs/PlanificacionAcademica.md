@@ -1,5 +1,7 @@
 # Planificación académica
 
+Actualización 021: la selección/asignación de docentes requiere cuenta activa, correo confirmado y ausencia de bloqueo Identity. Instalar 021 y actualizar los tres procedimientos de planificación indicados en [AdministracionPersonal.md](AdministracionPersonal.md).
+
 ## Instalación
 Requiere 004_RevisionProfesor.sql, 006_Calificaciones.sql y Registrar_Auditoria. La versión actual protege los grupos con notas publicadas. No hay nueva migración de tablas en esta etapa. Ejecutar completo database/procedures/Planificacion.sql en LiceoWeb_Dev (SSMS, incluye GO). Compilar y ejecutar la aplicación.
 

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace LiceoWeb.Pages.Personal;
 
 [Authorize(Policy = "SoloAdministrador")]
+[ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
 public class IndexModel(UserManager<IdentityUser> users, RoleManager<IdentityRole> roles,
     ApplicationDbContext db, ILogger<IndexModel> logger) : PageModel
 {
@@ -23,6 +24,8 @@ public class IndexModel(UserManager<IdentityUser> users, RoleManager<IdentityRol
         await using var transaction = await db.Database.BeginTransactionAsync();
         try
         {
+            var actorId = users.GetUserId(User) ?? throw new InvalidOperationException("Sesión inválida.");
+            await db.Database.ExecuteSqlInterpolatedAsync($"EXEC dbo.Personal_Autorizar @UsuarioId={actorId}");
             if (!await roles.RoleExistsAsync(Input.Rol))
             {
                 var roleResult = await roles.CreateAsync(new IdentityRole(Input.Rol));
@@ -40,7 +43,6 @@ public class IndexModel(UserManager<IdentityUser> users, RoleManager<IdentityRol
             }
             var assigned = await users.AddToRoleAsync(user, Input.Rol);
             if (!assigned.Succeeded) throw new InvalidOperationException("No se pudo asignar el rol.");
-            var actorId = users.GetUserId(User) ?? throw new InvalidOperationException("Sesión inválida.");
             var operationId = Guid.NewGuid();
             await db.Database.ExecuteSqlInterpolatedAsync($"EXEC dbo.Registrar_Auditoria @UsuarioId={actorId}, @Accion=N'CrearCuentaPersonal', @Entidad=N'AspNetUsers', @RegistroId={user.Id}, @IdOperacion={operationId}");
             await transaction.CommitAsync();

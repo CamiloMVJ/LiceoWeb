@@ -8,7 +8,7 @@ BEGIN
  BEGIN
   SELECT D.Id,CONVERT(varchar(18),D.Version,1) Version,CONCAT(Y.Anio,' / ',P.Nombre,' / ',N.Nivel,' ',G.Seccion,' / ',S.Nombre,' / ',U.UserName) Descripcion
    FROM dbo.AsignacionDocente D JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Pensum N ON N.Id=G.PensumId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId WHERE D.Id=@OrigenId;
-  SELECT U.Id,U.UserName Etiqueta FROM dbo.AspNetUsers U WHERE (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME())
+  SELECT U.Id,U.UserName Etiqueta FROM dbo.AspNetUsers U WHERE (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND U.EmailConfirmed=1 AND NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0)
    AND EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor')
    AND NOT EXISTS(SELECT 1 FROM dbo.AsignacionDocente D WHERE D.Id=@OrigenId AND D.UsuarioId=U.Id) ORDER BY U.UserName;
  END

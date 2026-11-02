@@ -2,7 +2,18 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
-## Punto vigente — edición de evaluaciones (020)
+## Punto vigente — administración del personal (021)
+Listado de cuentas, desactivación/reactivación y cambio de rol, solo Administrador. No permite modificar la propia cuenta; conserva un administrador habilitado, exige motivo y versión, y guarda historial/auditoría con reintento idempotente. Reasignar clases de períodos abiertos antes de retirar el acceso de un docente. Cuentas con roles múltiples/desconocidos requieren revisión técnica.
+
+La baja se guarda separada de LockoutEnd. Identity verifica el estado al entrar y al validar cookies normales/segundo factor. Cada cambio renueva SecurityStamp; las sesiones anteriores se rechazan en la siguiente solicitud, sin cancelar solicitudes ya iniciadas. Creación y administración comparten bloqueo; planificación no admite docentes desactivados.
+
+Instalación manual: 021_AdministracionPersonal.sql; Personal_Autorizar.sql, Personal_Consultar.sql, Personal_Guardar.sql; actualizar Planificacion.sql, Planificacion_Cambiar.sql y Planificacion_CambioConsultar.sql junto con la aplicación. Ver docs/AdministracionPersonal.md. Sin instalador automático.
+
+Verificado: C#/Razor compilan, 24 pruebas de validación/Identity con dobles, ocho archivos SQL analizados con ScriptDom y rutas anónimas protegidas. Preparados 16 escenarios SQL con rollback, no ejecutados aquí. Sigue pendiente verificar SQL Server, sesiones persistidas, concurrencia real y presentación visual autenticada.
+
+Siguiente bloque: edición/inactivación del catálogo global de tipos de evaluación. Después, pruebas integradas SQL/autenticadas/concurrentes y revisión visual. Traslados con notas/publicaciones requieren política académica específica. Portal de padres y notificaciones permanecen fuera de alcance.
+
+## Avance anterior — edición de evaluaciones (020)
 Edición de definiciones antes de registrar calificaciones, con motivo, versión, reintento e historial paginado. Administrador o Profesor titular. Bloquea registros de Calificacion/HistorialCalificacion (incluidos pendientes), asignaturas con publicaciones y períodos cerrados. Mantiene fecha dentro del período, pesos <=100% y escalas cualitativas válidas. No recalcula notas existentes.
 
 Captura de notas incorpora VersionEvaluacion: se rechaza un formulario abierto antes de cambiar la definición, incluso si el valor cabría en el máximo nuevo. Instalar manualmente 020_EdicionEvaluaciones.sql, Evaluacion_Editar.sql, Evaluacion_ConsultarEdicion.sql y actualizar Notas.sql completo junto con la aplicación. Ver docs/EdicionEvaluaciones.md. Sin instalador automático.
