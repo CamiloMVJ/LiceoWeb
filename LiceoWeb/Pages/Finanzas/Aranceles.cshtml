@@ -35,7 +35,7 @@
 <h2 class="h4">Capturar obligaciones para revisión</h2><p>Guarda una referencia por obligación anterior. Requiere los cinco conceptos vinculados. No genera cargos cobrables, no aplica saldos y no modifica pagos. Las fuentes que cambien después se señalarán para revisión.</p>
 }
 <label asp-for="Input.Motivo" class="form-label">Motivo</label><textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea>
-<button class="btn btn-liceo-primary">@(Model.Input.Accion=="Preparar"?"Capturar para revisión":"Guardar")</button>
+<button class="btn btn-liceo-primary" disabled="@(Model.Input.Id>0 && string.IsNullOrWhiteSpace(Model.Input.Version))">@(Model.Input.Accion=="Preparar"?"Capturar para revisión":"Guardar")</button>
 </form>
 <section class="liceo-card mb-4"><h2 class="h4">Aranceles</h2><div class="table-responsive"><table class="table"><thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th>Acción</th></tr></thead><tbody>@foreach(var r in Model.Filas("Aranceles")){<tr><td>@r["Codigo"]</td><td>@r["Nombre"]</td><td>@((bool)r["Activo"]?"Activo":"Inactivo")</td><td><a asp-route-accion="Arancel" asp-route-id="@r["Id"]">Editar</a></td></tr>}</tbody></table></div></section>
 <section class="liceo-card mb-4"><h2 class="h4">Tarifas</h2><div class="table-responsive"><table class="table"><thead><tr><th>Arancel</th><th>Año</th><th>Modalidad</th><th>C$</th><th>Estado</th><th>Acción</th></tr></thead><tbody>@foreach(var r in Model.Filas("Tarifas")){<tr><td>@r["Arancel"]</td><td>@r["Anio"]</td><td>@r["Modalidad"]</td><td>@(((decimal)r["Importe"]).ToString("N2"))</td><td>@((bool)r["Activo"]?"Activa":"Inactiva")</td><td><a asp-route-accion="Tarifa" asp-route-id="@r["Id"]">Editar</a></td></tr>}</tbody></table></div></section>

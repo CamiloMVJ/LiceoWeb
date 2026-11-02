@@ -25,7 +25,7 @@ Procedimientos.sql contiene USE Registro_Pagos y parámetros/variables INT para 
 - Reversos conservan historial y requieren permiso y motivo.
 
 ## Catálogo y preparación implementados
-Instalar migrations/008_CatalogoFinanciero.sql y procedures/Aranceles.sql. Administración puede gestionar aranceles, tarifas con historial y correspondencias, y capturar obligaciones por clave única de origen. Guía: docs/CatalogoFinanciero.md. La captura preserva importes históricos y detecta cambios posteriores de la fuente; no crea cargos cobrables, no concilia automáticamente y no modifica pagos.
+Instalar migrations/008_CatalogoFinanciero.sql y procedures/Aranceles.sql y procedures/Aranceles_Consultar.sql. Administración puede gestionar aranceles, tarifas con historial y correspondencias, y capturar obligaciones por clave única de origen. Guía: docs/CatalogoFinanciero.md. La captura preserva importes históricos y detecta cambios posteriores de la fuente; no crea cargos cobrables, no concilia automáticamente y no modifica pagos.
 
 ## Continuar más tarde
 Este avance NO completa la adaptación solicitada. Próximo paso: resolver discrepancias y aprobar conciliación, mapear tarifas/años/modalidades y saldos, implementar corte controlado y migración a cargos; luego recibos multiconcepto y estado de cuenta. Resolver anomalías del diagnóstico antes de ejecutar el corte. No requiere cambiar las migraciones 000–007.

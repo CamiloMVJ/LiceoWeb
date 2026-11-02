@@ -27,7 +27,15 @@ public class ArancelesModel(ArancelRepository repository,UsuarioActual usuario,I
   {
    if(accion is not ("Arancel" or "Tarifa"))return BadRequest();
    var r=Filas(accion=="Arancel"?"Aranceles":"Tarifas").FirstOrDefault(r=>(int)r["Id"]==id);if(r is null)return NotFound();
-   Input.Activo=(bool)r["Activo"];Input.Version=RowVersionToken.DesdeSql(r["Version"]);
+   Input.Activo=(bool)r["Activo"];
+   try { Input.Version=RowVersionToken.DesdeSql(r["Version"]); }
+   catch (InvalidDataException)
+   {
+    // Fallar sin habilitar una escritura sin control de concurrencia.
+    Input.Version=null;
+    logger.LogWarning("Aranceles_Consultar devolvió una versión no válida para {Accion} {Id}; tipo {Tipo}",accion,id,r["Version"].GetType().Name);
+    ModelState.AddModelError("","No se puede editar porque la consulta devolvió una versión inválida. Actualiza database/procedures/Aranceles_Consultar.sql y vuelve a abrir el registro.");
+   }
    if(accion=="Arancel"){Input.Codigo=(string)r["Codigo"];Input.Nombre=(string)r["Nombre"];}
    else{Input.ArancelId=(int)r["ArancelId"];Input.ModalidadId=(int)r["ModalidadId"];Input.AnioId=(int)r["AnioId"];Input.Importe=(decimal)r["Importe"];}
   }

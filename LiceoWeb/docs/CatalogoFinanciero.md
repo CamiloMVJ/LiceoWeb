@@ -6,7 +6,7 @@ Pantalla administrativa implementada: aranceles, tarifas por año/modalidad, his
 ## Instalación
 1. Actualizar revision-profesor-2026-10-29. Usar una copia respaldada de desarrollo con las migraciones anteriores e Identity.
 2. Ejecutar una sola vez `database/migrations/008_CatalogoFinanciero.sql` completo en LiceoWeb_Dev.
-3. Ejecutar `database/procedures/Aranceles.sql` completo en SSMS, incluidos los GO. Crea una vista y dos procedimientos; puede actualizarse con CREATE OR ALTER.
+3. Ejecutar `database/procedures/Aranceles.sql` completo en SSMS, incluidos los GO. Crea una vista y el procedimiento de guardado. Ejecutar después `database/procedures/Aranceles_Consultar.sql`, que contiene la consulta en su archivo propio. Ambos usan CREATE OR ALTER.
 4. Compilar y ejecutar. Entrar como Administrador y abrir **Aranceles y preparación** (`/Finanzas/Aranceles`). Profesor y Cajero no están autorizados a configurar ni consultar esta pantalla.
 5. No confundir la migración 008 con `verification/008_DiagnosticoFinanciero.sql`: el segundo solo consulta datos.
 
@@ -26,7 +26,8 @@ La captura usa una transacción y lectura con HOLDLOCK; puede bloquear temporalm
 
 ## Archivos
 - `008_CatalogoFinanciero.sql`: versiones de concurrencia, historial de tarifas y tablas de correspondencias/preparación.
-- `Aranceles.sql`: vista de obligaciones, validación/autorización SQL, auditoría, guardado transaccional y consultas.
+- `Aranceles.sql`: vista de obligaciones, validación/autorización SQL, auditoría, guardado transaccional.
+- `Aranceles_Consultar.sql`: consulta autorizada; convierte explícitamente rowversion a binary(8) antes de generar el hexadecimal.
 - `ArancelInput.cs`: campos y validaciones de importes, acciones, versión y motivos.
 - `ArancelRepository.cs`: acceso parametrizado y validación antes de SQL.
 - `Pages/Finanzas/Aranceles.cshtml(.cs)`: formularios y listados; cuenta tomada de la sesión, POST con antifalsificación y NoStore.
@@ -41,3 +42,10 @@ Se muestran hasta 200 filas de preparación/historial; el resumen cuenta todos l
 
 ## Próximo bloque
 Resolver discrepancias, aprobar conciliación, mapear modalidad/año/tarifa de cada obligación y preparar el saldo inicial. Implementar el corte que impide escrituras antiguas antes de generar cargos nuevos. Después: cobro multiconcepto idempotente, reversos y estado de cuenta. No habilitar el nuevo libro mediante inserciones manuales.
+
+## Corrección de versión al editar (sin migración nueva)
+Si SSMS muestra un timestamp de 8 bytes pero la conversión directa a varchar aparece vacía, actualizar únicamente `database/procedures/Aranceles_Consultar.sql`, con el código actual. No volver a ejecutar 008 ni cambiar columnas. El procedimiento hace `rowversion → binary(8) → varchar(18)` para aranceles y tarifas, preservando los ocho resultados de la consulta.
+
+La página mantiene la comprobación de versión y bloquea Guardar si la consulta sigue devolviendo un valor inválido; muestra una instrucción en lugar de una excepción sin controlar. Volver a abrir Editar después de actualizar SQL; una página ya abierta conserva su token anterior.
+
+Prueba de lectura: ejecutar `database/verification/022_VerificarVersionAranceles.sql`. Solo lee esquema y datos, y comprueba longitud/ida y vuelta de las versiones. No ejecuta el procedimiento ni sustituye probar su resultado desde la aplicación. No llama a Aranceles_Guardar, no actualiza importes ni realiza el corte. Pendiente ejecutar en SQL Server; aquí solo se revisó sintaxis. Las 28 pruebas de entrada/conversión C# pasan.

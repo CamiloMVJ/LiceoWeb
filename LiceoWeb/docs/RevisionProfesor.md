@@ -2,6 +2,9 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
+## Corrección posterior — versión de aranceles y tarifas
+Actualizar `database/procedures/Aranceles_Consultar.sql` después de descargar el código actual. La consulta tiene archivo propio (se extrajo de Aranceles.sql) y convierte `rowversion → binary(8) → varchar(18)`; la conversión directa desde timestamp puede entregar texto que no cumple el formato hexadecimal del formulario. No hay migración nueva ni cambios a importes, estados, usuarios o sellos. La edición muestra un error controlado y bloquea Guardar si sigue recibiendo una versión inválida. Ver docs/CatalogoFinanciero.md. Compilación y 28 pruebas C#; tres scripts analizados sintácticamente, pendiente SQL Server real.
+
 ## Punto vigente — administración del personal (021)
 Listado de cuentas, desactivación/reactivación y cambio de rol, solo Administrador. No permite modificar la propia cuenta; conserva un administrador habilitado, exige motivo y versión, y guarda historial/auditoría con reintento idempotente. Reasignar clases de períodos abiertos antes de retirar el acceso de un docente. Cuentas con roles múltiples/desconocidos requieren revisión técnica.
 
@@ -90,7 +93,7 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 ## Avance financiero: catálogo y preparación
 - Aranceles y tarifas por año/modalidad administrables, con motivos, rowversion, auditoría e historial de importes/estado. Los cargos existentes no se recalculan.
 - Correspondencias explícitas para cinco conceptos antiguos; captura única por origen/Id sin duplicar al repetir. Discrepancias con fuentes cambiadas se muestran para revisión.
-- Instalar migrations/008_CatalogoFinanciero.sql y procedures/Aranceles.sql. Guía: docs/CatalogoFinanciero.md; diagnóstico 008 y prueba SQL 009.
+- Instalar migrations/008_CatalogoFinanciero.sql y procedures/Aranceles.sql y procedures/Aranceles_Consultar.sql. Guía: docs/CatalogoFinanciero.md; diagnóstico 008 y prueba SQL 009.
 - Dieciséis pruebas nuevas C# pasan; solución/Razor compilan con 0 errores y 40 advertencias anteriores. SQL revisado con ScriptDom; ejecución SQL pendiente.
 - No hay corte financiero, migración efectiva a cargos, saldo inicial conciliado, recibos multiconcepto ni estado de cuenta definitivo. Las tarifas nuevas todavía no afectan los cobros anteriores.
 
@@ -108,7 +111,7 @@ Prueba HTTP ejecutada: portada/login/CSS responden 200; registro público 404; p
 Portal de padres, notificaciones automáticas y preinscripción/reserva de cupo quedan fuera de esta entrega; la política de preinscripción requiere confirmación del colegio. Matutino es turno; dominical describe jornada/frecuencia: no confundir con niveles Preescolar/Primaria/Secundaria. No cambiar SQL Server a PostgreSQL.
 
 ## Punto exacto para retomar
-Leer este documento y docs/AdaptacionFinanciera.md y docs/CatalogoFinanciero.md. Instalar la migración 008 y Aranceles.sql; ejecutar pruebas SQL 009 y permisos. Continuar con conciliación aprobada, saldos iniciales y corte de escrituras antiguas antes de generar cargos y habilitar recibos multiconcepto. No interpretar la captura preparatoria como migración completada. Esta rama aún no completa todos los requerimientos del profesor.
+Leer este documento y docs/AdaptacionFinanciera.md y docs/CatalogoFinanciero.md. Instalar la migración 008, Aranceles.sql y Aranceles_Consultar.sql; ejecutar pruebas SQL 009 y permisos. Continuar con conciliación aprobada, saldos iniciales y corte de escrituras antiguas antes de generar cargos y habilitar recibos multiconcepto. No interpretar la captura preparatoria como migración completada. Esta rama aún no completa todos los requerimientos del profesor.
 
 ## Continuación: backend de revisión de obligaciones
 Migración 009_RevisionObligaciones.sql y procedures/Conciliacion.sql agregan decisiones con historial, correspondencia de tarifa y detección de fuentes cambiadas. No hay interfaz conectada ni migración a cargos en esta etapa. Scripts no ejecutados ni compilados en SQL Server en este turno; ver docs/ConciliacionObligaciones.md para contrato y pruebas obligatorias. Próximo paso: interfaz de revisión, recaptura con historial, saldos/pagos y corte financiero.

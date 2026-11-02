@@ -2,7 +2,7 @@
 Estado: procedimientos SQL implementados, sin ejecución de pruebas en este turno. La pantalla /Finanzas/Conciliacion está conectada a los procedimientos y es exclusiva de Administración. No genera cargos, pagos ni saldos iniciales; no activa cobros nuevos.
 
 ## Instalar en copia de desarrollo
-1. Tener instalada la migración 008 y Aranceles.sql.
+1. Tener instalada la migración 008, Aranceles.sql y Aranceles_Consultar.sql.
 2. Ejecutar migrations/009_RevisionObligaciones.sql una sola vez en LiceoWeb_Dev.
 3. Ejecutar procedures/Conciliacion.sql completo, incluidos GO.
 4. No aplicar a producción sin ejecutar las pruebas siguientes.
