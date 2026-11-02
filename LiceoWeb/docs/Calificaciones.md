@@ -32,7 +32,7 @@ Publicar es una operación interna. No envía notificaciones, no crea portal de 
 ## Concurrencia e integridad
 Las escrituras usan una transacción y el bloqueo de aplicación Liceo.Planificacion compartido con planificación. Serializa cambios para el volumen de un colegio y evita publicar mientras se incorpora un alumno. Reemplaza el bloqueo solo por asignación propuesto inicialmente para cubrir también esta interacción. Todas las futuras mutaciones académicas deben respetarlo.
 Cada nota usa rowversion. Dos formularios sobre la misma versión no se sobreescriben: el segundo recibe conflicto y debe recargar. Las modificaciones registran auditoría de operación, no el texto de las observaciones. Desde 007, cada modificación exige motivo y conserva valor y observación anterior/nuevo; no se reconstruye historia previa.
-No se habilita edición/eliminación de la definición de evaluaciones ni edición/inactivación de tipos. Esto evita cambiar silenciosamente la escala aplicada; esas operaciones requieren un flujo de corrección posterior.
+Desde 020 se permite editar definiciones sin registros de calificaciones, publicaciones ni período cerrado, con historial y control de versión (EdicionEvaluaciones.md). No se incluye eliminar evaluaciones ni editar/inactivar el catálogo global de tipos. Actualizar Notas.sql junto con la aplicación: guardar notas exige VersionEvaluacion además de la versión de la propia nota cuando corresponda.
 
 ## Pruebas
 - `dotnet run --project tests/NotasValidation`: 16 casos de formulario sin base de datos.

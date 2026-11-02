@@ -59,7 +59,9 @@ BEGIN
   IF @Accion='Nota'
   BEGIN
    SET @Modo=NULL;
-   SELECT @Modo=Modo,@Maximo=Maximo FROM dbo.Evaluacion WHERE Id=@Evaluacion AND AsignacionId=@Asignacion;
+   DECLARE @VersionEvaluacion binary(8)=TRY_CONVERT(binary(8),JSON_VALUE(@Datos,'$.VersionEvaluacion'),1),@VersionActualEvaluacion binary(8);
+   SELECT @Modo=Modo,@Maximo=Maximo,@VersionActualEvaluacion=Version FROM dbo.Evaluacion WHERE Id=@Evaluacion AND AsignacionId=@Asignacion;
+   IF @VersionEvaluacion IS NULL OR @VersionActualEvaluacion<>@VersionEvaluacion THROW 52408,N'La definición de la evaluación cambió o falta su versión. Recarga antes de calificar.',1;
    IF @Modo IS NULL OR NOT EXISTS(SELECT 1 FROM dbo.GrupoEstudiante WHERE GrupoId=@Grupo AND Registro=@Registro) THROW 52401,N'Evaluación o estudiante ajeno al grupo.',1;
    IF @Modo='Cuantitativa' AND (@Resultado IS NOT NULL OR @Nota<0 OR @Nota>@Maximo) THROW 52407,N'La nota debe estar entre cero y el máximo de la evaluación.',1;
    IF JSON_VALUE(@Datos,'$.Nota') IS NOT NULL AND @Nota IS NULL THROW 52407,N'Nota numérica inválida.',1;
@@ -119,7 +121,7 @@ BEGIN
  JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.Pensum PS ON PS.Id=G.PensumId JOIN dbo.Asignatura S ON S.Id=A.AsignaturaId
  LEFT JOIN dbo.PublicacionNotas PN ON PN.AsignacionId=A.Id AND PN.Vigente=1 WHERE @Admin=1 OR A.UsuarioId=@UsuarioId ORDER BY Y.Anio DESC,P.Nombre,PS.Nivel,G.Seccion,S.Nombre;
  SELECT Id,Nombre Etiqueta FROM dbo.TipoEvaluacion WHERE Activo=1 ORDER BY Nombre;
- SELECT E.Id,E.Nombre,E.Fecha,T.Nombre Tipo,E.Modo,E.Maximo,E.Peso FROM dbo.Evaluacion E JOIN dbo.TipoEvaluacion T ON T.Id=E.TipoId WHERE E.AsignacionId=@AsignacionId ORDER BY E.Fecha,E.Id;
+ SELECT E.Id,E.Nombre,E.Fecha,T.Nombre Tipo,E.Modo,E.Maximo,E.Peso,CONVERT(varchar(18),E.Version,1) Version FROM dbo.Evaluacion E JOIN dbo.TipoEvaluacion T ON T.Id=E.TipoId WHERE E.AsignacionId=@AsignacionId ORDER BY E.Fecha,E.Id;
  SELECT G.Registro,S.NombreEstudiante,C.Nota,C.Resultado,C.Observacion,CONVERT(varchar(18),C.Version,1) Version
  FROM dbo.AsignacionDocente A JOIN dbo.GrupoEstudiante G ON G.GrupoId=A.GrupoId
  JOIN dbo.Estudiantes S ON S.Registro=G.Registro LEFT JOIN dbo.Calificacion C ON C.Registro=G.Registro AND C.EvaluacionId=@EvaluacionId WHERE A.Id=@AsignacionId AND @EvaluacionId<>0 ORDER BY G.Registro;

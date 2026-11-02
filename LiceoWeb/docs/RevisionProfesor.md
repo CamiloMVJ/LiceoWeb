@@ -2,14 +2,14 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
-## Punto vigente — cambios de planificación (019)
-Cambiar docente y trasladar estudiante desde las filas de Planificación, con confirmación, motivo, versión, reintento e historial paginado. Solo Administración. El cambio de docente comprueba cruces y conserva la autoría de notas. El traslado permite grupos del mismo pensum/período, con matrícula compatible y cupo, sin registros de calificaciones del alumno ni publicaciones en los grupos. Conserva matrícula/cargos y la instantánea del origen; no mueve notas ni cambia nivel/año.
+## Punto vigente — edición de evaluaciones (020)
+Edición de definiciones antes de registrar calificaciones, con motivo, versión, reintento e historial paginado. Administrador o Profesor titular. Bloquea registros de Calificacion/HistorialCalificacion (incluidos pendientes), asignaturas con publicaciones y períodos cerrados. Mantiene fecha dentro del período, pesos <=100% y escalas cualitativas válidas. No recalcula notas existentes.
 
-Ejecutar manualmente 019_CambiosPlanificacion.sql y los tres archivos Planificacion_Cambiar.sql, Planificacion_CambioConsultar.sql y Planificacion_CambiosHistorial.sql. Ver docs/CambiosPlanificacion.md. No se agregó instalador automático. Se conservan cancelación de horarios (018), UI/UX, finanzas y CSV.
+Captura de notas incorpora VersionEvaluacion: se rechaza un formulario abierto antes de cambiar la definición, incluso si el valor cabría en el máximo nuevo. Instalar manualmente 020_EdicionEvaluaciones.sql, Evaluacion_Editar.sql, Evaluacion_ConsultarEdicion.sql y actualizar Notas.sql completo junto con la aplicación. Ver docs/EdicionEvaluaciones.md. Sin instalador automático.
 
-Validación: compilación C#/Razor sin errores (40 advertencias previas), 19 pruebas nuevas de entradas y 12 de cancelación, análisis ScriptDom y accesos HTTP anónimos redirigidos al login. Preparados 13 escenarios SQL con rollback, sin ejecución en SQL Server aquí.
+Verificado: compilación/Razor 0 errores (40 advertencias previas); 19 pruebas nuevas, 18 de notas y 12 de cierre; siete scripts SQL revisados con ScriptDom; HTTP anónimo redirige al login. Preparados 11 escenarios SQL con rollback, sin ejecución SQL Server aquí.
 
-Pendientes: pruebas SQL/autenticadas/concurrentes y revisión visual; edición de definiciones de evaluación; desactivación/cambio de rol con protección del último administrador. Traslados con notas o publicaciones requieren definir el tratamiento académico; no se implementaron equivalencias automáticas. Portal de padres y notificaciones siguen fuera de alcance. Las secciones siguientes son historial, no una lista vigente de instalación.
+Siguientes pendientes: desactivación/reactivación/cambio de rol con protección del último administrador y revocación de sesiones; edición/inactivación del catálogo global de tipos de evaluación; pruebas SQL/autenticadas/concurrentes y revisión visual. Traslados con notas/publicaciones requieren política académica específica. Portal de padres y notificaciones siguen fuera de alcance. Las secciones siguientes conservan el historial de avances.
 
 ## Estado real
 Esta entrega es parcial. NO habilitar el esquema financiero nuevo para cobros reales.

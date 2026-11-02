@@ -30,6 +30,7 @@ public class IndexModel(NotasRepository repository,NotasService service,UsuarioA
   {
    var row=Filas("Estudiantes").FirstOrDefault(r=>r["Registro"].ToString()==registro);
    if(row is null)return NotFound();
+   Input.VersionEvaluacion=Evaluacion?.Field<string>("Version");
    Input.Nota=row.Field<decimal?>("Nota");Input.Resultado=row.Field<string?>("Resultado");Input.Observacion=row.Field<string?>("Observacion");Input.Version=row.Field<string?>("Version");
   }
   return Page();

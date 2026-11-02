@@ -42,7 +42,7 @@ BEGIN
  SELECT @VersionPeriodo=CONVERT(varchar(18),Version,1) FROM dbo.PeriodoAcademico WHERE Id=@P;
  IF @Caso=2 EXEC dbo.CierreAcademico_Guardar @Admin,'CerrarPeriodo',@P,0,@VersionPeriodo,N'Intento incompleto';
  IF @Caso=3 EXEC dbo.CierreAcademico_Guardar @Docente,'CerrarPeriodo',@P,0,@VersionPeriodo,N'Docente no autorizado';
- SET @Json=(SELECT 'Nota' Accion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,15 Nota FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ SET @Json=(SELECT 'Nota' Accion,(SELECT CONVERT(varchar(18),Version,1) FROM dbo.Evaluacion WHERE Id=@Eval) VersionEvaluacion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,15 Nota FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Notas_Guardar @Json,@Docente;
  SET @Json=(SELECT 'Publicar' Accion,@Asignacion AsignacionId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Notas_Guardar @Json,@Docente;
@@ -54,7 +54,7 @@ BEGIN
  EXEC dbo.CierreAcademico_Guardar @Admin,'ReabrirPeriodo',@P,0,@VersionPeriodo,N'Revisión de un resultado';
  EXEC dbo.CierreAcademico_Guardar @Admin,'ReabrirAsignacion',@P,@Asignacion,@VersionPublicacion,N'Autorizar corrección';
  SELECT @Version=CONVERT(varchar(18),Version,1) FROM dbo.Calificacion WHERE EvaluacionId=@Eval AND Registro=@Registro;
- SET @Json=(SELECT 'Nota' Accion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,20 Nota,@Version Version,'Rectificación de prueba' Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ SET @Json=(SELECT 'Nota' Accion,(SELECT CONVERT(varchar(18),Version,1) FROM dbo.Evaluacion WHERE Id=@Eval) VersionEvaluacion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,20 Nota,@Version Version,'Rectificación de prueba' Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Notas_Guardar @Json,@Docente;
  IF NOT EXISTS(SELECT 1 FROM dbo.HistorialCalificacion WHERE EvaluacionId=@Eval AND NotaAnterior=15 AND NotaNueva=20 AND Motivo=N'Rectificación de prueba') THROW 52501,N'Historial de corrección incorrecto.',1;
  IF (SELECT COUNT(*) FROM dbo.HistorialCalificacion WHERE EvaluacionId=@Eval)<>2 THROW 52501,N'Historial incompleto.',1;

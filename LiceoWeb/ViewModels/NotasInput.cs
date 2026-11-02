@@ -18,6 +18,7 @@ public sealed class NotasInput : IValidatableObject
  [StringLength(500)] public string? Observacion {get;set;}
  [RegularExpression("^0x[0-9A-Fa-f]{16}$")] public string? Version {get;set;}
  [StringLength(500)] public string? Motivo {get;set;}
+ [RegularExpression("^0x[0-9A-Fa-f]{16}$")] public string? VersionEvaluacion {get;set;}
  public string[] Valores()=> (Opciones??"").Split('\n',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries);
  public IEnumerable<ValidationResult> Validate(ValidationContext context)
  {
@@ -33,6 +34,7 @@ public sealed class NotasInput : IValidatableObject
   }
   if(Accion=="Nota")
   {
+   if(string.IsNullOrEmpty(VersionEvaluacion))yield return new("Recarga la evaluación antes de registrar notas.");
    if(!string.IsNullOrEmpty(Version) && string.IsNullOrWhiteSpace(Motivo))yield return new("Indica el motivo de la modificación.");
    if(EvaluacionId<=0 || string.IsNullOrWhiteSpace(Registro))yield return new("Selecciona evaluación y estudiante.");
    if(Nota is <0 or >99999.99m || (Nota.HasValue && decimal.Round(Nota.Value,2)!=Nota.Value))yield return new("Nota inválida: usa un valor positivo o cero con hasta dos decimales.");

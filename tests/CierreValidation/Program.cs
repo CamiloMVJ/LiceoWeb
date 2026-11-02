@@ -13,5 +13,5 @@ c=Cierre();c.Accion="ReabrirAsignacion";Check(!Valida(c),"Asignación requerida 
 c.AsignacionId=1;Check(Valida(c),"Reapertura de asignación válida");
 c=Cierre();c.Accion="ReabrirPeriodo";Check(Valida(c),"Reapertura de período válida");
 c=Cierre();c.Accion="Borrar";Check(!Valida(c),"Acción desconocida rechazada");
-var n=new NotasInput{Accion="Nota",AsignacionId=1,EvaluacionId=1,Registro="E1",Version="0x0000000000000001",Nota=0};
+var n=new NotasInput{Accion="Nota",VersionEvaluacion="0x0000000000000001",AsignacionId=1,EvaluacionId=1,Registro="E1",Version="0x0000000000000001",Nota=0};
 Check(!Valida(n),"Corrección exige motivo");n.Motivo="Rectificación";Check(Valida(n),"Corrección con motivo y cero válida");

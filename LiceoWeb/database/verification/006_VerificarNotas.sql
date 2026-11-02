@@ -44,7 +44,7 @@ BEGIN
   SET @Json=(SELECT 'Publicar' Accion,@Asignacion AsignacionId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
   EXEC dbo.Notas_Guardar @Json,@Docente; -- Falta resultado.
  END;
- SET @Json=(SELECT 'Nota' Accion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,CASE WHEN @Caso=2 THEN 31 ELSE 0 END Nota FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ SET @Json=(SELECT 'Nota' Accion,(SELECT CONVERT(varchar(18),Version,1) FROM dbo.Evaluacion WHERE Id=@Eval) VersionEvaluacion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,CASE WHEN @Caso=2 THEN 31 ELSE 0 END Nota FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Notas_Guardar @Json,@Docente;
  IF NOT EXISTS(SELECT 1 FROM dbo.Calificacion WHERE EvaluacionId=@Eval AND Registro=@Registro AND Nota=0) THROW 52501,N'No se guardó cero.',1;
  SELECT @Version=CONVERT(varchar(18),Version,1) FROM dbo.Calificacion WHERE EvaluacionId=@Eval AND Registro=@Registro;
@@ -57,7 +57,7 @@ BEGIN
   SET @Json=(SELECT 'Evaluacion' Accion,@Asignacion AsignacionId,@Tipo TipoId,'Desempeño' Nombre,DATEFROMPARTS(@AnioNumero,3,1) Fecha,'Cualitativa' Modo,JSON_QUERY(N'["Logrado","En proceso"]') Valores FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
   EXEC dbo.Notas_Guardar @Json,@Docente;
   SELECT @Eval=Id FROM dbo.Evaluacion WHERE AsignacionId=@Asignacion AND Modo='Cualitativa';
-  SET @Json=(SELECT 'Nota' Accion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,CASE WHEN @Caso=7 THEN 'Ajeno' ELSE 'Logrado' END Resultado FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+  SET @Json=(SELECT 'Nota' Accion,(SELECT CONVERT(varchar(18),Version,1) FROM dbo.Evaluacion WHERE Id=@Eval) VersionEvaluacion,@Asignacion AsignacionId,@Eval EvaluacionId,@Registro Registro,CASE WHEN @Caso=7 THEN 'Ajeno' ELSE 'Logrado' END Resultado FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
   EXEC dbo.Notas_Guardar @Json,@Docente;
  END;
  SET @Json=(SELECT 'Publicar' Accion,@Asignacion AsignacionId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);

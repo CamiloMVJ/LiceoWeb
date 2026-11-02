@@ -100,6 +100,7 @@ builder.Services.AddScoped<HorarioRepository>();
 builder.Services.AddScoped<CambioPlanificacionRepository>();
 builder.Services.AddScoped<PlanificacionService>();
 builder.Services.AddScoped<NotasRepository>();
+builder.Services.AddScoped<EvaluacionRepository>();
 builder.Services.AddScoped<ArancelRepository>();
 builder.Services.AddScoped<ConciliacionRepository>();
 builder.Services.AddScoped<CierreAcademicoRepository>();

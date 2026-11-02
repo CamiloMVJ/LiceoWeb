@@ -3,7 +3,7 @@ using LiceoWeb.ViewModels;
 static bool Valida(NotasInput x)=>Validator.TryValidateObject(x,new ValidationContext(x),new List<ValidationResult>(),true);
 static void Check(bool ok,string nombre){if(!ok)throw new Exception(nombre);Console.WriteLine("OK: "+nombre);}
 static NotasInput Evaluacion()=>new(){AsignacionId=1,TipoId=1,Nombre="Examen",Fecha=new(2027,3,1),Maximo=30,Peso=30};
-static NotasInput Nota()=>new(){Accion="Nota",AsignacionId=1,EvaluacionId=1,Registro="E00001"};
+static NotasInput Nota()=>new(){Accion="Nota",VersionEvaluacion="0x0000000000000001",AsignacionId=1,EvaluacionId=1,Registro="E00001"};
 Check(Valida(Evaluacion()),"Evaluación de 30 puntos");
 var e=Evaluacion();e.Peso=101;Check(!Valida(e),"Peso individual mayor a 100");
 e=Evaluacion();e.Maximo=0;Check(!Valida(e),"Máximo cero rechazado");
@@ -20,3 +20,5 @@ n=Nota();n.Version="incorrecta";Check(!Valida(n),"Token de concurrencia mal form
 n.Version="0x0000000000000001";n.Motivo="Corrección";Check(Valida(n),"Token válido");
 Check(!Valida(new(){Accion="Borrar"}),"Acción desconocida rechazada");
 Check(!Valida(new(){Accion="Tipo",Nombre=" "}),"Tipo sin nombre rechazado");
+n=Nota();n.VersionEvaluacion=null;Check(!Valida(n),"Nota sin versión de definición rechazada");
+n=Nota();n.VersionEvaluacion="0x01";Check(!Valida(n),"Nota con versión de definición incompleta rechazada");
