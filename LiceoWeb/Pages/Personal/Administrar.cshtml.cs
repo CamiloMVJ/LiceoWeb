@@ -14,7 +14,7 @@ namespace LiceoWeb.Pages.Personal;
 public sealed class AdministrarModel(PersonalRepository repository, ILogger<AdministrarModel> logger) : PageModel
 {
     [BindProperty(SupportsGet = true)] public string? Id { get; set; }
-    [BindProperty(SupportsGet = true)] public string Busqueda { get; set; } = "";
+    [BindProperty(SupportsGet = true)] public string? Busqueda { get; set; }
     [BindProperty(SupportsGet = true)] public int Pagina { get; set; } = 1;
     [BindProperty] public PersonalInput Input { get; set; } = new();
     [TempData] public string? Mensaje { get; set; }

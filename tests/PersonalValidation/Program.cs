@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using LiceoWeb.Pages.Personal;
 
 var count=0;
 void Check(bool ok,string name){if(!ok)throw new Exception(name);Console.WriteLine("OK: "+name);count++;}
@@ -20,6 +23,15 @@ input=Good();input.Motivo=new string('x',501);Check(!Valid(input),"Motivo largo"
 input=Good();input.Operacion=Guid.Empty;Check(!Valid(input),"Sin idempotencia");
 input=Good();input.Version="";Check(!Valid(input),"Sin versión");
 input=Good();input.CuentaId="";Check(!Valid(input),"Sin cuenta");
+
+// Verifica la obligatoriedad que MVC infiere; Validator.TryValidateObject no
+// detecta el Required implícito de las referencias no anulables.
+var services=new ServiceCollection();services.AddLogging();services.AddControllersWithViews();
+using var provider=services.BuildServiceProvider();
+var metadata=provider.GetRequiredService<IModelMetadataProvider>();
+Check(!metadata.GetMetadataForProperty(typeof(AdministrarModel),nameof(AdministrarModel.Busqueda)).IsRequired,"Búsqueda opcional al guardar personal");
+Check(metadata.GetMetadataForProperty(typeof(PersonalInput),nameof(PersonalInput.Rol)).IsRequired,"MVC conserva rol obligatorio");
+Check(metadata.GetMetadataForProperty(typeof(PersonalInput),nameof(PersonalInput.Motivo)).IsRequired,"MVC conserva motivo obligatorio");
 
 var opts=Options.Create(new IdentityOptions());opts.Value.SignIn.RequireConfirmedAccount=true;
 var user=new IdentityUser("empleado"){Id="empleado",EmailConfirmed=true,SecurityStamp="original"};
