@@ -1,4 +1,5 @@
 using System.Data;
+using LiceoWeb.Data;
 using LiceoWeb.Repositories;
 using LiceoWeb.Services;
 using LiceoWeb.ViewModels;
@@ -26,7 +27,7 @@ public class ArancelesModel(ArancelRepository repository,UsuarioActual usuario,I
   {
    if(accion is not ("Arancel" or "Tarifa"))return BadRequest();
    var r=Filas(accion=="Arancel"?"Aranceles":"Tarifas").FirstOrDefault(r=>(int)r["Id"]==id);if(r is null)return NotFound();
-   Input.Activo=(bool)r["Activo"];Input.Version=r["Version"].ToString();
+   Input.Activo=(bool)r["Activo"];Input.Version=RowVersionToken.DesdeSql(r["Version"]);
    if(accion=="Arancel"){Input.Codigo=(string)r["Codigo"];Input.Nombre=(string)r["Nombre"];}
    else{Input.ArancelId=(int)r["ArancelId"];Input.ModalidadId=(int)r["ModalidadId"];Input.AnioId=(int)r["AnioId"];Input.Importe=(decimal)r["Importe"];}
   }

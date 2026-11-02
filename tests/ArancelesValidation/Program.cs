@@ -19,3 +19,17 @@ Check(Valida(new(){Accion="Mapeo",Origen="Mensualidades",ArancelId=1,Motivo="Vin
 Check(!Valida(new(){Accion="Mapeo",Origen="Pagos",ArancelId=1,Motivo="Vinculación"}),"No confundir pagos con obligaciones");
 Check(Valida(new(){Accion="Preparar",Motivo="Revisión"}),"Preparación válida");
 Check(!Valida(new(){Accion="Cobrar",Motivo="Intento"}),"Cobro no expuesto por catálogo");
+
+// SQL rowversion debe viajar como 0x + 16 dígitos, nunca como System.Byte[].
+var bytes=new byte[]{0x00,0x00,0x00,0x00,0x00,0x00,0xAF,0x01};
+var token=LiceoWeb.Data.RowVersionToken.DesdeSql(bytes);
+Check(token=="0x000000000000AF01","Rowversion binaria preserva ceros y los 8 bytes");
+Check(LiceoWeb.Data.RowVersionToken.DesdeSql("0x000000000000af01")=="0x000000000000af01","Versión hexadecimal existente conservada");
+Check(LiceoWeb.Data.RowVersionToken.DesdeSql(new byte[8])=="0x0000000000000000","Versión binaria cero no se pierde");
+t=Tarifa();t.Id=1;t.Version=token;Check(Valida(t),"Tarifa editable con versión procedente de SQL binario");
+Check(Valida(new(){Id=1,Codigo="LAB",Nombre="Laboratorio",Activo=false,Motivo="Desactivar arancel",Version=token}),"Inactivar arancel con versión procedente de SQL binario");
+foreach(var invalid in new object[]{new byte[7],new byte[9],DBNull.Value,"System.Byte[]","0x12","0x000000000000000G","0x0000000000000001\n"})
+{
+ bool rejected=false;try{LiceoWeb.Data.RowVersionToken.DesdeSql(invalid);}catch(System.IO.InvalidDataException){rejected=true;}
+ Check(rejected,"No fabricar versión ante datos SQL inválidos: "+invalid.GetType().Name);
+}

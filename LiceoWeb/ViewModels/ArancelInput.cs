@@ -13,7 +13,7 @@ public sealed class ArancelInput:IValidatableObject
  public bool Activo {get;set;}=true;
  [StringLength(30)] public string? Origen {get;set;}
  [StringLength(500)] public string? Motivo {get;set;}
- [RegularExpression("^0x[0-9A-Fa-f]{16}$")] public string? Version {get;set;}
+ [RegularExpression("^0x[0-9A-Fa-f]{16}$",ErrorMessage="La versión del registro no es válida. Recarga la página de edición antes de guardar.")] public string? Version {get;set;}
  public static readonly string[] Origenes=["Matriculas","Mensualidades","Mantenimientos","EvBoTaS","Promociones"];
  public IEnumerable<ValidationResult> Validate(ValidationContext context)
  {
