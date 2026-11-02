@@ -17,7 +17,7 @@ namespace LiceoWeb.Pages.Mensualidades
         public List<MoraDto> ListaMora { get; set; } = new();
         public List<SaldoDto> ListaSaldos { get; set; } = new();
 
-        public async Task OnGetAsync(string filtroNombre, int? filtroAnio, string filtroModalidad, string filtroEstado)
+        public async Task OnGetAsync(string? filtroNombre, int? filtroAnio, string? filtroModalidad, string? filtroEstado)
         {
             // Asignar los valores de los filtros si el usuario busca algo
             if (!string.IsNullOrEmpty(filtroNombre)) FiltroNombre = filtroNombre;
@@ -34,32 +34,32 @@ namespace LiceoWeb.Pages.Mensualidades
 
     public class MensualidadFiltroDto
     {
-        public string Registro { get; set; }
-        public string NombreEstudiante { get; set; }
-        public string Grado { get; set; }
-        public string Modalidad { get; set; }
+        public string Registro { get; set; } = "";
+        public string NombreEstudiante { get; set; } = "";
+        public string Grado { get; set; } = "";
+        public string Modalidad { get; set; } = "";
         public int Anio { get; set; }
-        public string Mes { get; set; }
+        public string Mes { get; set; } = "";
         public int Monto { get; set; }
-        public string Estado { get; set; }
+        public string Estado { get; set; } = "";
     }
 
     public class MoraDto
     {
-        public string Registro { get; set; }
-        public string NombreEstudiante { get; set; }
-        public string Modalidad { get; set; }
-        public string Mes { get; set; }
+        public string Registro { get; set; } = "";
+        public string NombreEstudiante { get; set; } = "";
+        public string Modalidad { get; set; } = "";
+        public string Mes { get; set; } = "";
         public int Anio { get; set; }
         public int Costo_Mensualidad { get; set; }
     }
 
     public class SaldoDto
     {
-        public string Registro { get; set; }
-        public string Estudiante { get; set; }
-        public string Modalidad { get; set; }
-        public string Grado { get; set; }
+        public string Registro { get; set; } = "";
+        public string Estudiante { get; set; } = "";
+        public string Modalidad { get; set; } = "";
+        public string Grado { get; set; } = "";
         public int SaldoAFavor { get; set; }
     }
 }

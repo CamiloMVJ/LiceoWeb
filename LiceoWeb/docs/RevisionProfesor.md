@@ -2,6 +2,11 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
+## Corrección de las 40 advertencias de compilación
+Corregidas las referencias opcionales, inicialización de textos de presentación/DTO y resultados SQL anulables en Mensualidades/Index.cshtml.cs y GestionMensualidades.cshtml.cs. Las conexiones requieren configuración explícita; no se ocultan advertencias ni se desactiva Nullable. Se mantienen importes, parámetros SQL, permisos y comprobación de estudiante antes del pago.
+
+Compilación completa Debug y Release con `-warnaserror`: 0 advertencias y 0 errores. Ocho pruebas de regresión en `dotnet run --project tests/MensualidadesValidation`: filtros vacíos/enviados, propiedades opcionales en MVC, entrada sin selección y pago sin estudiante rechazado sin SQL. No hay cambios de base ni pruebas nuevas contra SQL Server.
+
 ## Corrección posterior — versión de aranceles y tarifas
 Actualizar `database/procedures/Aranceles_Consultar.sql` después de descargar el código actual. La consulta tiene archivo propio (se extrajo de Aranceles.sql) y convierte `rowversion → binary(8) → varchar(18)`; la conversión directa desde timestamp puede entregar texto que no cumple el formato hexadecimal del formulario. No hay migración nueva ni cambios a importes, estados, usuarios o sellos. La edición muestra un error controlado y bloquea Guardar si sigue recibiendo una versión inválida. Ver docs/CatalogoFinanciero.md. Compilación y 28 pruebas C#; tres scripts analizados sintácticamente, pendiente SQL Server real.
 

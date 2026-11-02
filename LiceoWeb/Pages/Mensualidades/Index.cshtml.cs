@@ -17,10 +17,10 @@ namespace LiceoWeb.Pages.Mensualidades
         }
 
         [BindProperty(SupportsGet = true)]
-        public string Busqueda { get; set; }
+        public string? Busqueda { get; set; }
 
         [BindProperty(SupportsGet = true)]
-        public string RegistroSeleccionado { get; set; }
+        public string? RegistroSeleccionado { get; set; }
 
         [BindProperty]
         public int AnioLimite { get; set; } = DateTime.Now.Year;
@@ -35,7 +35,7 @@ namespace LiceoWeb.Pages.Mensualidades
         public string MetodoPago { get; set; } = "Efectivo";
 
         [BindProperty]
-        public string ReferenciaTransaccion { get; set; }
+        public string? ReferenciaTransaccion { get; set; }
 
         [BindProperty]
         public bool IntegrarSaldo { get; set; } = true;
@@ -46,16 +46,16 @@ namespace LiceoWeb.Pages.Mensualidades
         // Datos para la vista
         public List<EstudianteBusquedaDto> ListaEstudiantes { get; set; } = new();
         public List<MensualidadPendienteDto> MensualidadesPendientes { get; set; } = new();
-        public string NombreEstudianteActual { get; set; }
-        public string ModalidadActual { get; set; }
-        public string GradoActual { get; set; }
+        public string NombreEstudianteActual { get; set; } = "";
+        public string ModalidadActual { get; set; } = "";
+        public string GradoActual { get; set; } = "";
         public int SaldoFavorActual { get; set; }
 
-        public string MensajeError { get; set; }
-        public string MensajeExito { get; set; }
-        public string ReciboGenerado { get; set; }
+        public string? MensajeError { get; set; }
+        public string? MensajeExito { get; set; }
+        public string? ReciboGenerado { get; set; }
 
-        public async Task OnGetAsync(string registro)
+        public async Task OnGetAsync(string? registro)
         {
             if (!string.IsNullOrEmpty(registro))
             {
@@ -76,7 +76,8 @@ namespace LiceoWeb.Pages.Mensualidades
                 return Page();
             }
 
-            string connString = _configuration.GetConnectionString("DefaultConnection");
+            var connString = _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Falta configurar la conexión DefaultConnection.");
 
             try
             {
@@ -117,7 +118,8 @@ namespace LiceoWeb.Pages.Mensualidades
 
         private async Task BuscarEstudiantes(string texto)
         {
-            string connString = _configuration.GetConnectionString("DefaultConnection");
+            var connString = _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Falta configurar la conexión DefaultConnection.");
             using var conn = new SqlConnection(connString);
             using var cmd = new SqlCommand("Buscar_Estudiantes_Mensualidad", conn);
             cmd.CommandType = CommandType.StoredProcedure;
@@ -129,16 +131,17 @@ namespace LiceoWeb.Pages.Mensualidades
             {
                 ListaEstudiantes.Add(new EstudianteBusquedaDto
                 {
-                    Registro = reader["Registro"].ToString(),
-                    NombreEstudiante = reader["NombreEstudiante"].ToString(),
-                    Grado = reader["Grado"].ToString()
+                    Registro = reader["Registro"].ToString() ?? "",
+                    NombreEstudiante = reader["NombreEstudiante"].ToString() ?? "",
+                    Grado = reader["Grado"].ToString() ?? ""
                 });
             }
         }
 
         private async Task CargarDatosEstudiante(string registro)
         {
-            string connString = _configuration.GetConnectionString("DefaultConnection");
+            var connString = _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Falta configurar la conexión DefaultConnection.");
             using var conn = new SqlConnection(connString);
             using var cmd = new SqlCommand("Ver_Estado_Mensualidad_Cuenta", conn);
             cmd.CommandType = CommandType.StoredProcedure;
@@ -152,9 +155,9 @@ namespace LiceoWeb.Pages.Mensualidades
             {
                 if (!datosCargados)
                 {
-                    NombreEstudianteActual = reader["NombreEstudiante"].ToString();
-                    ModalidadActual = reader["Modalidad"].ToString();
-                    GradoActual = reader["Grado"].ToString();
+                    NombreEstudianteActual = reader["NombreEstudiante"].ToString() ?? "";
+                    ModalidadActual = reader["Modalidad"].ToString() ?? "";
+                    GradoActual = reader["Grado"].ToString() ?? "";
                     SaldoFavorActual = reader["SaldoFavor"] != DBNull.Value ? Convert.ToInt32(reader["SaldoFavor"]) : 0;
                     datosCargados = true;
                 }
@@ -162,9 +165,9 @@ namespace LiceoWeb.Pages.Mensualidades
                 MensualidadesPendientes.Add(new MensualidadPendienteDto
                 {
                     Anio = Convert.ToInt32(reader["Anio"]),
-                    Mes = reader["Mes"].ToString(),
+                    Mes = reader["Mes"].ToString() ?? "",
                     Costo_Mensualidad = Convert.ToInt32(reader["Costo_Mensualidad"]),
-                    Estado = reader["Estado"].ToString()
+                    Estado = reader["Estado"].ToString() ?? ""
                 });
             }
         }
@@ -172,16 +175,16 @@ namespace LiceoWeb.Pages.Mensualidades
 
     public class EstudianteBusquedaDto
     {
-        public string Registro { get; set; }
-        public string NombreEstudiante { get; set; }
-        public string Grado { get; set; }
+        public string Registro { get; set; } = "";
+        public string NombreEstudiante { get; set; } = "";
+        public string Grado { get; set; } = "";
     }
 
     public class MensualidadPendienteDto
     {
         public int Anio { get; set; }
-        public string Mes { get; set; }
+        public string Mes { get; set; } = "";
         public int Costo_Mensualidad { get; set; }
-        public string Estado { get; set; }
+        public string Estado { get; set; } = "";
     }
 }
