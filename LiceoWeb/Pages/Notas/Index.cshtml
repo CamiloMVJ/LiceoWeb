@@ -11,7 +11,7 @@
  <option value="0">Seleccionar</option>
  @foreach(var item in Model.Opciones("Asignaciones")){<option value="@item.Value" selected="@(item.Value==Model.Input.AsignacionId.ToString())">@item.Text</option>}
  </select><button class="btn btn-liceo-primary">Abrir asignación</button>
- @if(User.IsInRole("Administrador")){<a asp-route-accion="Tipo" class="btn btn-liceo-secondary">Crear tipo de evaluación</a>}
+ @if(User.IsInRole("Administrador")){<a asp-page="Tipos" class="btn btn-liceo-secondary">Administrar tipos de evaluación</a>}
 </form>
 @if(Model.Bloqueado){<div class="alert alert-info">Resultados publicados o período cerrado. Consulta disponible; edición bloqueada.</div>}
 @if(Model.Input.AsignacionId>0){

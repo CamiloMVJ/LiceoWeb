@@ -28,4 +28,30 @@ public sealed class NotasRepository(SqlConnectionFactory factory)
   cmd.Parameters.Add("@Datos",SqlDbType.NVarChar,-1).Value=JsonSerializer.Serialize(datos);
   await cmd.ExecuteNonQueryAsync();
  }
+
+ public async Task<DataSet> ConsultarTiposAsync(string usuario,int id,int pagina)
+ {
+  await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();
+  cmd.CommandText="dbo.TipoEvaluacion_Consultar";cmd.CommandType=CommandType.StoredProcedure;
+  cmd.Parameters.Add("@UsuarioId",SqlDbType.NVarChar,450).Value=usuario;
+  cmd.Parameters.Add("@Id",SqlDbType.Int).Value=id;
+  cmd.Parameters.Add("@Pagina",SqlDbType.Int).Value=pagina;
+  await using var reader=await cmd.ExecuteReaderAsync();var result=new DataSet();
+  foreach(var name in new[]{"Tipos","Resumen","Historial"})
+  {var table=new DataTable(name);table.Load(reader);result.Tables.Add(table);}
+  return result;
+ }
+ public async Task GuardarTipoAsync(string usuario,TipoEvaluacionInput input)
+ {
+  await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();
+  cmd.CommandText="dbo.TipoEvaluacion_Guardar";cmd.CommandType=CommandType.StoredProcedure;
+  cmd.Parameters.Add("@UsuarioId",SqlDbType.NVarChar,450).Value=usuario;
+  cmd.Parameters.Add("@Id",SqlDbType.Int).Value=input.Id;
+  cmd.Parameters.Add("@Nombre",SqlDbType.NVarChar,-1).Value=input.Nombre;
+  cmd.Parameters.Add("@Activo",SqlDbType.Bit).Value=input.Activo;
+  cmd.Parameters.Add("@Version",SqlDbType.VarChar,-1).Value=input.Version;
+  cmd.Parameters.Add("@Operacion",SqlDbType.UniqueIdentifier).Value=input.Operacion;
+  cmd.Parameters.Add("@Motivo",SqlDbType.NVarChar,-1).Value=input.Motivo;
+  await cmd.ExecuteNonQueryAsync();
+ }
 }

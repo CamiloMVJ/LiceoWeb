@@ -1,0 +1,84 @@
+@page
+@using System.Data
+@model LiceoWeb.Pages.Notas.TiposModel
+@{ ViewData["Title"] = "Tipos de evaluación"; }
+<div class="liceo-page-heading">
+    <h1>Tipos de evaluación</h1>
+    <p>Administra las categorías de evaluación. Inactivar un tipo impide seleccionarlo en nuevas evaluaciones; las notas existentes se conservan.</p>
+</div>
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a asp-page="Index" asp-route-accion="Tipo" class="btn btn-liceo-primary">Crear tipo</a>
+    <a asp-page="Index" class="btn btn-liceo-secondary">Volver a calificaciones</a>
+</div>
+@if (Model.Mensaje is not null) { <div class="alert alert-success" role="status">@Model.Mensaje</div> }
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (Model.Cargado)
+{
+    <section class="liceo-card mb-4">
+        <h2 class="h4">Catálogo</h2>
+        @if (!Model.Filas("Tipos").Any()) { <p>No hay tipos registrados.</p> }
+        else
+        {
+            <div class="table-responsive"><table class="table">
+                <thead><tr><th>Nombre</th><th>Estado</th><th>Uso</th><th>Acción</th></tr></thead>
+                <tbody>
+                @foreach (var row in Model.Filas("Tipos"))
+                {
+                    <tr>
+                        <td>@row["Nombre"]</td><td>@((bool)row["Activo"] ? "Activo" : "Inactivo")</td>
+                        <td>@((bool)row["Utilizado"] ? "Con evaluaciones" : "Sin evaluaciones")</td>
+                        <td><a asp-page="Tipos" asp-route-id="@row["Id"]">Editar e historial</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
+        }
+    </section>
+    @if (Model.Seleccionado is { } tipo)
+    {
+        <form method="post" asp-route-id="@Model.Input.Id" class="liceo-card mb-4">
+            <h2 class="h4">Editar tipo</h2>
+            <input asp-for="Input.Id" type="hidden" />
+            <input asp-for="Input.Version" type="hidden" />
+            <input asp-for="Input.Operacion" type="hidden" />
+            <label asp-for="Input.Nombre" class="form-label">Nombre</label>
+            <input asp-for="Input.Nombre" class="form-control mb-2" maxlength="100" readonly="@((bool)tipo["Utilizado"])" />
+            <p class="text-muted">Cuando un tipo tiene evaluaciones, se conserva su nombre para mantener el historial.</p>
+            <div class="form-check mb-3">
+                <input asp-for="Input.Activo" class="form-check-input" />
+                <label asp-for="Input.Activo" class="form-check-label">Tipo activo</label>
+            </div>
+            <label asp-for="Input.Motivo" class="form-label">Motivo del cambio</label>
+            <textarea asp-for="Input.Motivo" class="form-control mb-3" rows="3" minlength="10" maxlength="500" required></textarea>
+            <button class="btn btn-liceo-primary">Guardar cambios</button>
+            <a asp-page="Tipos" asp-route-id="@Model.Input.Id" class="btn btn-liceo-secondary">Recargar tipo</a>
+        </form>
+        <section class="liceo-card">
+            <h2 class="h4">Historial de cambios</h2>
+            <p>Fechas en UTC. Incluye cambios registrados desde la instalación de esta función.</p>
+            @if (Model.Total == 0) { <p>Sin cambios registrados.</p> }
+            else
+            {
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th>Fecha UTC</th><th>Antes</th><th>Después</th><th>Motivo</th><th>Usuario</th></tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.Filas("Historial"))
+                    {
+                        <tr>
+                            <td>@(((DateTime)row["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td>@row["NombreAnterior"] · @((bool)row["ActivoAnterior"] ? "Activo" : "Inactivo")</td>
+                            <td>@row["NombreNuevo"] · @((bool)row["ActivoNuevo"] ? "Activo" : "Inactivo")</td>
+                            <td>@row["Motivo"]</td><td>@row["UsuarioId"]</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table></div>
+                <nav class="d-flex gap-2" aria-label="Páginas del historial">
+                    @if (Model.Pagina > 1) { <a asp-page="Tipos" asp-route-id="@Model.Input.Id" asp-route-pagina="@(Model.Pagina - 1)" class="btn btn-liceo-secondary">Anterior</a> }
+                    <span>Página @Model.Pagina</span>
+                    @if (Model.Pagina * 25L < Model.Total) { <a asp-page="Tipos" asp-route-id="@Model.Input.Id" asp-route-pagina="@(Model.Pagina + 1)" class="btn btn-liceo-secondary">Siguiente</a> }
+                </nav>
+            }
+        </section>
+    }
+}

@@ -2,6 +2,16 @@
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.
 
+## Continuación vigente — tipos de evaluación (022)
+
+Se agregó /Notas/Tipos para Administrador: listado de activos/inactivos, renombrado únicamente antes de uso, inactivación/reactivación con motivo, rowversion, operación idempotente, auditoría e historial paginado. Las evaluaciones y notas existentes se conservan. El acceso está conectado desde Calificaciones.
+
+Instalación manual: 022_TiposEvaluacion.sql, TipoEvaluacion_Consultar.sql y TipoEvaluacion_Guardar.sql. Guía: docs/TiposEvaluacion.md. Prueba SQL reversible: verification/023_VerificarTiposEvaluacion.sql; pruebas de entrada: tests/TiposEvaluacionValidation (15 casos).
+
+Estado de validación de esta entrega: revisión de contratos, autorización, dependencias y código; terminal no disponible, por lo que compilación, ejecución de pruebas C#, SQL Server, concurrencia y UI autenticada NO se ejecutaron. Los resultados de compilación de secciones anteriores corresponden a sus commits, no certifican esta continuación.
+
+Siguiente bloque: ejecutar esas comprobaciones y completar la validación integrada descrita en docs/ValidacionRecorridos.md. La normalización sigue siendo una propuesta revisada, no una migración aplicada.
+
 ## Corrección de las 40 advertencias de compilación
 Corregidas las referencias opcionales, inicialización de textos de presentación/DTO y resultados SQL anulables en Mensualidades/Index.cshtml.cs y GestionMensualidades.cshtml.cs. Las conexiones requieren configuración explícita; no se ocultan advertencias ni se desactiva Nullable. Se mantienen importes, parámetros SQL, permisos y comprobación de estudiante antes del pago.
 
@@ -19,7 +29,7 @@ Instalación manual: 021_AdministracionPersonal.sql; Personal_Autorizar.sql, Per
 
 Verificado: C#/Razor compilan, 24 pruebas de validación/Identity con dobles, ocho archivos SQL analizados con ScriptDom y rutas anónimas protegidas. Preparados 16 escenarios SQL con rollback, no ejecutados aquí. Sigue pendiente verificar SQL Server, sesiones persistidas, concurrencia real y presentación visual autenticada.
 
-Siguiente bloque: edición/inactivación del catálogo global de tipos de evaluación. Después, pruebas integradas SQL/autenticadas/concurrentes y revisión visual. Traslados con notas/publicaciones requieren política académica específica. Portal de padres y notificaciones permanecen fuera de alcance.
+El catálogo global de tipos de evaluación se añadió en 022 (véase el punto vigente al inicio). Pendientes: pruebas integradas SQL/autenticadas/concurrentes y revisión visual. Traslados con notas/publicaciones requieren política académica específica. Portal de padres y notificaciones permanecen fuera de alcance.
 
 ## Avance anterior — edición de evaluaciones (020)
 Edición de definiciones antes de registrar calificaciones, con motivo, versión, reintento e historial paginado. Administrador o Profesor titular. Bloquea registros de Calificacion/HistorialCalificacion (incluidos pendientes), asignaturas con publicaciones y períodos cerrados. Mantiene fecha dentro del período, pesos <=100% y escalas cualitativas válidas. No recalcula notas existentes.
