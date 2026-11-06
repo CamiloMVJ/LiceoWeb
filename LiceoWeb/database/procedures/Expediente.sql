@@ -11,7 +11,7 @@ BEGIN
  END;
  SELECT (SELECT E.Registro,E.NombreEstudiante,E.Modalidad,E.Grado,
  CONVERT(varchar(10),E.FechaNacimiento,23) FechaNacimiento,E.Sexo,E.Direccion,
- 'Nuevo' TipoIngreso,'Otro' Tutor,'Ampliación de expediente existente' Motivo,
+ @Version Version,'Nuevo' TipoIngreso,'Otro' Tutor,'Ampliación de expediente existente' Motivo,
  JSON_QUERY((SELECT E.NombreTutor Nombre,E.Telefono Telefono FOR JSON PATH,WITHOUT_ARRAY_WRAPPER)) Otro
  FROM dbo.Estudiantes E WHERE E.Registro=@Registro FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
 END;
@@ -31,7 +31,7 @@ BEGIN
  @Tutor nvarchar(20)=JSON_VALUE(@Datos,'$.Tutor'),@Motivo nvarchar(500)=JSON_VALUE(@Datos,'$.Motivo'),
  @Hoy date=CONVERT(date,SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'Central America Standard Time'),
  @Ingreso nvarchar(20)=JSON_VALUE(@Datos,'$.TipoIngreso'),@Codigo nvarchar(100)=JSON_VALUE(@Datos,'$.CodigoTraslado'),
- @Centro nvarchar(200)=JSON_VALUE(@Datos,'$.CentroProcedencia'),@Version varchar(18)=JSON_VALUE(@Datos,'$.Version');
+ @Centro nvarchar(200)=JSON_VALUE(@Datos,'$.CentroProcedencia'),@Version nvarchar(4000)=NULLIF(JSON_VALUE(@Datos,'$.Version'),N'');
  IF NULLIF(LTRIM(RTRIM(@Nombre)),'') IS NULL OR @Nacimiento IS NULL OR @Nacimiento>@Hoy OR @Nacimiento<DATEADD(year,-100,@Hoy)
  OR @Tutor IS NULL OR @Tutor NOT IN ('Padre','Madre','Otro') OR NULLIF(LTRIM(RTRIM(@Motivo)),'') IS NULL
  THROW 52112,N'Revise nombre, fecha de nacimiento, tutor y motivo.',1;
@@ -47,13 +47,21 @@ BEGIN
  THROW 52114,N'El tutor requiere nombre, teléfono y parentesco si es un tercero.',1;
  BEGIN TRY
  BEGIN TRANSACTION;
- DECLARE @Anterior nvarchar(max),@VersionActual varchar(18),@Existe bit=0;
+ DECLARE @Anterior nvarchar(max),@VersionActual binary(8),@VersionEnviada binary(8),@Existe bit=0;
+ IF @Version IS NOT NULL
+ BEGIN
+  SET @VersionEnviada=TRY_CONVERT(binary(8),@Version,1);
+  IF DATALENGTH(@Version)<>36 OR LEFT(@Version,2) COLLATE Latin1_General_100_BIN2<>N'0x' OR @VersionEnviada IS NULL
+   THROW 52116,N'La versión del expediente no es válida. Vuelva a abrirlo antes de guardar.',1;
+ END;
  IF @Registro IS NOT NULL
  BEGIN
   SELECT @Existe=1 FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
   IF @Existe=0 THROW 52115,N'Estudiante inexistente.',1;
-  SELECT @Anterior=FormularioJson,@VersionActual=CONVERT(varchar(18),CONVERT(binary(8),Version),1) FROM dbo.ExpedienteAmpliado WHERE Registro=@Registro;
-  IF ISNULL(@Version,'')<>ISNULL(@VersionActual,'') THROW 52116,N'Otro usuario actualizó el expediente. Recargue antes de guardar.',1;
+  SELECT @Anterior=FormularioJson,@VersionActual=Version FROM dbo.ExpedienteAmpliado WHERE Registro=@Registro;
+  IF (@VersionActual IS NULL AND @VersionEnviada IS NOT NULL)
+   OR (@VersionActual IS NOT NULL AND (@VersionEnviada IS NULL OR @VersionActual<>@VersionEnviada))
+   THROW 52116,N'La versión del expediente cambió o no se cargó. Vuelva a abrirlo antes de guardar.',1;
   UPDATE dbo.Estudiantes SET NombreEstudiante=@Nombre,Modalidad=@Modalidad,Grado=@Grado,FechaNacimiento=@Nacimiento,Sexo=@Sexo,Direccion=@Direccion,NombreTutor=@TutorNombre,Telefono=@Telefono WHERE Registro=@Registro;
  END
  ELSE

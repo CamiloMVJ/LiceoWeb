@@ -19,6 +19,17 @@ DELETE @Salida;
 INSERT @Salida EXEC dbo.Expediente_Guardar @Datos,@Usuario;
 IF (SELECT COUNT(*) FROM dbo.TutelaEstudiante T JOIN dbo.ResponsableEstudiante R ON R.Id=T.ResponsableId WHERE R.Registro=@Registro)<>2 THROW 52202,N'No se conservó historia.',1;
 IF (SELECT COUNT(*) FROM dbo.TutelaEstudiante T JOIN dbo.ResponsableEstudiante R ON R.Id=T.ResponsableId WHERE R.Registro=@Registro AND T.Hasta IS NULL)<>1 THROW 52203,N'Tutelas vigentes duplicadas.',1;
+-- Expediente ampliado existente sin instantánea: el formulario básico debe incluir su versión.
+UPDATE dbo.ExpedienteAmpliado SET FormularioJson=NULL WHERE Registro=@Registro;
+DECLARE @Consulta TABLE(Formulario nvarchar(max));
+INSERT @Consulta EXEC dbo.Expediente_Obtener @Registro;
+DECLARE @Formulario nvarchar(max)=(SELECT Formulario FROM @Consulta);
+SET @Version=JSON_VALUE(@Formulario,'$.Version');
+IF @Version IS NULL OR TRY_CONVERT(binary(8),@Version,1) IS NULL
+ THROW 52206,N'El formulario básico perdió la versión del expediente ampliado.',1;
+SET @Datos=JSON_MODIFY(@Datos,'$.Version',@Version);
+DELETE @Salida;
+INSERT @Salida EXEC dbo.Expediente_Guardar @Datos,@Usuario;
 EXEC dbo.Estudiante_DarBaja @Registro,N'Baja de prueba',@Usuario;
 IF NOT EXISTS(SELECT 1 FROM dbo.Estudiantes WHERE Registro=@Registro AND Estado='Inactivo') THROW 52204,N'Falló baja.',1;
 IF NOT EXISTS(SELECT 1 FROM dbo.Auditoria WHERE RegistroId=@Registro AND Accion='DarBajaEstudiante') THROW 52205,N'Falta auditoría.',1;
