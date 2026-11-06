@@ -22,9 +22,13 @@ BEGIN TRY
  SELECT @Pensum=Id FROM dbo.Pensum WHERE AnioId=@A AND ModalidadId=@M;
  SET @Json=(SELECT 'Materia' Accion,@Pensum PensumId,@S AsignaturaId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Planificacion_Guardar @Json,@Admin;
- SET @Json=(SELECT 'Grupo' Accion,@Pensum PensumId,@P PeriodoId,@T TurnoId,@Aula AulaId,'A' Seccion FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ SET @Json=(SELECT 'Grupo' Accion,@Pensum PensumId,@P PeriodoId,@T TurnoId,@Aula AulaId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Planificacion_Guardar @Json,@Admin;
- SELECT @Grupo=Id FROM dbo.GrupoAcademico WHERE PensumId=@Pensum;
+ SELECT @Grupo=Id FROM dbo.GrupoAcademico WHERE PensumId=@Pensum AND Seccion=N'Grupo 1';
+ IF @Grupo IS NULL THROW 52401,N'El primer grupo no recibió un nombre automático.',1;
+ EXEC dbo.Planificacion_Guardar @Json,@Admin;
+ IF NOT EXISTS(SELECT 1 FROM dbo.GrupoAcademico WHERE PensumId=@Pensum AND Seccion=N'Grupo 2')
+  THROW 52401,N'El segundo grupo no recibió un nombre distinto.',1;
  SET @Json=(SELECT 'Docente' Accion,@Grupo GrupoId,@S AsignaturaId,@Docente DocenteId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Planificacion_Guardar @Json,@Admin;
  SELECT @Asignacion=Id FROM dbo.AsignacionDocente WHERE GrupoId=@Grupo;

@@ -55,7 +55,7 @@ Si la base todavía devuelve el contrato anterior, las pantallas muestran un men
 
 ### 4. Crear grupos
 
-- El plan ya está seleccionado. Elegir período de ese mismo año, turno, aula y sección.
+- El plan ya está seleccionado. Elegir período de ese mismo año, turno y aula. La base asigna un nombre automático (Grupo 1, Grupo 2, etc.) dentro del plan y período, y conserva los nombres de los grupos existentes.
 - Si falta período, turno o aula, crearlo desde los accesos del paso.
 - Guardar selecciona el grupo nuevo. Se pueden crear varias secciones del mismo plan.
 - Para trabajar en un grupo existente, elegirlo arriba o usar «Organizar» en el listado.

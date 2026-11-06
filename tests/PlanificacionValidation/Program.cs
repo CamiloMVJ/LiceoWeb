@@ -18,6 +18,7 @@ static class Program
   Check(!Valida(new PlanificacionInput{Accion="Horario",AsignacionId=1,Dia=8,Inicio=new(9,0),Fin=new(10,0)}),"Día inválido");
   Check(Valida(new PlanificacionInput{Accion="Horario",AsignacionId=1,Dia=1,Inicio=new(9,0),Fin=new(10,0)}),"Horario válido");
   Check(!Valida(new PlanificacionInput{Accion="Docente",GrupoId=1,AsignaturaId=1}),"Docente requerido");
+  Check(Valida(new PlanificacionInput{Accion="Grupo",PensumId=1,PeriodoId=1,TurnoId=1,AulaId=1}),"Grupo válido sin sección manual");
   Check(!Valida(new PlanificacionInput{Accion="SQL"}),"Acción no permitida");
  }
 }

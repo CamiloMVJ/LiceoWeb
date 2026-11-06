@@ -110,7 +110,7 @@ BEGIN
  @Modalidad int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.ModalidadId')),@Nivel nvarchar(50)=NULLIF(LTRIM(RTRIM(JSON_VALUE(@Datos,'$.Nivel'))),''),
  @Pensum int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.PensumId')),@Asignatura int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.AsignaturaId')),
  @Periodo int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.PeriodoId')),@Turno int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.TurnoId')),
- @Aula int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.AulaId')),@Seccion nvarchar(30)=NULLIF(LTRIM(RTRIM(JSON_VALUE(@Datos,'$.Seccion'))),''),
+ @Aula int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.AulaId')),@Seccion nvarchar(30),
  @Grupo int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.GrupoId')),@Docente nvarchar(450)=JSON_VALUE(@Datos,'$.DocenteId'),
  @Asignacion int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.AsignacionId')),@Dia int=TRY_CONVERT(int,JSON_VALUE(@Datos,'$.Dia')),
  @Inicio time=TRY_CONVERT(time,JSON_VALUE(@Datos,'$.Inicio')),@Fin time=TRY_CONVERT(time,JSON_VALUE(@Datos,'$.Fin')),
@@ -140,9 +140,17 @@ BEGIN
  END;
  IF @Accion='Grupo'
  BEGIN
-  IF @Seccion IS NULL OR NOT EXISTS(SELECT 1 FROM dbo.Pensum P JOIN dbo.PeriodoAcademico T ON T.AnioId=P.AnioId JOIN dbo.AnioLectivo A ON A.Id=P.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=P.ModalidadId WHERE P.Id=@Pensum AND T.Id=@Periodo AND T.Cerrado=0 AND A.Activo=1 AND M.Activo=1)
+  IF NOT EXISTS(SELECT 1 FROM dbo.Pensum P JOIN dbo.PeriodoAcademico T ON T.AnioId=P.AnioId JOIN dbo.AnioLectivo A ON A.Id=P.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=P.ModalidadId WHERE P.Id=@Pensum AND T.Id=@Periodo AND T.Cerrado=0 AND A.Activo=1 AND M.Activo=1)
   OR NOT EXISTS(SELECT 1 FROM dbo.PensumAsignatura WHERE PensumId=@Pensum)
   OR NOT EXISTS(SELECT 1 FROM dbo.Aula WHERE Id=@Aula AND Activo=1) OR NOT EXISTS(SELECT 1 FROM dbo.TurnoAcademico WHERE Id=@Turno AND Activo=1) THROW 52308,N'Revise período, pensum con materias, turno y aula activos.',1;
+  -- Bajo el bloqueo de planificación, asignar el primer nombre libre del plan y período.
+  DECLARE @NumeroGrupo int=1;
+  SET @Seccion=N'Grupo 1';
+  WHILE EXISTS(SELECT 1 FROM dbo.GrupoAcademico WHERE PensumId=@Pensum AND PeriodoId=@Periodo AND Seccion=@Seccion)
+  BEGIN
+   SET @NumeroGrupo+=1;
+   SET @Seccion=CONCAT(N'Grupo ',@NumeroGrupo);
+  END;
   INSERT dbo.GrupoAcademico(PensumId,PeriodoId,TurnoId,AulaId,Seccion) VALUES(@Pensum,@Periodo,@Turno,@Aula,@Seccion);SET @Resultado=CONVERT(int,SCOPE_IDENTITY());
  END;
  IF @Accion IN ('Docente','Estudiante')

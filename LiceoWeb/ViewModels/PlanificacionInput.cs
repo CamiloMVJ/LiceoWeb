@@ -38,7 +38,6 @@ public sealed class PlanificacionInput : IValidatableObject
  public int PeriodoId {get;set;}
  public int TurnoId {get;set;}
  public int AulaId {get;set;}
- [StringLength(30)] public string? Seccion {get;set;}
  public int GrupoId {get;set;}
  [StringLength(450)] public string? DocenteId {get;set;}
  public int AsignacionId {get;set;}
@@ -51,7 +50,7 @@ public sealed class PlanificacionInput : IValidatableObject
   bool valido=Accion switch {
    "Pensum"=>AnioId>0 && ModalidadId>0 && !string.IsNullOrWhiteSpace(Nivel),
    "Materia"=>PensumId>0 && AsignaturaId>0,
-   "Grupo"=>PensumId>0 && PeriodoId>0 && TurnoId>0 && AulaId>0 && !string.IsNullOrWhiteSpace(Seccion),
+   "Grupo"=>PensumId>0 && PeriodoId>0 && TurnoId>0 && AulaId>0,
    "Docente"=>GrupoId>0 && AsignaturaId>0 && !string.IsNullOrWhiteSpace(DocenteId),
    "Horario"=>AsignacionId>0 && Dia>=1 && Dia<=7 && Inicio is not null && Fin is not null && Fin>Inicio,
    "Estudiante"=>GrupoId>0 && !string.IsNullOrWhiteSpace(Registro),

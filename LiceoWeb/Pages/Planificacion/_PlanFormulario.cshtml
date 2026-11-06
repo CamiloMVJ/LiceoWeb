@@ -26,7 +26,7 @@
 <div class="col-md-6"><label asp-for="Input.PeriodoId" class="form-label">Período</label><select asp-for="Input.PeriodoId" asp-items='Model.Opciones("Periodos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.PeriodoId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.TurnoId" class="form-label">Turno</label><select asp-for="Input.TurnoId" asp-items='Model.Opciones("Turnos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.TurnoId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.AulaId" class="form-label">Aula</label><select asp-for="Input.AulaId" asp-items='Model.Opciones("Aulas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AulaId" class="text-danger"></span></div>
-<div class="col-md-6"><label asp-for="Input.Seccion" class="form-label">Sección</label><input asp-for="Input.Seccion" type="text" class="form-control" /><span asp-validation-for="Input.Seccion" class="text-danger"></span></div>
+<p class="text-muted">El sistema asignará el nombre del grupo automáticamente.</p>
 }
 @if(Model.Input.Accion=="Docente"){<input asp-for="Input.GrupoId" type="hidden" />
 <div class="col-md-6"><label asp-for="Input.AsignaturaId" class="form-label">Asignatura</label><select asp-for="Input.AsignaturaId" asp-items='Model.Opciones("Asignaturas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignaturaId" class="text-danger"></span></div>
