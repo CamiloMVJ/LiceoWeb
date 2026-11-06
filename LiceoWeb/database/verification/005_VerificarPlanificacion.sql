@@ -49,13 +49,22 @@ BEGIN TRY
  OR NOT EXISTS(SELECT 1 FROM dbo.HorarioClaseVigente WHERE AsignacionId=@Asignacion AND Dia=7 AND Inicio='08:15' AND Fin='09:05')
  OR (SELECT COUNT(*) FROM dbo.HorarioClaseVigente WHERE AsignacionId=@Asignacion)<>2
   THROW 52401,N'La reprogramación no conservó el historial y los bloques vigentes esperados.',1;
- SET @Json=JSON_MODIFY(JSON_MODIFY(@Json,'$.Inicio','09:30'),'$.Fin','10:30');
+ -- Mismo docente, pero otro grupo y otra aula: el único cruce es el del profesor.
+ DECLARE @OtroGrupo int,@OtraAula int,@OtraAsignacion int;
+ SELECT @OtroGrupo=Id FROM dbo.GrupoAcademico WHERE PensumId=@Pensum AND Seccion=N'Grupo 2';
+ INSERT dbo.Aula(Nombre,Ubicacion,Capacidad) VALUES(CONCAT(@Etiqueta,N'-B'),N'Prueba',20);
+ SET @OtraAula=CONVERT(int,SCOPE_IDENTITY());
+ UPDATE dbo.GrupoAcademico SET AulaId=@OtraAula WHERE Id=@OtroGrupo;
+ SET @Json=(SELECT 'Docente' Accion,@OtroGrupo GrupoId,@S AsignaturaId,@Docente DocenteId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ EXEC dbo.Planificacion_Guardar @Json,@Admin;
+ SELECT @OtraAsignacion=Id FROM dbo.AsignacionDocente WHERE GrupoId=@OtroGrupo;
+ SET @Json=(SELECT 'Horario' Accion,@OtraAsignacion AsignacionId,1 Dia,'09:30' Inicio,'10:30' Fin FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Planificacion_Guardar @Json,@Admin;
  THROW 52402,N'No se rechazó el cruce.',1;
 END TRY
 BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK;
- IF ERROR_NUMBER()=52313 SET @Esperado=1;ELSE THROW;
+ IF ERROR_NUMBER()=52313 AND ERROR_MESSAGE() LIKE N'El docente no está disponible:%' SET @Esperado=1;ELSE THROW;
 END CATCH;
 IF @Esperado<>1 OR (SELECT COUNT(*) FROM dbo.GrupoAcademico)<>@Antes THROW 52403,N'No se revirtió la prueba.',1;
-SELECT N'Correcto: planificación, horarios adyacentes y reprogramación; cruce rechazado y datos revertidos.' Resultado;
+SELECT N'Correcto: planificación, horarios adyacentes y reprogramación; cruce del mismo docente entre grupos rechazado y datos revertidos.' Resultado;

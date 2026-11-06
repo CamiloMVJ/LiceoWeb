@@ -17,7 +17,12 @@ public class CambiarModel(CambioPlanificacionRepository repository,UsuarioActual
  [BindProperty] public CambioPlanificacionInput Input {get;set;}=new();
  public DataSet Datos {get;private set;}=new();
  public DataRow? Origen=>Datos.Tables.Contains("Origen")&&Datos.Tables["Origen"]!.Rows.Count>0?Datos.Tables["Origen"]!.Rows[0]:null;
- public IEnumerable<SelectListItem> Destinos=>Datos.Tables.Contains("Destinos")?Datos.Tables["Destinos"]!.AsEnumerable().Select(r=>new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString())):[];
+ private IEnumerable<DataRow> FilasDestino => Datos.Tables["Destinos"] is { } tabla ? tabla.AsEnumerable() : [];
+ private static string? Conflicto(DataRow r) => r.Table.Columns.Contains("Conflicto") ? r.Field<string>("Conflicto") : null;
+ public IEnumerable<SelectListItem> Destinos => FilasDestino.Select(r => new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString()) { Disabled=Conflicto(r) is not null });
+ public IEnumerable<(string? Docente,string? Detalle)> DocentesOcupados => FilasDestino.Where(r=>Conflicto(r) is not null)
+  .Select(r=>(r["Etiqueta"].ToString(),Conflicto(r)));
+ public bool HayDestinoDisponible => Destinos.Any(d=>!d.Disabled);
  public async Task<IActionResult> OnGetAsync(string tipo,int origenId,string? registro)
  {
   if(tipo is not ("Docente" or "Estudiante")||origenId<=0||registro?.Length>10)return BadRequest();

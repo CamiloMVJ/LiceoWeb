@@ -174,8 +174,22 @@ BEGIN
   )) THROW 52312,N'El bloque ya no está vigente o no corresponde a esta clase. Recarga el horario.',1;
   SELECT @Grupo=G.Id,@Aula=G.AulaId,@Docente=D.UsuarioId,@Desde=P.Inicio,@Hasta=P.Fin FROM dbo.AsignacionDocente D JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId WHERE D.Id=@Asignacion AND P.Cerrado=0;
   IF @Desde IS NULL OR @Dia IS NULL OR @Dia NOT BETWEEN 1 AND 7 OR @Inicio IS NULL OR @Fin IS NULL OR @Fin<=@Inicio THROW 52312,N'Asignación u horario inválido.',1;
+  DECLARE @CruceDocenteHorario nvarchar(1000);
+  SELECT TOP(1) @CruceDocenteHorario=CONCAT(CHOOSE(X.Dia,N'lunes',N'martes',N'miércoles',N'jueves',N'viernes',N'sábado',N'domingo'),
+       N' ',CONVERT(char(5),X.Inicio,108),N'–',CONVERT(char(5),X.Fin,108),N' · ',S.Nombre,N' · ',N.Nivel,N' ',G.Seccion,N' · ',P.Nombre)
+   FROM dbo.HorarioClaseVigente X JOIN dbo.AsignacionDocente D ON D.Id=X.AsignacionId
+   JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId
+   JOIN dbo.Pensum N ON N.Id=G.PensumId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId
+   WHERE D.UsuarioId=@Docente AND X.Id<>@HorarioAnterior AND X.Dia=@Dia
+    AND X.Inicio<@Fin AND @Inicio<X.Fin AND P.Inicio<=@Hasta AND @Desde<=P.Fin
+   ORDER BY X.Inicio,X.Id;
+  IF @CruceDocenteHorario IS NOT NULL
+  BEGIN
+   DECLARE @MensajeCruceHorario nvarchar(2048)=CONCAT(N'El docente no está disponible: ya tiene clase el ',@CruceDocenteHorario,N'.');
+   THROW 52313,@MensajeCruceHorario,1;
+  END;
   IF EXISTS(SELECT 1 FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId
-   WHERE H.Id<>@HorarioAnterior AND H.Dia=@Dia AND H.Inicio<@Fin AND @Inicio<H.Fin AND P.Inicio<=@Hasta AND @Desde<=P.Fin AND (G.Id=@Grupo OR G.AulaId=@Aula OR D.UsuarioId=@Docente)) THROW 52313,N'El horario se cruza con otra clase del docente, aula o grupo.',1;
+   WHERE H.Id<>@HorarioAnterior AND H.Dia=@Dia AND H.Inicio<@Fin AND @Inicio<H.Fin AND P.Inicio<=@Hasta AND @Desde<=P.Fin AND (G.Id=@Grupo OR G.AulaId=@Aula)) THROW 52313,N'El horario se cruza con otra clase del aula o grupo.',1;
   -- La cancelación y el bloque nuevo comparten transacción y bloqueo.
   IF @HorarioAnterior>0
   BEGIN

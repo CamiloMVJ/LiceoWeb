@@ -41,10 +41,23 @@ BEGIN
    IF @Cerrado=1 OR EXISTS(SELECT 1 FROM dbo.PublicacionNotas WHERE AsignacionId=@OrigenId) THROW 54307,N'No se permite cambiar docente en períodos cerrados o asignaturas con publicaciones.',1;
    IF @AnteriorDocente=@DocenteId THROW 54302,N'Seleccione un docente diferente.',1;
    IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUsers U JOIN dbo.AspNetUserRoles UR ON UR.UserId=U.Id JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE U.Id=@DocenteId AND R.Name='Profesor' AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND U.EmailConfirmed=1 AND NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0)) THROW 54308,N'El destino debe ser una cuenta Profesor habilitada.',1;
-   IF EXISTS(SELECT 1 FROM dbo.HorarioClaseVigente H JOIN dbo.HorarioClaseVigente X ON X.AsignacionId<>H.AsignacionId AND X.Dia=H.Dia AND X.Inicio<H.Fin AND H.Inicio<X.Fin
-    JOIN dbo.AsignacionDocente D ON D.Id=X.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId JOIN dbo.PeriodoAcademico O ON O.Id=@Periodo
-    WHERE H.AsignacionId=@OrigenId AND D.UsuarioId=@DocenteId AND P.Inicio<=O.Fin AND O.Inicio<=P.Fin)
-    THROW 54309,N'El nuevo docente tiene un cruce de horario.',1;
+   DECLARE @CruceNuevoDocente nvarchar(1000);
+   SELECT TOP(1) @CruceNuevoDocente=CONCAT(CHOOSE(X.Dia,N'lunes',N'martes',N'miércoles',N'jueves',N'viernes',N'sábado',N'domingo'),
+       N' ',CONVERT(char(5),X.Inicio,108),N'–',CONVERT(char(5),X.Fin,108),N' · ',S.Nombre,N' · ',N.Nivel,N' ',G.Seccion,N' · ',P.Nombre)
+    FROM dbo.HorarioClaseVigente H JOIN dbo.HorarioClaseVigente X
+     ON X.AsignacionId<>H.AsignacionId AND X.Dia=H.Dia AND X.Inicio<H.Fin AND H.Inicio<X.Fin
+    JOIN dbo.AsignacionDocente D ON D.Id=X.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId
+    JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId JOIN dbo.Pensum N ON N.Id=G.PensumId
+    JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId
+    JOIN dbo.AsignacionDocente A ON A.Id=H.AsignacionId JOIN dbo.GrupoAcademico GA ON GA.Id=A.GrupoId
+    JOIN dbo.PeriodoAcademico O ON O.Id=GA.PeriodoId
+    WHERE H.AsignacionId=@OrigenId AND D.UsuarioId=@DocenteId AND P.Inicio<=O.Fin AND O.Inicio<=P.Fin
+    ORDER BY X.Dia,X.Inicio,X.Id;
+   IF @CruceNuevoDocente IS NOT NULL
+   BEGIN
+    DECLARE @MensajeCruceDocente nvarchar(2048)=CONCAT(N'No se puede asignar al docente: ya tiene clase el ',@CruceNuevoDocente,N'.');
+    THROW 54309,@MensajeCruceDocente,1;
+   END;
    SELECT @Antes=(SELECT D.Id AsignacionId,D.GrupoId,S.Nombre Asignatura,G.Seccion,D.UsuarioId DocenteId,U.UserName Docente,P.Nombre Periodo,Y.Anio
     FROM dbo.AsignacionDocente D JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId
     JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId WHERE D.Id=@OrigenId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);

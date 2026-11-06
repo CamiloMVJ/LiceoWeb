@@ -11,7 +11,15 @@
  @if(Model.Input.Tipo=="Docente")
  {
   <label asp-for="Input.DocenteId" class="form-label">Nuevo docente</label><select asp-for="Input.DocenteId" asp-items="Model.Destinos" class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.DocenteId" class="text-danger"></span>
-  <p class="text-muted">Se comprobarán los cruces de horario. Las notas existentes conservan su autoría. No se permite cambiar si el período está cerrado o la asignatura tiene publicaciones.</p>
+  @if(Model.DocentesOcupados.Any())
+  {
+   <div class="alert alert-warning mt-3">
+    <p class="mb-1"><strong>Docentes no disponibles para este horario</strong></p>
+    <ul class="mb-0">@foreach(var ocupado in Model.DocentesOcupados){<li><strong>@ocupado.Docente:</strong> @ocupado.Detalle</li>}</ul>
+   </div>
+  }
+  @if(!Model.HayDestinoDisponible){<p role="status">No hay docentes disponibles para el cambio.</p>}
+  <p class="text-muted">Si la clase aún no tiene horario, la disponibilidad se comprobará al agregar sus bloques. Las notas existentes conservan su autoría. No se permite cambiar si el período está cerrado o la asignatura tiene publicaciones.</p>
  }
  else
  {
@@ -19,7 +27,7 @@
   <p class="text-muted">Solo grupos del mismo pensum y período. El cupo se confirma al guardar. No se permite si el estudiante tiene registros de calificaciones o alguno de los grupos tiene publicaciones. Se conserva su matrícula y sus cargos.</p>
  }
  <label asp-for="Input.Motivo" class="form-label">Motivo</label><textarea asp-for="Input.Motivo" class="form-control" rows="3" maxlength="500" aria-describedby="motivo-ayuda"></textarea><span asp-validation-for="Input.Motivo" class="text-danger"></span>
- <p id="motivo-ayuda" class="text-muted">Entre 10 y 500 caracteres.</p><button class="btn btn-liceo-primary">Confirmar cambio</button>
+ <p id="motivo-ayuda" class="text-muted">Entre 10 y 500 caracteres.</p><button class="btn btn-liceo-primary" disabled="@(Model.Input.Tipo=="Docente" && !Model.HayDestinoDisponible)">Confirmar cambio</button>
  </form>
 }
 <div class="d-flex flex-wrap gap-2 mt-3"><a href="@Model.Volver" class="btn btn-liceo-secondary">Volver al grupo</a><a asp-page="HistorialCambios" class="btn btn-liceo-secondary">Historial de cambios</a></div>
