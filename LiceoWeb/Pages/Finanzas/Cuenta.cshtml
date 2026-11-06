@@ -3,10 +3,10 @@
 @using System.Data
 @{ ViewData["Title"] = "Estado de cuenta y cobros"; }
 <h1>Estado de cuenta y cobros</h1>
-<p>Consulta por código de estudiante. Los importes están expresados en córdobas (C$).</p>
+<p>Busca por nombre o código para ver los cargos pendientes, registrar un pago y emitir el recibo. Los importes se muestran en córdobas (C$).</p>
 <form method="get" class="d-flex gap-2 mb-3">
     <label for="registro" class="visually-hidden">Buscar estudiante por nombre</label>
-    <input data-buscar-estudiante id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" required class="form-control" placeholder="Código del estudiante" />
+    <input data-buscar-estudiante id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" required class="form-control" placeholder="Nombre o código del estudiante" />
     <button class="btn btn-liceo-primary">Consultar</button>
 </form>
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
@@ -50,6 +50,17 @@
         </form>
         @if (Model.CargoPagina > 1) { <a asp-page="Cuenta" asp-route-registro="@Model.Input.Registro" asp-route-cargoPagina="@(Model.CargoPagina-1)">Cargos anteriores</a> }
         @if (Model.MasCargos) { <a asp-page="Cuenta" asp-route-registro="@Model.Input.Registro" asp-route-cargoPagina="@(Model.CargoPagina+1)">Siguientes 50 cargos</a> }
+    }
+    @if (Model.Migrado && Model.Input.Aplicaciones.Count == 0)
+    {
+        if (Model.Deuda == 0)
+        {
+            <div class="alert alert-info" role="status">Este estudiante no tiene cargos pendientes para cobrar. Si falta un cargo, debe generarlo un administrador.</div>
+        }
+        else
+        {
+            <div class="alert alert-info" role="status">No hay cargos pendientes en esta página. <a asp-page="Cuenta" asp-route-registro="@Model.Input.Registro">Volver a los primeros cargos pendientes</a>.</div>
+        }
     }
     <h3>Recibos del libro nuevo</h3>
     <div class="table-responsive"><table class="table"><thead><tr><th>Número</th><th>Estado</th><th>Fecha (UTC)</th><th>Método</th><th>Dinero neto</th><th>Saldo utilizado</th><th>Aplicado a deuda</th></tr></thead><tbody>

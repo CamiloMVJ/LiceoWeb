@@ -1,64 +1,29 @@
-﻿# Permisos de LiceoWeb
+# Permisos de LiceoWeb
 
-## Roles
+Los nombres de roles de Identity son `Administrador`, `Cajero` y `Profesor`. Los tres pueden entrar al panel interno. La portada y el inicio de sesión son públicos.
 
-- Administrador
-- Cajero
+| Pantalla o acción | Administrador | Cajero | Profesor |
+| --- | --- | --- | --- |
+| Listado y búsqueda de estudiantes | Sí | Sí | No |
+| Crear, actualizar o dar de baja expedientes | Sí | No | No |
+| Consultar cuenta, cobrar y abrir recibos | Sí | Sí | No |
+| Generar cargos individuales y globales | Sí | No | No |
+| Aranceles, conciliación, reportes, anulación de recibos | Sí | No | No |
+| Organización académica, catálogos, inscripción a grupos | Sí | No | No |
+| Calificaciones | Todas las asignaciones | No | Sus asignaciones |
+| Mi horario | Su propio horario por URL directa | No | Su propio horario |
+| Tipos de evaluación, cierre e historial académico | Sí | No | No |
+| Cuentas del personal | Sí | No | No |
 
-Los nombres deben utilizarse exactamente así en el código
-y al asignar roles mediante Identity.
+Las pantallas antiguas de cobros, mensualidades, matrículas y recibos admiten Administrador y Cajero solo mientras esté abierto el libro anterior. Las de precios, arreglos y reportes antiguos son exclusivas del Administrador y también se cierran al aplicar el corte. Los GET antiguos redirigen al aviso del libro anterior después del corte; los POST se bloquean.
 
-## Políticas
+## Cobrar como cajero
 
-OperarSistema:
-- Requiere una sesión.
-- Requiere el rol Administrador o Cajero.
+1. En el menú o panel elige **Cobrar a estudiante**. También puedes entrar al listado y pulsar **Ver cuenta y cobrar** junto al estudiante.
+2. Consulta la cuenta. Para registrar un pago en el libro nuevo se requiere corte aplicado y al menos un cargo pendiente.
+3. Indica pagador, método y monto a aplicar. Confirma el cobro y abre el recibo.
+4. Si falta una obligación, solicita al Administrador que la genere en **Generar cargos**.
 
-SoloAdministrador:
-- Requiere una sesión.
-- Requiere el rol Administrador.
+La política `GestionFinanciera` protege la cuenta y los recibos; SQL comprueba el rol también. Las páginas de administración requieren `SoloAdministrador`. Ocultar una opción del menú no sustituye estas validaciones.
 
-## Distribución de acceso
-
-| Función | Administrador | Cajero |
-|---------|-----------|---| ------ |
-| Inicio del sistema | Sí | Sí |
-| Registrar estudiantes | Sí | Sí |
-| Consultar estudiantes | Sí | Sí |
-| Editar estudiantes | Sí | No |
-| Dar de baja estudiantes | Sí | No |
-| Matricular | Sí | Sí |
-| Registrar cobros | Sí | Sí |
-| Consultar deudas y saldos | Sí | Sí |
-| Consultar e imprimir recibos | Sí | Sí |
-| Modificar precios | Sí | No |
-| Crear y consultar arreglos | Sí | No |
-| Consultar reportes administrativos | Sí | No |
-
-## Rutas administrativas
-
-- /Precios y sus páginas.
-- /Arreglos y sus páginas.
-- /Reportes y sus páginas.
-- /Estudiantes/Editar.
-- /Estudiantes/DarBaja.
-
-Si cambia el nombre de una página, debe actualizarse su protección.
-
-## Reglas de implementación
-
-- Ocultar enlaces no reemplaza la autorización en el servidor.
-- Las páginas del negocio requieren un rol autorizado.
-- Las páginas de acceso de Identity deben permitir iniciar sesión.
-- No se permite seleccionar un rol desde un formulario público.
-- El usuario responsable de una operación se obtiene de la sesión.
-- Las cuentas y asignaciones de roles se provisionan en el paso 6.
-- Nuevas APIs o endpoints necesitan su propia autorización:
-  las convenciones de Razor Pages no los protegen automáticamente.
-
-## Pruebas pendientes con cuentas
-
-- Administrador puede operar y entrar a funciones administrativas.
-- Cajero puede operar, pero no entra a funciones administrativas.
-- Un usuario autenticado sin rol no puede operar.
-- Un visitante sin sesión es enviado al inicio de sesión.
+Para verificar en una copia de desarrollo: ingresar con una cuenta de cada rol; revisar el menú y probar acceso directo a `/Finanzas/Cuenta`, `/Finanzas/Cargos` y `/Planificacion`. En Cajero probar la cuenta con y sin deuda, y registrar un pago de prueba sobre un cargo pendiente.

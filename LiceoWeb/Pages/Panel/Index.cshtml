@@ -11,8 +11,8 @@
     <div class="ui-module-grid">
     @if (User.IsInRole("Administrador") || User.IsInRole("Cajero"))
     {
-        <a class="ui-module" asp-page="/Estudiantes/Index"><p class="ui-kicker">Estudiantes</p><h2>Expedientes y matrícula</h2><p>Consulta alumnos, actualiza sus datos y revisa su información.</p><span>Abrir estudiantes →</span></a>
-        <a class="ui-module" asp-page="/Finanzas/Cuenta"><p class="ui-kicker">Finanzas</p><h2>Estado de cuenta y cobros</h2><p>Revisa los cargos de un estudiante, registra pagos y consulta recibos.</p><span>Abrir cuentas →</span></a>
+        <a class="ui-module" asp-page="/Estudiantes/Index"><p class="ui-kicker">Estudiantes</p><h2>Expedientes y matrícula</h2><p>Consulta estudiantes y abre su cuenta para cobrar.</p><span>Abrir estudiantes →</span></a>
+        <a class="ui-module" asp-page="/Finanzas/Cuenta"><p class="ui-kicker">Finanzas</p><h2>Cobrar a estudiante</h2><p>Revisa los cargos de un estudiante, registra pagos y consulta recibos.</p><span>Buscar estudiante →</span></a>
     }
     @if (User.IsInRole("Administrador"))
     {
