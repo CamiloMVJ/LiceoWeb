@@ -7,9 +7,16 @@
 @if (Model.Cargado)
 {
     var r = Model.Datos.Tables["Recibo"]!.Rows[0];
+    var anticipo = r.Table.Columns.Contains("Anticipo") ? r.Field<decimal>("Anticipo") : 0m;
     <h2>@r["Numero"] · @r["NombreEstudiante"]</h2><p>Pagador original: @r["Pagador"] · Método original: @r["Metodo"]</p>
     @if (Model.Anulado)
     { <div class="alert alert-info">Este recibo ya está anulado. No vuelvas a devolver el dinero ni a restituir saldo.</div> }
+    else if (anticipo > 0)
+    {
+        <div class="alert alert-warning">Anular el anticipo devuelve C$ @anticipo.ToString("N2") y retira ese importe del saldo a favor. No reabre deuda.</div>
+        @if (!Model.PuedeAnular)
+        { <p class="text-danger">El saldo disponible no cubre la devolución. No devuelvas dinero con este formulario.</p> }
+    }
     else
     {
         <div class="alert alert-warning">Esta acción anula el recibo completo y vuelve a dejar pendientes sus importes. Conserva el documento original y añade la devolución al historial. No se puede deshacer desde esta pantalla.</div>
@@ -31,8 +38,8 @@
         <label asp-for="Input.Motivo">Motivo de la anulación</label><textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea>
         <label asp-for="Input.Receptor">Persona que recibió la devolución o titular del saldo restituido</label><input asp-for="Input.Receptor" class="form-control mb-3" maxlength="200" required />
         <label asp-for="Input.ReferenciaDevolucion">Referencia bancaria, comprobante de entrega o constancia de restitución</label><input asp-for="Input.ReferenciaDevolucion" class="form-control mb-3" maxlength="100" required />
-        <div class="form-check mb-3"><input asp-for="Input.Confirmado" class="form-check-input" /><label asp-for="Input.Confirmado" class="form-check-label">Confirmo que la devolución de dinero indicada ya fue realizada y documentada, o que no corresponde entregar dinero si fue solo saldo. Entiendo que se reabrirá la deuda y se restituirá el saldo utilizado.</label></div>
-        <button class="btn btn-danger align-self-start" disabled="@(!Model.Cargado)">Confirmar anulación completa</button>
+        <div class="form-check mb-3"><input asp-for="Input.Confirmado" class="form-check-input" /><label asp-for="Input.Confirmado" class="form-check-label">Confirmo que la devolución de dinero indicada ya fue realizada y documentada, o que no corresponde entregar dinero si fue solo saldo. Entiendo que se ajustarán la deuda o el saldo según el tipo de recibo.</label></div>
+        <button class="btn btn-danger align-self-start" disabled="@(!Model.PuedeAnular)">Confirmar anulación completa</button>
         <small class="text-muted mt-2">Operación: @Model.Input.Operacion. Si ocurre un error, consulta el recibo y conserva esta operación. No repitas la entrega del dinero.</small>
     </form>
 }

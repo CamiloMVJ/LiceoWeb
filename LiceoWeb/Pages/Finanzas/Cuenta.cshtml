@@ -21,6 +21,8 @@
         <div class="col-sm-6"><div class="card card-body">Saldo a favor disponible <strong>C$ @(((decimal)resumen["SaldoFavor"]).ToString("N2"))</strong></div></div>
     </div>
     @if (User.IsInRole("Administrador")) { <a asp-page="Cargos" asp-route-registro="@Model.Input.Registro" class="btn btn-outline-secondary mb-3">Generar cargo</a> }
+    @if (Model.Migrado)
+    { <a asp-page="Anticipo" asp-route-registro="@Model.Input.Registro" class="btn btn-liceo-secondary mb-3">Registrar anticipo</a> }
     <h3>Cargos del estudiante</h3>
     <div class="table-responsive"><table class="table"><thead><tr><th>Concepto</th><th>Vencimiento</th><th>Importe</th><th>Aplicado</th><th>Pendiente</th></tr></thead><tbody>
     @foreach (DataRow r in Model.Datos.Tables["Cargos"]!.Rows)
@@ -63,9 +65,9 @@
         }
     }
     <h3>Recibos del libro nuevo</h3>
-    <div class="table-responsive"><table class="table"><thead><tr><th>Número</th><th>Estado</th><th>Fecha (UTC)</th><th>Método</th><th>Dinero neto</th><th>Saldo utilizado</th><th>Aplicado a deuda</th></tr></thead><tbody>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Número</th><th>Estado</th><th>Fecha (UTC)</th><th>Método</th><th>Dinero neto</th><th>Saldo utilizado</th><th>Aplicado a deuda</th><th>Anticipo</th></tr></thead><tbody>
     @foreach (DataRow r in Model.Datos.Tables["Recibos"]!.Rows)
-    { <tr><td><a asp-page="Recibo" asp-route-id="@r["Id"]">@r["Numero"]</a></td><td>@((bool)r["Anulado"] ? "Anulado" : "Vigente")</td><td>@(((DateTime)r["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</td><td>@r["Metodo"]</td><td>@(((decimal)r["Recibido"]-(decimal)r["Cambio"]-(decimal)r["DineroDevuelto"]).ToString("N2"))</td><td>@(((decimal)r["SaldoAplicado"]-(decimal)r["SaldoRestituido"]).ToString("N2"))</td><td>@(((bool)r["Anulado"] ? 0m : (decimal)r["TotalAplicado"]).ToString("N2"))</td></tr> }
+    { <tr><td><a asp-page="Recibo" asp-route-id="@r["Id"]">@r["Numero"]</a></td><td>@((bool)r["Anulado"] ? "Anulado" : "Vigente")</td><td>@(((DateTime)r["Fecha"]).ToString("dd/MM/yyyy HH:mm"))</td><td>@r["Metodo"]</td><td>@(((decimal)r["Recibido"]-(decimal)r["Cambio"]-(decimal)r["DineroDevuelto"]).ToString("N2"))</td><td>@(((decimal)r["SaldoAplicado"]-(decimal)r["SaldoRestituido"]).ToString("N2"))</td><td>@(((bool)r["Anulado"] ? 0m : (decimal)r["TotalAplicado"]).ToString("N2"))</td><td>@((r.Table.Columns.Contains("Anticipo") ? r.Field<decimal>("Anticipo") : 0m).ToString("N2"))</td></tr> }
     </tbody></table></div>
     <details><summary>Pagos históricos del libro anterior</summary><p>Referencia documental: no se suman otra vez al saldo ni a los ingresos del libro nuevo.</p>
     <table class="table"><thead><tr><th>Comprobante</th><th>Fecha</th><th>Concepto</th><th>Monto registrado</th></tr></thead><tbody>

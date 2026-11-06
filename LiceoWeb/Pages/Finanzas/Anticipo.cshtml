@@ -1,0 +1,27 @@
+@page
+@model LiceoWeb.Pages.Finanzas.AnticipoModel
+@{ ViewData["Title"] = "Registrar anticipo"; }
+<div class="liceo-page-heading">
+    <h1>Registrar anticipo</h1>
+    <p>Registra dinero ya recibido. El importe queda como saldo a favor para usarlo en un cobro posterior.</p>
+</div>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (Model.Estudiante is not null)
+{
+    <div class="liceo-card mb-3"><strong>@Model.Estudiante</strong> · @Model.Input.Registro<br />
+    Saldo disponible: <strong>C$ @Model.Saldo.ToString("N2")</strong></div>
+}
+@if (Model.Habilitado)
+{
+    <form method="post" class="liceo-card mb-3">
+        <input asp-for="Input.Registro" type="hidden" /><input asp-for="Input.Operacion" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-6"><label asp-for="Input.Pagador" class="form-label">Nombre de quien paga</label><input asp-for="Input.Pagador" class="form-control" required maxlength="200" /></div>
+            <div class="col-md-6"><label asp-for="Input.Importe" class="form-label">Importe recibido (C$)</label><input asp-for="Input.Importe" type="number" min="0.01" step="0.01" class="form-control" required /></div>
+            <div class="col-md-6"><label asp-for="Input.Metodo" class="form-label">Método</label><select asp-for="Input.Metodo" class="form-select"><option>Efectivo</option><option>Transferencia</option></select></div>
+            <div class="col-md-6"><label asp-for="Input.Referencia" class="form-label">Referencia (obligatoria para transferencia)</label><input asp-for="Input.Referencia" class="form-control" maxlength="100" /></div>
+        </div>
+        <button class="btn btn-liceo-primary mt-3">Acreditar saldo y emitir recibo</button>
+    </form>
+}
+<a asp-page="Cuenta" asp-route-registro="@Model.Input.Registro" class="btn btn-liceo-secondary">Volver a la cuenta</a>

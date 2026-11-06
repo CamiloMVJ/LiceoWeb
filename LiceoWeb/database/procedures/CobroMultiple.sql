@@ -74,7 +74,7 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM dbo.Estudiantes WHERE Registro=@Registro) THROW 53502,N'Estudiante inexistente.',1;
  SELECT E.Registro,E.NombreEstudiante,ISNULL(S.Disponible,0) SaldoFavor,CONVERT(bit,ISNULL((SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1),0)) Migrado FROM dbo.Estudiantes E LEFT JOIN dbo.SaldoFinanciero S ON S.Registro=E.Registro WHERE E.Registro=@Registro;
  SELECT C.Id,C.DescripcionHistorica,C.Vencimiento,C.Importe,ISNULL(A.Pagado,0) Pagado,C.Importe-ISNULL(A.Pagado,0) Pendiente FROM dbo.CargoEstudiante C OUTER APPLY(SELECT SUM(Importe) Pagado FROM dbo.AplicacionPagoVigente WHERE CargoId=C.Id) A WHERE C.Registro=@Registro AND C.Anulado=0 ORDER BY C.Id;
- SELECT R.Id,R.Numero,R.Fecha,R.Metodo,R.Recibido,R.Cambio,R.SaldoAplicado,R.TotalAplicado,
+ SELECT R.Id,R.Numero,R.Fecha,R.Metodo,R.Recibido,R.Cambio,R.SaldoAplicado,R.TotalAplicado,R.Anticipo,
  CONVERT(bit,CASE WHEN X.Id IS NULL THEN 0 ELSE 1 END) Anulado,ISNULL(X.DineroDevuelto,0) DineroDevuelto,ISNULL(X.SaldoRestituido,0) SaldoRestituido
  FROM dbo.ReciboMultiple R LEFT JOIN dbo.AnulacionRecibo X ON X.ReciboId=R.Id WHERE R.Registro=@Registro ORDER BY R.Id DESC;
  -- Solo referencia histórica. NO sumarla a ingresos ni deuda del libro nuevo.
@@ -98,7 +98,7 @@ BEGIN
  EXEC @Lock=sys.sp_getapplock @Resource='Liceo.Finanzas.Configuracion',@LockMode='Shared',@LockOwner='Transaction',@LockTimeout=10000;
  IF @Lock<0 THROW 53503,N'Finanzas está ocupado.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.ReciboMultiple WHERE Id=@Id) THROW 53504,N'Recibo inexistente.',1;
- SELECT R.*,U.UserName Responsable FROM dbo.ReciboMultiple R JOIN dbo.AspNetUsers U ON U.Id=R.UsuarioId WHERE R.Id=@Id;
+ SELECT R.*,U.UserName Responsable,ISNULL(S.Disponible,0) SaldoDisponibleActual FROM dbo.ReciboMultiple R JOIN dbo.AspNetUsers U ON U.Id=R.UsuarioId LEFT JOIN dbo.SaldoFinanciero S ON S.Registro=R.Registro WHERE R.Id=@Id;
  SELECT CargoId,DescripcionHistorica,Importe FROM dbo.AplicacionPago WHERE ReciboId=@Id ORDER BY CargoId;
  SELECT X.*,U.UserName Responsable FROM dbo.AnulacionRecibo X JOIN dbo.AspNetUsers U ON U.Id=X.UsuarioId WHERE X.ReciboId=@Id;
  COMMIT;

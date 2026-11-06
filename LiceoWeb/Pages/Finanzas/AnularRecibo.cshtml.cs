@@ -22,12 +22,15 @@ public class AnularReciboModel(SqlConnectionFactory factory, UsuarioActual usuar
         public IEnumerable<ValidationResult> Validate(ValidationContext context)
         {
             if (Operacion == Guid.Empty) yield return new("Falta la operación. Abre nuevamente el formulario.");
-            if (!Confirmado) yield return new("Confirma la devolución documentada y la reapertura de la deuda.");
+            if (!Confirmado) yield return new("Confirma la devolución documentada y el ajuste correspondiente.");
         }
     }
     [BindProperty] public AnulacionInput Input { get; set; } = new();
     public DataSet Datos { get; private set; } = new();
     public bool Cargado => Datos.Tables.Contains("Anulacion");
+    public bool PuedeAnular => Cargado && !Anulado && (Datos.Tables["Recibo"]!.Rows[0] is var r) &&
+        (!r.Table.Columns.Contains("Anticipo") || (decimal)r["Anticipo"] == 0 ||
+         (r.Table.Columns.Contains("SaldoDisponibleActual") && (decimal)r["SaldoDisponibleActual"] >= (decimal)r["Anticipo"]));
     public bool Anulado => Cargado && Datos.Tables["Anulacion"]!.Rows.Count > 0;
     private async Task CargarAsync()
     {
