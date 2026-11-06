@@ -40,8 +40,8 @@ Si la base todavía devuelve el contrato anterior, las pantallas muestran un men
 
 ### 2. Plan de estudios
 
-- Elegir el año arriba y seleccionar un grado.
-- La modalidad se resuelve en servidor a partir del grado; debe existir activa en el catálogo.
+- Elegir el año arriba, seleccionar la modalidad y luego uno de sus grados.
+- Solo aparecen modalidades escolares activas y sus grados correspondientes. El servidor rechaza combinaciones incompatibles.
 - Guardar y continuar selecciona el plan recién creado y abre sus materias.
 - Si el plan ya existe, elegirlo en el selector superior y continuar. No crear otro para cada sección.
 

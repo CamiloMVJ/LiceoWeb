@@ -29,11 +29,14 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
     public string Siguiente => Acciones[Math.Min(Array.IndexOf(Acciones, Input.Accion) + 1, Acciones.Length - 1)];
     public string Enlace(string accion, string? catalogo = null, int id = 0) => Url.Page("/Planificacion/Index", new { accion, anio = Anio, pensum = Pensum, grupo = Grupo, catalogo, id })!;
     public IEnumerable<SelectListItem> Opciones(string tabla) => (tabla == "Asignaturas" ? Contexto.MateriasDisponibles(Input.Accion) : Contexto.Opciones(tabla)).Select(r => new SelectListItem(r["Etiqueta"].ToString(), r["Id"].ToString()));
+    public IEnumerable<DataRow> ModalidadesEscolares => Contexto.Activos("Modalidades").Where(r =>
+        GradosEscolares.Opciones.Any(g => string.Equals(g.Modalidad, r.Field<string>("Nombre"), StringComparison.OrdinalIgnoreCase)));
+    public string? ModalidadSeleccionada => ModalidadesEscolares.FirstOrDefault(r => r.Field<int>("Id") == Input.ModalidadId)?.Field<string>("Nombre");
     public string? Pendiente => Input.Accion switch
     {
         "Base" => null,
         _ when Anio == 0 => "Selecciona un año activo o créalo en Preparar año.",
-        "Pensum" when !Contexto.Activos("Modalidades").Any() => "Agrega una modalidad antes de crear el plan.",
+        "Pensum" when !ModalidadesEscolares.Any() => "Agrega una modalidad activa: Preescolar, Primaria o Secundaria.",
         "Pensum" => null,
         _ when Pensum == 0 => "Selecciona un plan de estudios o créalo en el paso 2.",
         "Materia" when Contexto.Filas("Grupos").Any(r => r.Field<int>("PensumId") == Pensum) => "Este plan ya tiene grupos y conserva sus materias históricas. Para un plan diferente crea otro antes de abrir sus grupos.",
@@ -96,9 +99,9 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
         Input.AnioId = Anio; Input.PensumId = Pensum; Input.GrupoId = Grupo;
         if (Input.Accion == "Pensum")
         {
-            var modalidad = GradosEscolares.ModalidadDe(Input.Nivel);
-            Input.ModalidadId = Contexto.Activos("Modalidades").FirstOrDefault(r => string.Equals(r.Field<string>("Nombre"), modalidad, StringComparison.OrdinalIgnoreCase))?.Field<int>("Id") ?? 0;
-            if (Input.ModalidadId == 0) ModelState.AddModelError("", "El grado requiere una modalidad activa con su nombre correspondiente (Preescolar, Primaria o Secundaria). Agrégala desde este paso.");
+            var modalidad = ModalidadSeleccionada;
+            if (modalidad is null || !string.Equals(GradosEscolares.ModalidadDe(Input.Nivel), modalidad, StringComparison.OrdinalIgnoreCase))
+                ModelState.AddModelError("Input.Nivel", "Selecciona un grado que corresponda a la modalidad activa elegida.");
         }
         if (Pendiente is not null) ModelState.AddModelError("", Pendiente);
         if (Input.Accion == "Horario" && !Contexto.Opciones("Asignaciones").Any(r => r.Field<int>("Id") == Input.AsignacionId)) ModelState.AddModelError("", "Selecciona una clase activa del grupo actual.");
