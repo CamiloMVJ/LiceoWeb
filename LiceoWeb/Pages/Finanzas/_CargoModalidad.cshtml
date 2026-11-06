@@ -1,0 +1,74 @@
+@using System.Data
+@model LiceoWeb.Pages.Finanzas.CargosModel
+@if (Model.Cargado)
+{
+    var tarifas = Model.Datos.Tables["Tarifas"]!.AsEnumerable();
+    var modalidades = tarifas.Select(t=>t.Field<string>("Modalidad")).Distinct().Order().ToList();
+    var opciones = tarifas.Where(t=>t.Field<string>("Modalidad")==Model.Modalidad);
+    <section class="liceo-card mb-3">
+        <h2 class="h4">1. Selecciona la modalidad</h2>
+        <p>El cargo se propone a todos los estudiantes <strong>activos</strong> de la modalidad del expediente. El año de la tarifa identifica la obligación; la selección global no matricula a los estudiantes.</p>
+        @if (modalidades.Count == 0)
+        { <p role="status">No hay modalidades con una tarifa lista para usar. Revisa los pasos de Preparación.</p> }
+        else
+        {
+            <form method="get" asp-page="Cargos" class="d-flex flex-wrap gap-2 align-items-end">
+                <input type="hidden" name="global" value="true" />
+                <div><label class="form-label" for="modalidad-global">Modalidad con tarifa disponible</label>
+                <select name="modalidad" id="modalidad-global" class="form-select" required>
+                    <option value="">Seleccionar</option>
+                    @foreach (var modalidad in modalidades){<option value="@modalidad" selected="@(Model.Modalidad==modalidad)">@modalidad</option>}
+                </select></div>
+                <button class="btn btn-liceo-secondary">Ver tarifas</button>
+            </form>
+        }
+    </section>
+    @if (opciones.Any())
+    {
+        <section class="liceo-card mb-3">
+            <h2 class="h4">2. Elige la tarifa de @Model.Modalidad</h2>
+            <ul>
+            @foreach(var t in opciones)
+            {
+                <li class="mb-2"><a asp-page="Cargos" asp-route-global="true" asp-route-modalidad="@Model.Modalidad" asp-route-tarifaId="@t["Id"]">@t["Nombre"] · @t["Anio"] · @t["Periodicidad"] · C$ @(t.Field<decimal>("Importe").ToString("N2"))</a></li>
+            }
+            </ul>
+        </section>
+    }
+    @if (Model.Migrado && Model.ProblemaVersion is null && Model.Tarifa is {} tarifa && tarifa.Field<string>("Modalidad")==Model.Modalidad)
+    {
+        <form asp-page="Cargos" asp-page-handler="Global" method="post" class="liceo-card mb-3">
+            <input asp-for="Global.TarifaId" type="hidden" />
+            <input asp-for="Global.VersionTarifa" type="hidden" />
+            <h2 class="h4">3. Revisa el cargo global</h2>
+            <p><strong>@tarifa["Nombre"] · @tarifa["Anio"] · @tarifa["Modalidad"]</strong> — C$ @(tarifa.Field<decimal>("Importe").ToString("N2")) por estudiante.</p>
+            @if (Model.ResumenGlobal is {} resumen)
+            {
+                <input asp-for="Global.Huella" type="hidden" /><input asp-for="Global.Mes" type="hidden" /><input asp-for="Global.Evento" type="hidden" /><input asp-for="Global.Vencimiento" type="hidden" asp-format="{0:yyyy-MM-dd}" />
+                @if(Model.Global.Mes is {} mes){<p>Mes: @mes</p>}
+                @if(Model.Global.Evento is {} evento){<p>Evento: @evento</p>}
+                @if(Model.Global.Vencimiento is {} fecha){<p>Vencimiento: @fecha.ToString("dd/MM/yyyy")</p>}
+                <p role="status"><strong>@resumen["Pendientes"] cargos nuevos</strong> · @resumen["Omitidos"] omitidos · Total: <strong>C$ @(resumen.Field<decimal>("Total").ToString("N2"))</strong></p>
+                <details class="mb-3"><summary>Ver estudiantes y motivo de omisión</summary>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Estudiante</th><th>Código</th><th>Resultado previsto</th></tr></thead><tbody>
+                @foreach(DataRow e in Model.Destinatarios!.Rows){<tr><td>@e["NombreEstudiante"]</td><td>@e["Registro"]</td><td>@(e.IsNull("Motivo")?"Generar cargo":e["Motivo"])</td></tr>}
+                </tbody></table></div></details>
+                <p>La confirmación deja deuda pendiente; no cobra dinero ni emite recibos.</p>
+                @if(resumen.Field<int>("Pendientes")>0){<button class="btn btn-liceo-primary" name="aplicar" value="true">Confirmar cargos de @Model.Modalidad</button>}
+                <a asp-page="Cargos" asp-route-global="true" asp-route-modalidad="@Model.Modalidad" asp-route-tarifaId="@Model.Global.TarifaId" class="btn btn-liceo-secondary">Cambiar datos</a>
+            }
+            else
+            {
+                @if(tarifa.Field<string>("Periodicidad")=="Mensual"){
+                    <label asp-for="Global.Mes" class="form-label">Mes de la obligación</label>
+                    <select asp-for="Global.Mes" class="form-select mb-3" required><option value="">Seleccionar</option>@for(var i=1;i<=12;i++){<option value="@i">@i</option>}</select>
+                }
+                @if(tarifa.Field<string>("Periodicidad")=="Eventual"){
+                    <label asp-for="Global.Evento" class="form-label">Código único del evento</label><input asp-for="Global.Evento" class="form-control mb-3" maxlength="30" required />
+                }
+                <label asp-for="Global.Vencimiento" class="form-label">Vencimiento (opcional)</label><input asp-for="Global.Vencimiento" type="date" class="form-control mb-3" />
+                <button class="btn btn-liceo-primary">Ver vista previa</button>
+            }
+        </form>
+    }
+}

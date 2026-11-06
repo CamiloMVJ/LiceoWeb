@@ -30,11 +30,32 @@ public class CargosModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
             if (Mes.HasValue && !string.IsNullOrEmpty(Evento)) yield return new("Un cargo no puede indicar mes y evento a la vez.");
         }
     }
-    [BindProperty] public CargoInput Input { get; set; } = new();
+    public CargoInput Input { get; set; } = new();
+    public sealed class CargoModalidadInput
+    {
+        [Range(1,int.MaxValue)] public int TarifaId {get;set;}
+        [Required,RegularExpression("^0x[0-9A-Fa-f]{16}$")] public string VersionTarifa {get;set;} = "";
+        [Range(1,12)] public int? Mes {get;set;}
+        [StringLength(30),RegularExpression("^[A-Za-z0-9_-]+$")] public string? Evento {get;set;}
+        [DataType(DataType.Date)] public DateTime? Vencimiento {get;set;}
+        [RegularExpression("^[0-9A-Fa-f]{64}$")] public string? Huella {get;set;}
+    }
+    public CargoModalidadInput Global {get;private set;} = new();
+    public bool ModoGlobal {get;private set;}
+    public string? Modalidad {get;private set;}
+    public DataTable? Destinatarios {get;private set;}
+    public DataRow? ResumenGlobal {get;private set;}
     public DataSet Datos { get; private set; } = new();
     public bool Cargado => Datos.Tables.Contains("Tarifas");
     public bool Migrado => Cargado && (bool)Datos.Tables["Control"]!.Rows[0]["Migrado"];
     public DataRow? Tarifa => Cargado ? Datos.Tables["Tarifas"]!.AsEnumerable().FirstOrDefault(r => r.Field<int>("Id") == Input.TarifaId) : null;
+    public string? ProblemaVersion {get;private set;}
+    private void PrepararVersion()
+    {
+        if (Tarifa is not { } t) return;
+        try { Input.VersionTarifa = Global.VersionTarifa = RowVersionToken.DesdeSql(t["VersionTarifa"]); }
+        catch (InvalidDataException) { ProblemaVersion = "No se pudo leer la versión de la tarifa. Actualiza GeneracionCargos.sql y vuelve a seleccionarla."; }
+    }
     [TempData] public string? Mensaje { get; set; }
     private SqlCommand Comando(SqlConnection c, string nombre)
     {
@@ -46,23 +67,26 @@ public class CargosModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
         try
         {
             await using var c = factory.Create(); await c.OpenAsync(); await using var cmd = Comando(c, "dbo.Cargos_Pantalla");
-            cmd.Parameters.Add("@Registro", SqlDbType.NVarChar, 10).Value = Input.Registro.Length <= 10 ? Input.Registro : "";
+            cmd.Parameters.Add("@Registro", SqlDbType.NVarChar, 10).Value = Input.Registro is { Length: <= 10 } registro ? registro : "";
+            if (ModoGlobal) cmd.Parameters.Add("@Global", SqlDbType.Bit).Value = true;
             await using var reader = await cmd.ExecuteReaderAsync(); var ds = new DataSet();
             foreach (var n in new[] { "Control", "Aranceles", "Estudiante", "Tarifas", "Matricula" }) { var t = new DataTable(n); t.Load(reader); ds.Tables.Add(t); }
             Datos = ds;
         }
         catch (Exception ex) { logger.LogError("Consulta de cargos: {Tipo}", ex.GetType().Name); ModelState.AddModelError("", "No se pudo consultar. Revisa conexión, migración 014 y GeneracionCargos.sql."); }
     }
-    public async Task<IActionResult> OnGetAsync(string? registro, int tarifaId = 0)
+    public async Task<IActionResult> OnGetAsync(string? registro, int tarifaId = 0, bool global = false, string? modalidad = null)
     {
         if (registro?.Length > 10 || tarifaId < 0) return BadRequest();
+        ModoGlobal = global; Modalidad = modalidad; Global.TarifaId = tarifaId;
         Input.Registro = registro?.Trim() ?? ""; Input.TarifaId = tarifaId; Input.Operacion = Guid.NewGuid();
         await CargarAsync();
-        if (Tarifa is { } t) Input.VersionTarifa = (string)t["VersionTarifa"];
+        PrepararVersion();
         return Page();
     }
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync([FromForm(Name="Input")] CargoInput input)
     {
+        Input = input;
         if (ModelState.IsValid)
         {
             try
@@ -90,10 +114,51 @@ public class CargosModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
         }
         await CargarAsync(); return Page();
     }
-    public async Task<IActionResult> OnPostConfigurarAsync(int arancelId, string? periodicidad)
+    public async Task<IActionResult> OnPostGlobalAsync([FromForm(Name="Global")] CargoModalidadInput global, [FromForm] bool aplicar = false)
     {
-        // Este formulario no envía CargoInput. Valida sus propios dos campos.
-        ModelState.Clear();
+        Global = global; ModoGlobal = true; Input.TarifaId = global.TarifaId;
+        if (aplicar && string.IsNullOrEmpty(global.Huella)) ModelState.AddModelError("", "Primero genera la vista previa.");
+        await CargarAsync();
+        Modalidad = Tarifa?["Modalidad"].ToString();
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                await using var c = factory.Create(); await c.OpenAsync();
+                await using var cmd = Comando(c, "dbo.Cargos_GenerarModalidad");
+                cmd.Parameters.Add("@TarifaId", SqlDbType.Int).Value = global.TarifaId;
+                cmd.Parameters.Add("@VersionTarifa", SqlDbType.Binary, 8).Value = Convert.FromHexString(global.VersionTarifa[2..]);
+                cmd.Parameters.Add("@Mes", SqlDbType.Int).Value = (object?)global.Mes ?? DBNull.Value;
+                cmd.Parameters.Add("@Evento", SqlDbType.NVarChar, 30).Value = (object?)global.Evento ?? DBNull.Value;
+                cmd.Parameters.Add("@Vencimiento", SqlDbType.Date).Value = (object?)global.Vencimiento?.Date ?? DBNull.Value;
+                cmd.Parameters.Add("@Aplicar", SqlDbType.Bit).Value = aplicar;
+                cmd.Parameters.Add("@Huella", SqlDbType.Binary, 32).Value = global.Huella is null ? DBNull.Value : Convert.FromHexString(global.Huella);
+                if (aplicar)
+                {
+                    int generados = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    Mensaje = $"Se generaron {generados} cargos en {Modalidad}. Quedaron pendientes de pago en cada cuenta.";
+                    return RedirectToPage(new { global = true, modalidad = Modalidad });
+                }
+                await using var reader = await cmd.ExecuteReaderAsync();
+                var resumen = new DataTable(); resumen.Load(reader);
+                var alumnos = new DataTable(); alumnos.Load(reader);
+                ResumenGlobal = resumen.Rows[0]; Destinatarios = alumnos;
+                Global.Huella = Convert.ToHexString(ResumenGlobal.Field<byte[]>("Huella")!);
+                ModelState.Remove("Global.Huella");
+            }
+            catch(SqlException ex) when(ex.Number==53601){return Forbid();}
+            catch(SqlException ex) when(ex.Number is >=53600 and <=53603){ModelState.AddModelError("",ex.Message);}
+            catch(Exception ex)
+            {
+                logger.LogError(ex,"Error al consultar o confirmar cargos por modalidad");
+                ModelState.AddModelError("", "No se pudo confirmar la operación. Revisa la instalación de Cargos_GenerarModalidad.sql y genera una nueva vista previa para comprobar qué cargos quedaron registrados.");
+            }
+        }
+        return Page();
+    }
+    public async Task<IActionResult> OnPostConfigurarAsync(int arancelId, string? periodicidad, string? registro, bool global = false)
+    {
+        ModoGlobal = global; Input.Registro = registro ?? "";
         if (arancelId <= 0 || periodicidad is not ("Anual" or "Mensual" or "Eventual")) ModelState.AddModelError("", "Selecciona arancel y periodicidad válidos.");
         if (ModelState.IsValid)
         {
@@ -102,7 +167,7 @@ public class CargosModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
                 await using var c = factory.Create(); await c.OpenAsync(); await using var cmd = Comando(c, "dbo.Cargos_Configurar");
                 cmd.Parameters.Add("@ArancelId", SqlDbType.Int).Value = arancelId;
                 cmd.Parameters.Add("@Periodicidad", SqlDbType.NVarChar, 10).Value = periodicidad!;
-                await cmd.ExecuteNonQueryAsync(); Mensaje = "Periodicidad registrada."; return RedirectToPage();
+                await cmd.ExecuteNonQueryAsync(); Mensaje = "Periodicidad registrada. Ya puedes buscar la tarifa y continuar."; return RedirectToPage(new { registro, global });
             }
             catch (SqlException ex) when (ex.Number == 53601) { return Forbid(); }
             catch (SqlException ex) when (ex.Number is >= 53600 and <= 53603 or >= 53900 and <= 53903) { ModelState.AddModelError("", ex.Message); }
@@ -110,16 +175,16 @@ public class CargosModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
         }
         await CargarAsync(); return Page();
     }
-    public async Task<IActionResult> OnPostMatriculaAsync(int arancelId)
+    public async Task<IActionResult> OnPostMatriculaAsync(int arancelId, string? registro, bool global = false)
     {
-        ModelState.Clear();
+        ModoGlobal = global; Input.Registro = registro ?? "";
         if(arancelId<=0) ModelState.AddModelError("", "Selecciona un arancel anual para matrícula.");
         if(ModelState.IsValid) try
         {
             await using var c=factory.Create(); await c.OpenAsync();
             await using var cmd=Comando(c,"dbo.Cargos_ConfigurarMatricula");
             cmd.Parameters.Add("@ArancelId",SqlDbType.Int).Value=arancelId;
-            await cmd.ExecuteNonQueryAsync(); Mensaje="Arancel de matrícula configurado.";return RedirectToPage();
+            await cmd.ExecuteNonQueryAsync(); Mensaje="Arancel de matrícula configurado.";return RedirectToPage(new { registro, global });
         }
         catch(SqlException ex) when(ex.Number==53601){return Forbid();}
         catch(SqlException ex) when(ex.Number is >=53600 and <=53603){ModelState.AddModelError("",ex.Message);}

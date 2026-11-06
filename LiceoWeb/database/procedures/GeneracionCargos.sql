@@ -89,7 +89,7 @@ BEGIN
  END CATCH;
 END;
 GO
-CREATE OR ALTER PROCEDURE dbo.Cargos_Pantalla @UsuarioId nvarchar(450),@Registro nvarchar(10)=NULL
+CREATE OR ALTER PROCEDURE dbo.Cargos_Pantalla @UsuarioId nvarchar(450),@Registro nvarchar(10)=NULL,@Global bit=0
 AS
 BEGIN
  SET NOCOUNT ON;
@@ -97,11 +97,12 @@ BEGIN
  SELECT CONVERT(bit,ISNULL((SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1),0)) Migrado;
  SELECT A.Id,A.Nombre,F.Periodicidad FROM dbo.Arancel A LEFT JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id WHERE A.Activo=1 ORDER BY A.Nombre;
  SELECT Registro,NombreEstudiante,Modalidad,Estado FROM dbo.Estudiantes WHERE Registro=@Registro;
- SELECT T.Id,A.Nombre,Y.Anio,M.Nombre Modalidad,T.Importe,F.Periodicidad,CONVERT(varchar(18),CONVERT(binary(8),T.Version),1) VersionTarifa
+ SELECT T.Id,A.Nombre,Y.Anio,M.Nombre Modalidad,T.Importe,F.Periodicidad,CONVERT(binary(8),T.Version) VersionTarifa
  FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id
  JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId
- JOIN dbo.Estudiantes E ON E.Registro=@Registro AND E.Modalidad=M.Nombre
- WHERE T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND E.Estado='Activo' AND T.Importe>0 ORDER BY Y.Anio DESC,A.Nombre;
+ WHERE T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND T.Importe>0
+ AND (@Global=1 OR EXISTS(SELECT 1 FROM dbo.Estudiantes E WHERE E.Registro=@Registro AND E.Modalidad=M.Nombre AND E.Estado='Activo'))
+ ORDER BY Y.Anio DESC,M.Nombre,A.Nombre;
  SELECT C.ArancelId,A.Nombre FROM dbo.ConfiguracionMatricula C JOIN dbo.Arancel A ON A.Id=C.ArancelId WHERE C.Id=1;
 END;
 GO
