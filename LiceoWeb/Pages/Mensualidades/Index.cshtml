@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model LiceoWeb.Pages.Mensualidades.CobrosMensualidadModel
 @{
     ViewData["Title"] = "Caja - Cobro de Mensualidades";
@@ -88,7 +88,7 @@
                 <h5 class="fw-bold mb-3" style="color: var(--azul-institucional);">Buscar Estudiante</h5>
                 <form method="get" class="row g-3">
                     <div class="col-md-9">
-                        <input type="text" name="Busqueda" value="@Model.Busqueda" class="form-control" placeholder="Ingrese nombre, código o registro..." />
+                        <input type="text" name="Busqueda" data-buscar-estudiante data-busqueda-libre value="@Model.Busqueda" class="form-control" placeholder="Ingrese nombre, código o registro..." />
                     </div>
                     <div class="col-md-3">
                         <button type="submit" class="btn btn-azul-institucional w-100 text-white" style="background-color: var(--azul-institucional);">Buscar</button>
@@ -199,6 +199,7 @@
                 
                 <form method="post">
                     <input type="hidden" asp-for="RegistroSeleccionado" />
+                    <input type="hidden" asp-for="Operacion" />
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Año Límite a Pagar</label>
@@ -228,7 +229,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Monto Dinero Recibido (C$)</label>
-                        <input type="number" asp-for="MontoRecibido" class="form-control" min="0" placeholder="0" required />
+                        <input type="number" asp-for="MontoRecibido" step="0.01" class="form-control" min="0" placeholder="0" required />
                         <div class="form-text">Ingrese 0 si va a pagar exclusivamente con su saldo a favor.</div>
                     </div>
 

@@ -10,6 +10,10 @@ static class Program
  static void Check(bool valid,string label){if(!valid)throw new Exception(label);Console.WriteLine("OK: "+label);}
  static void Main(){
   Check(Valida(Valido()),"Registro válido sin padre conocido");
+  Check(GradosEscolares.ModalidadDe("I Nivel")=="Preescolar","Preescolar derivado del grado");
+  Check(GradosEscolares.ModalidadDe("6to Grado")=="Primaria","Primaria derivada del grado");
+  Check(GradosEscolares.ModalidadDe("7mo Grado")=="Secundaria","Secundaria derivada del grado");
+  var gradoIncorrecto=Valido();gradoIncorrecto.Grado="1ro graod";Check(!Valida(gradoIncorrecto),"Grado ajeno al catálogo rechazado");
   var i=Valido();i.TipoIngreso="Traslado";Check(!Valida(i),"Traslado sin código rechazado");
   i.CodigoTraslado="REF";i.CentroProcedencia="Centro";Check(Valida(i),"Traslado completo");
   i=Valido();i.Tutor="Otro";i.Otro=new(){Nombre="Abuela",Telefono="12345678"};Check(!Valida(i),"Tercero sin parentesco rechazado");

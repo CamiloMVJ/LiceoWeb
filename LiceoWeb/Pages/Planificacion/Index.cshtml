@@ -7,7 +7,10 @@
 <form method="post" class="liceo-card mb-4"><h2 class="h4">Agregar · @Model.Input.Accion</h2><div asp-validation-summary="All" class="text-danger" role="alert"></div><input asp-for="Input.Accion" type="hidden" /><div class="row g-3">
 @if(Model.Input.Accion=="Pensum"){<div class="col-md-6"><label asp-for="Input.AnioId" class="form-label">Año</label><select asp-for="Input.AnioId" asp-items='Model.Opciones("Anios")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AnioId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.ModalidadId" class="form-label">Modalidad</label><select asp-for="Input.ModalidadId" asp-items='Model.Opciones("Modalidades")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.ModalidadId" class="text-danger"></span></div>
-<div class="col-md-6"><label asp-for="Input.Nivel" class="form-label">Nivel (igual al grado de matrícula)</label><input asp-for="Input.Nivel" type="text" class="form-control" /><span asp-validation-for="Input.Nivel" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Nivel" class="form-label">Nivel (igual al grado de matrícula)</label><select asp-for="Input.Nivel" class="form-select" required><option value="">Seleccionar grado</option>
+@foreach (var grado in LiceoWeb.ViewModels.GradosEscolares.Opciones)
+{ <option value="@grado.Nombre">@grado.Nombre · @grado.Modalidad</option> }
+</select><span asp-validation-for="Input.Nivel" class="text-danger"></span></div>
 }
 @if(Model.Input.Accion=="Materia"){<div class="col-md-6"><label asp-for="Input.PensumId" class="form-label">Pensum</label><select asp-for="Input.PensumId" asp-items='Model.Opciones("Pensums")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.PensumId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.AsignaturaId" class="form-label">Asignatura</label><select asp-for="Input.AsignaturaId" asp-items='Model.Opciones("Asignaturas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignaturaId" class="text-danger"></span></div>
@@ -30,7 +33,7 @@
 @if(Model.Input.Accion=="Estudiante"){
 <div class="col-12 alert alert-info">Después del corte, genera primero el cargo anual de matrícula desde <a asp-page="/Finanzas/Cargos">Generar cargos</a>. Al guardar se vinculará ese cargo y se confirmará la matrícula académica del año junto con la inscripción al grupo. Una matrícula histórica del mismo año, modalidad y nivel se reconoce sin generar otro cobro. El cargo puede estar pendiente de pago; no se exige solvencia para inscribir.</div>
 <div class="col-md-6"><label asp-for="Input.GrupoId" class="form-label">Grupo</label><select asp-for="Input.GrupoId" asp-items='Model.Opciones("Grupos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.GrupoId" class="text-danger"></span></div>
-<div class="col-md-6"><label asp-for="Input.Registro" class="form-label">Código del estudiante con matrícula vigente</label><input asp-for="Input.Registro" type="text" class="form-control" /><span asp-validation-for="Input.Registro" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Registro" class="form-label">Estudiante con matrícula vigente</label><input data-buscar-estudiante asp-for="Input.Registro" type="text" class="form-control" required /><span asp-validation-for="Input.Registro" class="text-danger"></span></div>
 }
 </div><button class="btn btn-liceo-primary mt-4">Guardar planificación</button></form>
 <p class="text-muted">Completa las materias antes de crear grupos. Los estudiantes requieren respaldo de matrícula del año, modalidad y nivel correspondientes. Crear un cargo por sí solo no confirma su inscripción al grupo. Las notas se gestionan desde su módulo. Los cambios de docente y traslados se gestionan desde las tablas inferiores, con motivo e historial.</p>

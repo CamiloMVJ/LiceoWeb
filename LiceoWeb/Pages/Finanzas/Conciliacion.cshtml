@@ -8,8 +8,8 @@
 @if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 <form method="get" class="liceo-card mb-4">
-<label for="Registro" class="form-label">Código de estudiante (coincidencia exacta)</label>
-<input id="Registro" name="Registro" value="@Model.Registro" maxlength="10" class="form-control mb-3"/>
+<label for="Registro" class="form-label">Buscar estudiante por nombre</label>
+<input data-buscar-estudiante id="Registro" name="Registro" value="@Model.Registro" maxlength="10" class="form-control mb-3"/>
 <button class="btn btn-liceo-primary">Buscar</button>
 <a asp-page="Aranceles" class="btn btn-liceo-secondary">Aranceles y captura</a>
 </form>
@@ -20,6 +20,7 @@
  <p>Estudiante: @s["Registro"] · Año: @s["Anio"] · Modalidad: @s["Modalidad"]</p>
  <p>Importe histórico: C$ @s["Importe"] · Estado: @s["Estado"] · Comprobante: @s["Comprobante"]</p>
  @if(s["CargoId"] is not DBNull){<p>Esta obligación ya está vinculada a un cargo y no admite revisión.</p>}
+ else if(!Model.PermiteRevisar){<p>La revisión está en modo consulta: el libro anterior no está disponible para cambios.</p>}
  else{
  <form method="post">
  <input asp-for="Input.Origen" type="hidden"/><input asp-for="Input.OrigenId" type="hidden"/>

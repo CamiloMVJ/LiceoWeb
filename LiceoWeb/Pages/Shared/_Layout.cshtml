@@ -85,6 +85,8 @@
 
     <script src="~/js/ui-navigation.js" asp-append-version="true"></script>
 
+    <script src="~/js/seleccion-escolar.js" asp-append-version="true"
+            data-sugerencias="@Url.Page("/Estudiantes/Index", "Sugerencias", new { area = "" })"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

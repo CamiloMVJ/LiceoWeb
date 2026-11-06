@@ -23,6 +23,8 @@ BEGIN
  BEGIN TRANSACTION;
  EXEC @Lock=sys.sp_getapplock @Resource=N'Liceo.Finanzas.Configuracion',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
  IF @Lock<0 THROW 52802,N'Hay otra operación en curso. Reintenta.',1;
+ IF @Accion IN ('Mapeo','Preparar') AND NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=0)
+  THROW 52804,N'La preparación de obligaciones requiere que el libro anterior siga abierto.',1;
  IF @Accion='Arancel'
  BEGIN
   IF @Codigo IS NULL OR @Nombre IS NULL OR @Activo IS NULL THROW 52800,N'Completa código, nombre y estado.',1;

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace LiceoWeb.Pages.Estudiantes;
 [Authorize(Policy="GestionFinanciera")]
+[ResponseCache(NoStore=true, Location=ResponseCacheLocation.None)]
 public class IndexModel(ExpedienteRepository repository, ILogger<IndexModel> logger) : PageModel
 {
  [BindProperty(SupportsGet=true)] public string? Busqueda {get;set;}
@@ -13,6 +14,18 @@ public class IndexModel(ExpedienteRepository repository, ILogger<IndexModel> log
  public IReadOnlyList<EstudianteListadoViewModel> Estudiantes {get;private set;}=[];
  public bool ConsultaRealizada {get;private set;}
  public string? Error {get;private set;}
+ public async Task<IActionResult> OnGetSugerenciasAsync(string? nombre, CancellationToken cancellationToken)
+ {
+  nombre=nombre?.Trim();
+  if(nombre is null || nombre.Length<2) return new JsonResult(Array.Empty<object>());
+  if(nombre.Length>100) return BadRequest();
+  try { return new JsonResult(await repository.SugerirAsync(nombre,cancellationToken)); }
+  catch(Microsoft.Data.SqlClient.SqlException ex)
+  {
+   logger.LogWarning("No se pudo buscar estudiantes. SQL {Numero}",ex.Number);
+   return StatusCode(503);
+  }
+ }
  public async Task OnGetAsync()
  {
   if(Busqueda?.Length>100 || Modalidad is not (null or "" or "Preescolar" or "Primaria" or "Secundaria") || Estado is not (null or "" or "Activo" or "Inactivo"))

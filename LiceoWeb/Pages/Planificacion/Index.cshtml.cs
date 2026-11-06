@@ -15,7 +15,7 @@ public class IndexModel(PlanificacionRepository repository,PlanificacionService 
  [BindProperty] public PlanificacionInput Input {get;set;}=new();
  public DataSet Datos {get;private set;}=new();
  [TempData] public string? Mensaje {get;set;}
- public IEnumerable<SelectListItem> Opciones(string tabla)=>Datos.Tables.Contains(tabla)?Datos.Tables[tabla]!.AsEnumerable().Select(r=>new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString())):[];
+ public IEnumerable<SelectListItem> Opciones(string tabla)=>Datos.Tables.Contains(tabla)?Datos.Tables[tabla]!.AsEnumerable().Where(r=>(!r.Table.Columns.Contains("Activo") || r.Field<bool>("Activo")) && (!r.Table.Columns.Contains("Disponible") || r.Field<bool>("Disponible"))).Select(r=>new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString())):[];
  public async Task<IActionResult> OnGetAsync(string accion="Pensum")
  {if(!Acciones.Contains(accion))return BadRequest();Input.Accion=accion;Datos=await repository.ConsultarAsync(usuario.ObtenerId());return Page();}
  public async Task<IActionResult> OnPostAsync()

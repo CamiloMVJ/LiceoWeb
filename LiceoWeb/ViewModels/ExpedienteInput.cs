@@ -16,7 +16,7 @@ public sealed class ExpedienteInput : IValidatableObject
     [StringLength(10)] public string? Registro { get; set; }
     public string? Version { get; set; }
     [Required, StringLength(100)] public string NombreEstudiante { get; set; } = "";
-    [Required, RegularExpression("Preescolar|Primaria|Secundaria")] public string Modalidad { get; set; } = "";
+    public string Modalidad { get; set; } = "";
     [Required, StringLength(50)] public string Grado { get; set; } = "";
     [Required, DataType(DataType.Date)] public DateOnly? FechaNacimiento { get; set; }
     [Required, RegularExpression("M|F")] public string Sexo { get; set; } = "";
@@ -41,6 +41,8 @@ public sealed class ExpedienteInput : IValidatableObject
     public bool TrasladoRecibido { get; set; }
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
+        if (GradosEscolares.ModalidadDe(Grado) is null)
+            yield return new("Selecciona un grado de la lista.", [nameof(Grado)]);
         var hoy = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTimeOffset.UtcNow, "Central America Standard Time").DateTime);
         if (FechaNacimiento is { } fecha && (fecha > hoy || fecha < hoy.AddYears(-100)))
             yield return new("Revisa la fecha de nacimiento.", [nameof(FechaNacimiento)]);

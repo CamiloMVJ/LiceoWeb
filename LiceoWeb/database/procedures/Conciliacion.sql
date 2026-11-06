@@ -19,7 +19,7 @@ BEGIN
  IF ISNULL((SELECT MAX(Id) FROM dbo.RevisionObligacion WHERE Origen=@Origen AND OrigenId=@OrigenId),0)<>@RevisionAnterior OR @RevisionAnterior IS NULL THROW 53003,N'Otra persona revisó esta obligación. Recarga antes de continuar.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.ObligacionLegada WITH(HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId) THROW 53004,N'La obligación de origen ya no existe.',1;
  IF EXISTS(SELECT @Registro,@Anio,@Modalidad,@Importe,@Estado,@Comprobante EXCEPT SELECT Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.ObligacionLegada WITH(HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId) THROW 53004,N'El origen cambió desde la captura. No se aprobó.',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.TarifaArancel T WITH(HOLDLOCK) JOIN dbo.AnioLectivo A ON A.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId WHERE T.Id=@TarifaId AND T.ArancelId=@Arancel AND A.Anio=@Anio AND M.Nombre=@Modalidad) THROW 53005,N'La tarifa debe corresponder al arancel, año y modalidad originales.',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.TarifaArancel T WITH(HOLDLOCK) JOIN dbo.AnioLectivo A ON A.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.Arancel C ON C.Id=T.ArancelId WHERE T.Id=@TarifaId AND T.ArancelId=@Arancel AND A.Anio=@Anio AND M.Nombre=@Modalidad AND T.Activo=1 AND C.Activo=1 AND A.Activo=1 AND M.Activo=1) THROW 53005,N'La tarifa debe corresponder al arancel, año y modalidad originales.',1;
  -- El precio actual no reemplaza el importe histórico ni las becas.
  IF @Decision<>'Rechazada' AND @Importe<0 THROW 53005,N'No se aprueban importes negativos.',1;
  IF @Decision='Deuda' AND (@Estado NOT IN ('Pendiente','Vencido') OR @Importe<=0 OR @Comprobante IS NOT NULL OR @Origen='Matriculas') THROW 53005,N'Solo puede aprobarse como deuda una obligación pendiente positiva sin comprobante.',1;
@@ -78,7 +78,7 @@ BEGIN
  SELECT T.Id,CONCAT(A.Nombre,N' / ',Y.Anio,N' / ',M.Nombre,N' / precio actual ',T.Importe) Etiqueta
  FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId
  JOIN dbo.PreparacionObligacion P ON P.ArancelId=T.ArancelId AND P.Anio=Y.Anio AND P.Modalidad=M.Nombre
- WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId ORDER BY T.Id;
+ WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 ORDER BY T.Id;
  SELECT TOP(200) R.Id,R.Generacion,R.TarifaId,R.Decision,R.Motivo,U.UserName Responsable,R.Fecha
  FROM dbo.RevisionObligacion R JOIN dbo.AspNetUsers U ON U.Id=R.UsuarioId
  WHERE R.Origen=@Origen AND R.OrigenId=@OrigenId ORDER BY R.Id DESC;

@@ -41,7 +41,7 @@
         </form>
     </details>
 }
-<form method="get" class="d-flex gap-2 mb-3"><label for="registro" class="visually-hidden">Código del estudiante</label><input id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" class="form-control" placeholder="Código del estudiante" required /><button class="btn btn-liceo-primary">Buscar</button></form>
+<form method="get" class="d-flex gap-2 mb-3"><label for="registro" class="visually-hidden">Buscar estudiante por nombre</label><input data-buscar-estudiante id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" class="form-control" placeholder="Código del estudiante" required /><button class="btn btn-liceo-primary">Buscar</button></form>
 @if (Model.Cargado && !string.IsNullOrWhiteSpace(Model.Input.Registro))
 {
     @if (Model.Datos.Tables["Estudiante"]!.Rows.Count == 0) { <p>No se encontró ese estudiante.</p> }

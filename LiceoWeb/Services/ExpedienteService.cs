@@ -7,6 +7,7 @@ public sealed class ExpedienteService(ExpedienteRepository repository, UsuarioAc
     public async Task<string> GuardarAsync(ExpedienteInput input)
     {
         Validator.ValidateObject(input,new ValidationContext(input),true);
+        input.Modalidad = GradosEscolares.ModalidadDe(input.Grado)!;
         foreach(var familiar in new[]{input.Padre,input.Madre,input.Otro})
             Validator.ValidateObject(familiar,new ValidationContext(familiar),true);
         return await repository.GuardarAsync(input,usuario.ObtenerId());

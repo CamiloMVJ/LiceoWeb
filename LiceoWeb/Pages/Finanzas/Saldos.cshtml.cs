@@ -9,7 +9,7 @@ using Microsoft.Data.SqlClient;
 namespace LiceoWeb.Pages.Finanzas;
 [Authorize(Policy="SoloAdministrador")]
 [ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
-public class SaldosModel(SqlConnectionFactory factory,UsuarioActual usuario,ILogger<SaldosModel> logger):PageModel
+public class SaldosModel(SqlConnectionFactory factory,UsuarioActual usuario,ILogger<SaldosModel> logger, IEstadoLibroFinanciero libro):PageModel
 {
  public sealed class RevisionInput
  {
@@ -22,8 +22,20 @@ public class SaldosModel(SqlConnectionFactory factory,UsuarioActual usuario,ILog
  }
  [BindProperty] public RevisionInput Input {get;set;}=new();
  public DataSet Datos {get;private set;}=new();
- public bool Cargado=>Datos.Tables.Contains("Resumen");
+ public bool Cargado=>Datos.Tables["Resumen"]?.Rows.Count>0;
+ public bool PermiteRevisar {get;private set;}
  [TempData] public string? Mensaje {get;set;}
+ private async Task ConsultarAsync()
+ {
+  PermiteRevisar=await libro.ObtenerAsync()==EstadoLibro.Anterior;
+  try { await CargarAsync(); }
+  catch(SqlException ex) when(ex.Number==53200) { ModelState.AddModelError("",ex.Message); }
+  catch(SqlException ex)
+  {
+   logger.LogWarning("Consulta de saldos: SQL {Numero}",ex.Number);
+   ModelState.AddModelError("","No se pudo consultar el saldo. Revisa la conexión y ConciliacionSaldos.sql.");
+  }
+ }
  private async Task CargarAsync()
  {
   await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();cmd.CommandType=CommandType.StoredProcedure;cmd.CommandText="dbo.Saldo_Consultar";
@@ -33,11 +45,17 @@ public class SaldosModel(SqlConnectionFactory factory,UsuarioActual usuario,ILog
  public async Task<IActionResult> OnGetAsync(string? registro=null)
  {
   if(string.IsNullOrWhiteSpace(registro))return Page();if(registro.Length>10)return BadRequest();Input.Registro=registro.Trim();
-  try{await CargarAsync();}catch(SqlException ex) when(ex.Number==53200){ModelState.AddModelError("",ex.Message);return Page();}
+  await ConsultarAsync();if(!Cargado)return Page();
   var r=Datos.Tables["Resumen"]!.Rows[0];Input.Huella=(string)r["Huella"];Input.RevisionAnterior=(long)r["RevisionAnterior"];return Page();
  }
  public async Task<IActionResult> OnPostAsync()
  {
+  if(await libro.ObtenerAsync()!=EstadoLibro.Anterior)
+  {
+   ModelState.AddModelError("","La conciliación solo admite cambios con el libro anterior abierto.");
+   if(!string.IsNullOrWhiteSpace(Input.Registro)&&Input.Registro.Length<=10) await ConsultarAsync();
+   return Page();
+  }
   if(ModelState.IsValid)try
   {
    await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();cmd.CommandType=CommandType.StoredProcedure;cmd.CommandText="dbo.Saldo_Revisar";
@@ -52,9 +70,10 @@ public class SaldosModel(SqlConnectionFactory factory,UsuarioActual usuario,ILog
   }
   catch(SqlException ex) when(ex.Number==53201){return Forbid();}
   catch(SqlException ex) when(ex.Number is >=53200 and <=53204){ModelState.AddModelError("",ex.Message);}
+  catch(SqlException ex) when(ex.Number==53410){ModelState.AddModelError("","El corte financiero ya cerró esta revisión.");}
   catch(Exception ex){logger.LogError("Error de revisión de saldo: {Tipo}",ex.GetType().Name);ModelState.AddModelError("","No se pudo guardar. Revisa la instalación del módulo.");}
   if(!string.IsNullOrWhiteSpace(Input.Registro)&&Input.Registro.Length<=10)
-   try{await CargarAsync();}catch(SqlException ex) when(ex.Number==53200){ModelState.AddModelError("",ex.Message);}
+   await ConsultarAsync();
   return Page();
  }
 }

@@ -10,7 +10,7 @@ BEGIN
  CONVERT(bit,CASE WHEN P.Cerrado=1 OR EXISTS(SELECT 1 FROM dbo.PublicacionNotas WHERE AsignacionId=E.AsignacionId)
  OR EXISTS(SELECT 1 FROM dbo.Calificacion WHERE EvaluacionId=E.Id) OR EXISTS(SELECT 1 FROM dbo.HistorialCalificacion WHERE EvaluacionId=E.Id) THEN 1 ELSE 0 END) Bloqueada
  FROM dbo.Evaluacion E JOIN dbo.AsignacionDocente D ON D.Id=E.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId WHERE E.Id=@EvaluacionId;
- SELECT T.Id,T.Nombre Etiqueta FROM dbo.TipoEvaluacion T WHERE T.Activo=1 OR T.Id=(SELECT TipoId FROM dbo.Evaluacion WHERE Id=@EvaluacionId) ORDER BY T.Nombre;
+ SELECT T.Id,T.Nombre Etiqueta FROM dbo.TipoEvaluacion T WHERE T.Activo=1 ORDER BY T.Nombre;
  SELECT Valor FROM dbo.OpcionEvaluacion WHERE EvaluacionId=@EvaluacionId ORDER BY Valor;
  SELECT H.Id,H.Fecha,H.Motivo,H.AntesJson,H.DespuesJson,U.UserName Responsable INTO #Historial FROM dbo.HistorialEvaluacion H LEFT JOIN dbo.AspNetUsers U ON U.Id=H.UsuarioId WHERE H.EvaluacionId=@EvaluacionId;
  SELECT COUNT_BIG(*) Total FROM #Historial;

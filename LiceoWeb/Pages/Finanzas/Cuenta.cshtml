@@ -5,8 +5,8 @@
 <h1>Estado de cuenta y cobros</h1>
 <p>Consulta por código de estudiante. Los importes están expresados en córdobas (C$).</p>
 <form method="get" class="d-flex gap-2 mb-3">
-    <label for="registro" class="visually-hidden">Código del estudiante</label>
-    <input id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" required class="form-control" placeholder="Código del estudiante" />
+    <label for="registro" class="visually-hidden">Buscar estudiante por nombre</label>
+    <input data-buscar-estudiante id="registro" name="registro" value="@Model.Input.Registro" maxlength="10" required class="form-control" placeholder="Código del estudiante" />
     <button class="btn btn-liceo-primary">Consultar</button>
 </form>
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>

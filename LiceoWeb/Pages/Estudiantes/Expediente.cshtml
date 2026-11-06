@@ -11,9 +11,20 @@
 <div class="col-md-6"><label asp-for="Input.FechaNacimiento" class="form-label">Fecha de nacimiento</label><input asp-for="Input.FechaNacimiento" type="date" class="form-control" /><span asp-validation-for="Input.FechaNacimiento" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.Identificacion" class="form-label">Identificación (si dispone)</label><input asp-for="Input.Identificacion" type="text" class="form-control" /><span asp-validation-for="Input.Identificacion" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.Direccion" class="form-label">Dirección</label><input asp-for="Input.Direccion" type="text" class="form-control" /><span asp-validation-for="Input.Direccion" class="text-danger"></span></div>
-<div class="col-md-6"><label asp-for="Input.Grado" class="form-label">Grado actual</label><input asp-for="Input.Grado" type="text" class="form-control" /><span asp-validation-for="Input.Grado" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Grado" class="form-label">Grado actual</label><select asp-for="Input.Grado" class="form-select" data-grado-escolar required>
+<option value="">Seleccionar grado</option>
+@foreach (var opcion in LiceoWeb.ViewModels.GradosEscolares.Opciones)
+{
+    <option value="@opcion.Nombre" data-modalidad="@opcion.Modalidad">@opcion.Nombre · @opcion.Modalidad</option>
+}
+</select>
+@if (!string.IsNullOrEmpty(Model.Input.Grado) && LiceoWeb.ViewModels.GradosEscolares.ModalidadDe(Model.Input.Grado) is null)
+{
+    <small class="text-muted">Grado guardado anteriormente: @Model.Input.Grado. Selecciona su equivalente antes de guardar.</small>
+}
+<span asp-validation-for="Input.Grado" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.Sexo" class="form-label">Sexo</label><select asp-for="Input.Sexo" class="form-select"><option value="">Seleccionar</option><option value="F">Femenino</option><option value="M">Masculino</option></select><span asp-validation-for="Input.Sexo" class="text-danger"></span></div>
-<div class="col-md-6"><label asp-for="Input.Modalidad" class="form-label">Modalidad</label><select asp-for="Input.Modalidad" class="form-select"><option value="">Seleccionar</option><option value="Preescolar">Preescolar</option><option value="Primaria">Primaria</option><option value="Secundaria">Secundaria</option></select><span asp-validation-for="Input.Modalidad" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Modalidad" class="form-label">Modalidad</label><output id="Input_Modalidad" class="form-control" data-modalidad-escolar aria-live="polite">@(LiceoWeb.ViewModels.GradosEscolares.ModalidadDe(Model.Input.Grado) ?? "Se asigna al elegir el grado")</output></div>
 </div>@if(Model.Edad is not null){<p class="mt-3">Edad: @Model.Edad años</p>}</fieldset><fieldset class="mb-4"><legend>Padre</legend><p class="text-muted">Completa los datos conocidos; no inventes información ausente.</p><div class="row g-3"><div class="col-md-6"><label asp-for="Input.Padre.Nombre" class="form-label">Nombre completo</label><input asp-for="Input.Padre.Nombre" type="text" class="form-control" /><span asp-validation-for="Input.Padre.Nombre" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.Padre.Direccion" class="form-label">Dirección</label><input asp-for="Input.Padre.Direccion" type="text" class="form-control" /><span asp-validation-for="Input.Padre.Direccion" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.Padre.CentroTrabajo" class="form-label">Centro de trabajo</label><input asp-for="Input.Padre.CentroTrabajo" type="text" class="form-control" /><span asp-validation-for="Input.Padre.CentroTrabajo" class="text-danger"></span></div>

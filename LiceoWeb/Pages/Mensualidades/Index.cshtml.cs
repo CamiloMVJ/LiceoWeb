@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -29,7 +30,7 @@ namespace LiceoWeb.Pages.Mensualidades
         public int MesLimite { get; set; } = DateTime.Now.Month;
 
         [BindProperty]
-        public int MontoRecibido { get; set; }
+        public decimal MontoRecibido { get; set; }
 
         [BindProperty]
         public string MetodoPago { get; set; } = "Efectivo";
@@ -43,13 +44,16 @@ namespace LiceoWeb.Pages.Mensualidades
         [BindProperty]
         public string Descripcion { get; set; } = "Pago de mensualidades escolares";
 
+        [BindProperty]
+        public Guid Operacion { get; set; }
+
         // Datos para la vista
         public List<EstudianteBusquedaDto> ListaEstudiantes { get; set; } = new();
         public List<MensualidadPendienteDto> MensualidadesPendientes { get; set; } = new();
         public string NombreEstudianteActual { get; set; } = "";
         public string ModalidadActual { get; set; } = "";
         public string GradoActual { get; set; } = "";
-        public int SaldoFavorActual { get; set; }
+        public decimal SaldoFavorActual { get; set; }
 
         public string? MensajeError { get; set; }
         public string? MensajeExito { get; set; }
@@ -57,14 +61,28 @@ namespace LiceoWeb.Pages.Mensualidades
 
         public async Task OnGetAsync(string? registro)
         {
-            if (!string.IsNullOrEmpty(registro))
+            Operacion = Guid.NewGuid();
+            try
             {
-                RegistroSeleccionado = registro;
-                await CargarDatosEstudiante(registro);
+                if (!string.IsNullOrEmpty(registro) && registro.Length <= 10)
+                {
+                    RegistroSeleccionado = registro;
+                    await CargarDatosEstudiante(registro);
+                    if (string.IsNullOrEmpty(NombreEstudianteActual))
+                    {
+                        RegistroSeleccionado = null;
+                        MensajeError = "No se encontró un estudiante activo con ese registro.";
+                    }
+                }
+                else if (!string.IsNullOrEmpty(Busqueda) && Busqueda.Length <= 100)
+                {
+                    await BuscarEstudiantes(Busqueda);
+                }
             }
-            else if (!string.IsNullOrEmpty(Busqueda))
+            catch (SqlException ex)
             {
-                await BuscarEstudiantes(Busqueda);
+                RegistroSeleccionado = null;
+                MensajeError = $"No se pudo consultar mensualidades (SQL {ex.Number}).";
             }
         }
 
@@ -76,6 +94,17 @@ namespace LiceoWeb.Pages.Mensualidades
                 return Page();
             }
 
+            if (!ModelState.IsValid || Operacion == Guid.Empty || RegistroSeleccionado.Length > 10
+                || ReferenciaTransaccion?.Length > 100 || Descripcion.Length > 100
+                || MontoRecibido is < 0 or > 9999999999999999.99m
+                || decimal.Round(MontoRecibido, 2) != MontoRecibido)
+            {
+                MensajeError = "Revisa los datos del pago y usa hasta dos decimales.";
+                return Page();
+            }
+            var usuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (usuarioId is null) return Forbid();
+
             var connString = _configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Falta configurar la conexión DefaultConnection.");
 
@@ -86,7 +115,10 @@ namespace LiceoWeb.Pages.Mensualidades
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.AddWithValue("@Registro", RegistroSeleccionado);
-                cmd.Parameters.AddWithValue("@Monto", MontoRecibido);
+                var monto = cmd.Parameters.Add("@Monto", SqlDbType.Decimal);
+                monto.Precision = 18; monto.Scale = 2; monto.Value = MontoRecibido;
+                cmd.Parameters.Add("@UsuarioId", SqlDbType.NVarChar, 450).Value = usuarioId;
+                cmd.Parameters.Add("@Operacion", SqlDbType.UniqueIdentifier).Value = Operacion;
                 cmd.Parameters.AddWithValue("@Descripcion", Descripcion);
                 cmd.Parameters.AddWithValue("@IntegrarSaldo", IntegrarSaldo ? 1 : 0);
                 cmd.Parameters.AddWithValue("@Metodo_Pago", MetodoPago);
@@ -95,22 +127,25 @@ namespace LiceoWeb.Pages.Mensualidades
                 cmd.Parameters.AddWithValue("@Numero_Mes_Limite", MesLimite);
 
                 await conn.OpenAsync();
-                using var reader = await cmd.ExecuteReaderAsync();
+                await using var reader = await cmd.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
                 {
                     ReciboGenerado = reader["IdRecibo"]?.ToString() ?? reader["IdComprobante"]?.ToString();
-                    int cambio = reader["Cambio"] != DBNull.Value ? Convert.ToInt32(reader["Cambio"]) : 0;
+                    decimal cambio = reader["Cambio"] != DBNull.Value ? Convert.ToDecimal(reader["Cambio"]) : 0;
 
                     MensajeExito = $"¡Pago procesado con éxito! Cambio a devolver: C$ {cambio:N2}.";
                 }
 
+                await reader.DisposeAsync();
                 // Recargar datos actuales del alumno tras el pago
                 await CargarDatosEstudiante(RegistroSeleccionado);
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                MensajeError = $"Error al procesar el pago: {ex.Message}";
-                await CargarDatosEstudiante(RegistroSeleccionado);
+                MensajeError = MensajeExito is not null
+                    ? "El pago quedó registrado, pero no se pudo recargar la cuenta. No lo repitas."
+                    : ex.Number is >=53920 and <=53923 ? ex.Message
+                    : $"No se pudo confirmar el resultado del pago (SQL {ex.Number}). Consulta la cuenta antes de reintentar.";
             }
 
             return Page();
@@ -158,15 +193,16 @@ namespace LiceoWeb.Pages.Mensualidades
                     NombreEstudianteActual = reader["NombreEstudiante"].ToString() ?? "";
                     ModalidadActual = reader["Modalidad"].ToString() ?? "";
                     GradoActual = reader["Grado"].ToString() ?? "";
-                    SaldoFavorActual = reader["SaldoFavor"] != DBNull.Value ? Convert.ToInt32(reader["SaldoFavor"]) : 0;
+                    SaldoFavorActual = reader["SaldoFavor"] != DBNull.Value ? Convert.ToDecimal(reader["SaldoFavor"]) : 0;
                     datosCargados = true;
                 }
 
+                if (reader["Anio"] is DBNull) continue;
                 MensualidadesPendientes.Add(new MensualidadPendienteDto
                 {
                     Anio = Convert.ToInt32(reader["Anio"]),
                     Mes = reader["Mes"].ToString() ?? "",
-                    Costo_Mensualidad = Convert.ToInt32(reader["Costo_Mensualidad"]),
+                    Costo_Mensualidad = Convert.ToDecimal(reader["Costo_Mensualidad"]),
                     Estado = reader["Estado"].ToString() ?? ""
                 });
             }
@@ -184,7 +220,7 @@ namespace LiceoWeb.Pages.Mensualidades
     {
         public int Anio { get; set; }
         public string Mes { get; set; } = "";
-        public int Costo_Mensualidad { get; set; }
+        public decimal Costo_Mensualidad { get; set; }
         public string Estado { get; set; } = "";
     }
 }

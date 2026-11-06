@@ -8,6 +8,27 @@ namespace LiceoWeb.Repositories;
 
 public sealed class ExpedienteRepository(SqlConnectionFactory factory)
 {
+    public sealed record Sugerencia(string Registro, string Nombre, string Grado);
+    public async Task<IReadOnlyList<Sugerencia>> SugerirAsync(string nombre, CancellationToken cancellationToken)
+    {
+        await using var connection = factory.Create();
+        await connection.OpenAsync(cancellationToken);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT TOP (4) Registro, NombreEstudiante, Grado
+            FROM dbo.Estudiantes
+            WHERE Estado = 'Activo' AND CHARINDEX(@Nombre, NombreEstudiante COLLATE Latin1_General_100_CI_AI) > 0
+            ORDER BY CASE WHEN CHARINDEX(@Nombre, NombreEstudiante COLLATE Latin1_General_100_CI_AI)=1 THEN 0 ELSE 1 END,
+                     NombreEstudiante, Registro;
+            """;
+        cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, 100).Value = nombre;
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        var result = new List<Sugerencia>(4);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(new(reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+        return result;
+    }
+
     public async Task<IReadOnlyList<EstudianteListadoViewModel>> ListarAsync(string? busqueda, string? modalidad, string? estado)
     {
         await using var connection = factory.Create();

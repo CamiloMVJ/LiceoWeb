@@ -15,7 +15,7 @@ public class CatalogosModel(PlanificacionRepository repository,PlanificacionServ
  [BindProperty] public CatalogoInput Input {get;set;}=new();
  public DataSet Datos {get;private set;}=new();
  [TempData] public string? Mensaje {get;set;}
- public IEnumerable<SelectListItem> Anios=>Datos.Tables.Contains("Anios")?Datos.Tables["Anios"]!.AsEnumerable().Select(r=>new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString())):[];
+ public IEnumerable<SelectListItem> Anios=>Datos.Tables.Contains("Anios")?Datos.Tables["Anios"]!.AsEnumerable().Where(r=>r.Field<bool>("Activo")).Select(r=>new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString())):[];
  private async Task CargarAsync(){Datos=await repository.ConsultarAsync(usuario.ObtenerId());}
  public async Task<IActionResult> OnGetAsync(string tipo="Anios",int id=0)
  {

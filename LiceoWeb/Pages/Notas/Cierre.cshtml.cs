@@ -16,11 +16,21 @@ public class CierreModel(CierreAcademicoRepository repository,UsuarioActual usua
  [TempData] public string? Mensaje {get;set;}
  public IEnumerable<DataRow> Filas(string tabla)=>Datos.Tables.Contains(tabla)?Datos.Tables[tabla]!.AsEnumerable():[];
  public DataRow? Periodo=>Filas("Periodos").FirstOrDefault(r=>(int)r["Id"]==Input.PeriodoId);
- private async Task Cargar()=>Datos=await repository.ConsultarAsync(usuario.ObtenerId(),Input.PeriodoId);
+ private async Task<bool> Cargar()
+ {
+  try { Datos=await repository.ConsultarAsync(usuario.ObtenerId(),Input.PeriodoId);return true; }
+  catch(SqlException ex)
+  {
+   logger.LogWarning("Consulta de cierre académico: SQL {Numero}",ex.Number);
+   ModelState.AddModelError("","No se pudo consultar el cierre académico. Revisa la conexión y CierreAcademico.sql.");
+   return false;
+  }
+ }
  public async Task<IActionResult> OnGetAsync(int periodoId=0,string? accion=null,int asignacionId=0)
  {
   Input.PeriodoId=periodoId;Input.AsignacionId=asignacionId;
-  await Cargar();if(periodoId!=0 && Periodo is null)return NotFound();
+  if(!await Cargar())return Page();
+  if(periodoId!=0 && Periodo is null)return NotFound();
   if(Periodo is not null)
   {
    Input.Accion=accion??((bool)Periodo["Cerrado"]?"ReabrirPeriodo":"CerrarPeriodo");
