@@ -13,6 +13,7 @@ namespace LiceoWeb.Pages.Notas;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class TiposModel(NotasRepository repository, UsuarioActual usuario, ILogger<TiposModel> logger) : PageModel
 {
+    [BindProperty(SupportsGet=true)] public int AsignacionId {get;set;}
     [BindProperty] public TipoEvaluacionInput Input { get; set; } = new();
     [TempData] public string? Mensaje { get; set; }
     public DataSet Datos { get; private set; } = new();
@@ -51,7 +52,7 @@ public class TiposModel(NotasRepository repository, UsuarioActual usuario, ILogg
             {
                 await repository.GuardarTipoAsync(usuario.ObtenerId(), Input);
                 Mensaje = "Tipo actualizado. Se conservó el cambio en el historial.";
-                return RedirectToPage(new { id });
+                return RedirectToPage(new { id, asignacionId=AsignacionId });
             }
             catch (SqlException ex) when (ex.Number == 54601) { return Forbid(); }
             catch (SqlException ex) when (ex.Number is >= 54602 and <= 54607)

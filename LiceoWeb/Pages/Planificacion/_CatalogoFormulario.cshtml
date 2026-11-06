@@ -1,0 +1,14 @@
+@model LiceoWeb.Pages.Planificacion.IndexModel
+<form method="post" asp-page-handler="Catalogo" class="liceo-card mb-4"><h2 class="h4">@(Model.Catalogo.Id==0?"Crear":"Editar") · @(Model.Catalogo.Tipo=="Anios"?"Año lectivo":Model.Catalogo.Tipo)</h2>
+<partial name="~/Pages/Planificacion/_ContextoCampos.cshtml" model="Model" /><input asp-for="Input.Accion" type="hidden" /><input type="hidden" asp-for="Catalogo.Tipo" /><input type="hidden" asp-for="Catalogo.Id" />
+<div class="row g-3">
+@if(Model.Catalogo.Tipo=="Anios"){<div class="col-md-6"><label asp-for="Catalogo.Anio" class="form-label">Año lectivo</label><input asp-for="Catalogo.Anio" type="number" class="form-control" /><span asp-validation-for="Catalogo.Anio" class="text-danger"></span></div>
+}else{<div class="col-md-6"><label asp-for="Catalogo.Nombre" class="form-label">Nombre</label><input asp-for="Catalogo.Nombre" type="text" class="form-control" /><span asp-validation-for="Catalogo.Nombre" class="text-danger"></span></div>
+}@if(Model.Catalogo.Tipo=="Periodos"){<div class="col-md-6"><label asp-for="Catalogo.AnioId" class="form-label">Año lectivo</label><select asp-for="Catalogo.AnioId" asp-items='Model.Opciones("Anios")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Catalogo.AnioId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Catalogo.Inicio" class="form-label">Inicio</label><input asp-for="Catalogo.Inicio" type="date" class="form-control" /><span asp-validation-for="Catalogo.Inicio" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Catalogo.Fin" class="form-label">Fin</label><input asp-for="Catalogo.Fin" type="date" class="form-control" /><span asp-validation-for="Catalogo.Fin" class="text-danger"></span></div>
+}@if(Model.Catalogo.Tipo=="Aulas"){<div class="col-md-6"><label asp-for="Catalogo.Ubicacion" class="form-label">Ubicación</label><input asp-for="Catalogo.Ubicacion" type="text" class="form-control" /><span asp-validation-for="Catalogo.Ubicacion" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Catalogo.Capacidad" class="form-label">Capacidad</label><input asp-for="Catalogo.Capacidad" type="number" class="form-control" /><span asp-validation-for="Catalogo.Capacidad" class="text-danger"></span></div>
+}@if(Model.Catalogo.Tipo=="Asignaturas"){<div class="col-md-6"><label asp-for="Catalogo.Codigo" class="form-label">Código</label><input asp-for="Catalogo.Codigo" type="text" class="form-control" /><span asp-validation-for="Catalogo.Codigo" class="text-danger"></span></div>
+}</div>@if(Model.Catalogo.Tipo!="Periodos"){<div class="form-check my-3"><input asp-for="Catalogo.Activo" class="form-check-input" /><label asp-for="Catalogo.Activo" class="form-check-label">Activo</label></div>}
+<button class="btn btn-liceo-primary mt-3">Guardar</button></form>

@@ -239,7 +239,7 @@ textarea:focus-visible {
         top: 1rem;
     }
 
-/* Pantallas peque馻s */
+/* Pantallas peque帽as */
 @media (max-width: 767.98px) {
     .liceo-shell {
         flex-direction: column;
@@ -260,7 +260,7 @@ textarea:focus-visible {
     }
 }
 
-/* Pantalla de inicio de sesi髇 */
+/* Pantalla de inicio de sesi贸n */
 .liceo-login {
     display: flex;
     justify-content: center;
@@ -279,7 +279,7 @@ textarea:focus-visible {
     box-shadow: 0 16px 48px rgb(27 38 79 / 9%);
 }
 
-/* Presentaci髇 */
+/* Presentaci贸n */
 .liceo-login-intro {
     padding: 2rem 2rem 1.75rem;
     text-align: center;
@@ -381,7 +381,7 @@ textarea:focus-visible {
             box-shadow: none;
         }
 
-/* Acci髇 principal */
+/* Acci贸n principal */
 .liceo-login-submit {
     width: 100%;
     min-height: 48px;
@@ -407,7 +407,7 @@ textarea:focus-visible {
         outline-offset: 3px;
     }
 
-/* Validaci髇 */
+/* Validaci贸n */
 .liceo-login-errors.validation-summary-valid {
     display: none;
 }
@@ -476,7 +476,7 @@ textarea:focus-visible {
     }
 }
 
-/* Portada p鷅lica */
+/* Portada p煤blica */
 .liceo-home {
     width: 100%;
     padding: clamp(1rem, 4vw, 3rem) 0;
@@ -529,7 +529,7 @@ textarea:focus-visible {
     gap: .75rem;
 }
 
-/* Botones de sesi髇 del encabezado */
+/* Botones de sesi贸n del encabezado */
 .liceo-session {
     display: flex;
     align-items: center;
@@ -562,7 +562,7 @@ textarea:focus-visible {
     transition: background-color .18s ease, border-color .18s ease, color .18s ease;
 }
 
-/* Iniciar sesi髇 y entrar al sistema */
+/* Iniciar sesi贸n y entrar al sistema */
 .liceo-session-button-primary {
     background-color: #C99700;
     border-color: #C99700;
@@ -575,7 +575,7 @@ textarea:focus-visible {
         color: #1B264F;
     }
 
-/* Cerrar sesi髇 */
+/* Cerrar sesi贸n */
 .liceo-session-button-outline {
     background-color: transparent;
     border-color: #DDE3EB;
@@ -730,3 +730,15 @@ textarea:focus-visible {
     color: #1B264F;
     font-size: .9rem;
 }
+/* Recorrido acad茅mico: contexto persistente, pasos y resumen por grupo. */
+.academic-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.5rem; }
+.academic-steps a { display:flex; gap:.65rem; align-items:center; padding:.8rem; border:1px solid #cbd2df; border-radius:.65rem; color:#1b264f; background:white; text-decoration:none; }
+.academic-steps a span { display:grid; place-items:center; flex-shrink:0; width:1.65rem; height:1.65rem; border-radius:50%; background:#f4f6f8; color:#1b264f; font-weight:700; }
+.academic-steps a.is-current { background:#1b264f; color:white; border-bottom:3px solid #c99700; }
+.academic-steps a:hover { border-color:#1b264f; }
+.academic-workspace { display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:1.5rem; align-items:start; }
+.academic-summary { position:sticky; top:1rem; }
+.academic-context { border-top:3px solid #c99700; }
+.validation-summary-valid { display:none; }
+@media(max-width:1100px){.academic-workspace{grid-template-columns:1fr}.academic-summary{position:static}}
+@media(max-width:700px){.academic-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.academic-steps a{font-size:.85rem}}

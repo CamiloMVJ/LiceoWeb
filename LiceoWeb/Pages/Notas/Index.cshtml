@@ -2,22 +2,38 @@
 @using System.Data
 @model LiceoWeb.Pages.Notas.IndexModel
 @{ViewData["Title"]="Calificaciones";}
-<div class="liceo-page-heading"><h1>Calificaciones</h1><p>Configura evaluaciones, registra resultados y revisa el avance del grupo.</p></div>
+<div class="liceo-page-heading"><h1>Calificaciones</h1><p>Abre una clase, prepara sus evaluaciones, registra los resultados y publica cuando esté completa.</p></div>
 @if(Model.Mensaje is not null){<div class="alert alert-success" role="status">@Model.Mensaje</div>}
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if(Model.Cargado){
 <form method="get" class="liceo-card mb-4">
- <label for="asignacionId" class="form-label">Grupo y asignatura</label>
+ <label for="asignacionId" class="form-label">Clase: año, período, grupo y materia</label>
  <select id="asignacionId" name="asignacionId" class="form-select mb-3">
  <option value="0">Seleccionar</option>
  @foreach(var item in Model.Opciones("Asignaciones")){<option value="@item.Value" selected="@(item.Value==Model.Input.AsignacionId.ToString())">@item.Text</option>}
- </select><button class="btn btn-liceo-primary">Abrir asignación</button>
- @if(User.IsInRole("Administrador")){<a asp-page="Tipos" class="btn btn-liceo-secondary">Administrar tipos de evaluación</a>}
+ </select><button class="btn btn-liceo-primary">Abrir clase</button>
+
 </form>
+@if(Model.Clase is { } clase){
+<section class="liceo-card academic-context mb-4"><h2 class="h4">@clase["Etiqueta"]</h2>
+<p>@Model.Filas("Resumen").Count() estudiantes · @Model.Filas("Evaluaciones").Count() evaluaciones · @Model.Pendientes resultados pendientes · @Model.PesoTotal % de peso configurado</p>
+@if(User.IsInRole("Administrador")){<a asp-page="/Planificacion/Index" asp-route-accion="Listo" asp-route-anio="@clase["AnioId"]" asp-route-pensum="@clase["PensumId"]" asp-route-grupo="@clase["GrupoId"]">Volver a la organización de este grupo</a>}
+</section>
+}else if(!Model.Filas("Asignaciones").Any()){
+<div class="alert alert-info">No tienes clases disponibles.
+@if(User.IsInRole("Administrador")){<a asp-page="/Planificacion/Index">Prepara un grupo y asigna sus docentes.</a>}else{<span>Solicita al administrador que te asigne las materias de tus grupos.</span>}
+</div>
+}
 @if(Model.Bloqueado){<div class="alert alert-info">Resultados publicados o período cerrado. Consulta disponible; edición bloqueada.</div>}
 @if(Model.Input.AsignacionId>0){
- <nav class="d-flex gap-2 mb-4"><a asp-route-asignacionId="@Model.Input.AsignacionId" class="btn btn-liceo-secondary">Nueva evaluación</a><a asp-route-asignacionId="@Model.Input.AsignacionId" asp-route-accion="Publicar" class="btn btn-liceo-secondary">Revisar publicación</a></nav>
+ <nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Pasos de calificación"><a asp-page="Index" asp-route-asignacionId="@Model.Input.AsignacionId" class="btn @(Model.Input.Accion=="Evaluacion"?"btn-liceo-primary":"btn-liceo-secondary")">1. Preparar evaluaciones</a><a asp-page="Index" asp-route-asignacionId="@Model.Input.AsignacionId" asp-route-accion="Nota" class="btn @(Model.Input.Accion=="Nota"?"btn-liceo-primary":"btn-liceo-secondary")">2. Registrar resultados</a><a asp-page="Index" asp-route-asignacionId="@Model.Input.AsignacionId" asp-route-accion="Publicar" class="btn @(Model.Input.Accion=="Publicar"?"btn-liceo-primary":"btn-liceo-secondary")">3. Revisar y publicar</a></nav>
 }
-@if(!Model.Bloqueado && (Model.Input.Accion=="Tipo" || Model.Input.AsignacionId>0)){
+@if(Model.Input.Accion=="Evaluacion" && User.IsInRole("Administrador") && Model.Input.AsignacionId>0 && !Model.Bloqueado){
+<details class="liceo-card mb-4"><summary>¿Falta un tipo de evaluación? Créalo aquí</summary><p>Hazlo antes de completar la evaluación; al guardar volverás a esta misma clase.</p>
+<form method="post"><input type="hidden" name="Input.Accion" value="Tipo" /><input type="hidden" name="Input.AsignacionId" value="@Model.Input.AsignacionId" /><label for="nuevo-tipo" class="form-label">Nombre del tipo</label><input id="nuevo-tipo" name="Input.Nombre" class="form-control mb-3" maxlength="100" required /><button class="btn btn-liceo-primary">Crear tipo y volver</button></form><a asp-page="Tipos" asp-route-asignacionId="@Model.Input.AsignacionId">Editar tipos existentes e historial</a></details>
+}
+@if(Model.Input.Accion=="Nota" && Model.Evaluacion is null && Model.Input.AsignacionId>0){<div class="alert alert-info">Selecciona «Ver resultados» en una evaluación de la lista para comenzar a calificar.</div>}
+@if(!Model.Bloqueado && (Model.Input.Accion=="Tipo" || Model.Input.AsignacionId>0) && (Model.Input.Accion!="Nota" || (Model.Evaluacion is not null && !string.IsNullOrEmpty(Model.Input.Registro)))){
 <form method="post" class="liceo-card mb-4">
  <input asp-for="Input.Accion" type="hidden" /><input asp-for="Input.AsignacionId" type="hidden" /><input asp-for="Input.EvaluacionId" type="hidden" />
  @if(Model.Input.Accion=="Tipo"){
@@ -29,14 +45,14 @@
  <div class="col-md-6"><label asp-for="Input.Nombre" class="form-label">Nombre</label><input asp-for="Input.Nombre" class="form-control" required /></div>
  <div class="col-md-6"><label asp-for="Input.TipoId" class="form-label">Tipo</label><select asp-for="Input.TipoId" asp-items='Model.Opciones("Tipos")' class="form-select"><option value="0">Seleccionar</option></select></div>
  <div class="col-md-6"><label asp-for="Input.Fecha" class="form-label">Fecha dentro del período</label><input asp-for="Input.Fecha" type="date" class="form-control" required /></div>
- <div class="col-md-6"><label asp-for="Input.Modo" class="form-label">Modalidad de calificación</label><select asp-for="Input.Modo" class="form-select"><option>Cuantitativa</option><option>Cualitativa</option></select></div>
- <div class="col-md-6"><label asp-for="Input.Maximo" class="form-label">Puntos máximos (solo cuantitativa)</label><input asp-for="Input.Maximo" type="number" step="0.01" class="form-control" /></div>
- <div class="col-md-6"><label asp-for="Input.Peso" class="form-label">Peso porcentual (solo cuantitativa)</label><input asp-for="Input.Peso" type="number" step="0.01" class="form-control" /></div>
- <div class="col-12"><label asp-for="Input.Opciones" class="form-label">Escala cualitativa: un resultado por línea</label><textarea asp-for="Input.Opciones" rows="4" class="form-control" aria-describedby="escala-ayuda"></textarea><p id="escala-ayuda" class="text-muted">Define de 2 a 20 opciones para una evaluación cualitativa. Estas no se convierten en puntos ni aportan al promedio numérico.</p></div>
- </div><p class="mt-3">La definición se puede corregir antes de registrar calificaciones y sin publicaciones, desde Definición e historial.</p><button class="btn btn-liceo-primary">Crear evaluación</button>
+ <div class="col-md-6"><label asp-for="Input.Modo" class="form-label">Modalidad de calificación</label><select asp-for="Input.Modo" class="form-select" data-modo-evaluacion><option>Cuantitativa</option><option>Cualitativa</option></select></div>
+ <div class="col-md-6" data-modo-campos="Cuantitativa"><label asp-for="Input.Maximo" class="form-label">Puntos máximos (solo cuantitativa)</label><input asp-for="Input.Maximo" type="number" step="0.01" class="form-control" /></div>
+ <div class="col-md-6" data-modo-campos="Cuantitativa"><label asp-for="Input.Peso" class="form-label">Peso porcentual (solo cuantitativa)</label><input asp-for="Input.Peso" type="number" step="0.01" class="form-control" /></div>
+ <div class="col-12" data-modo-campos="Cualitativa"><label asp-for="Input.Opciones" class="form-label">Escala cualitativa: un resultado por línea</label><textarea asp-for="Input.Opciones" rows="4" class="form-control" aria-describedby="escala-ayuda"></textarea><p id="escala-ayuda" class="text-muted">Define de 2 a 20 opciones para una evaluación cualitativa. Estas no se convierten en puntos ni aportan al promedio numérico.</p></div>
+ </div><p class="mt-3">La definición se puede corregir antes de registrar calificaciones y sin publicaciones, desde Definición e historial.</p><button class="btn btn-liceo-primary">Crear evaluación y abrir resultados</button>
  }
  @if(Model.Input.Accion=="Nota" && Model.Evaluacion is not null && !string.IsNullOrEmpty(Model.Input.Registro)){
- <h2 class="h4">Registrar resultado · @Model.Input.Registro</h2><p>@Model.Evaluacion["Nombre"]</p>
+ <h2 class="h4">Registrar resultado · @Model.Filas("Estudiantes").FirstOrDefault(r=>r["Registro"].ToString()==Model.Input.Registro)?["NombreEstudiante"]</h2><p>@Model.Evaluacion["Nombre"]</p>
  <input asp-for="Input.VersionEvaluacion" type="hidden" /><input asp-for="Input.Registro" type="hidden" /><input asp-for="Input.Version" type="hidden" />
  @if(Model.Evaluacion["Modo"].ToString()=="Cuantitativa"){
  <label asp-for="Input.Nota" class="form-label">Nota (máximo @Model.Evaluacion["Maximo"] puntos)</label><input asp-for="Input.Nota" type="number" min="0" step="0.01" class="form-control mb-3" />
@@ -45,21 +61,25 @@
  }
  <p class="text-muted">Vacío significa pendiente. Una nota de cero es un resultado registrado.</p>
  @if(!string.IsNullOrEmpty(Model.Input.Version)){<label asp-for="Input.Motivo" class="form-label">Motivo de la modificación</label><textarea asp-for="Input.Motivo" class="form-control mb-3" maxlength="500" required></textarea>}
- <label asp-for="Input.Observacion" class="form-label">Observación académica</label><textarea asp-for="Input.Observacion" class="form-control mb-3" rows="2"></textarea><button class="btn btn-liceo-primary">Guardar resultado</button>
+ <label asp-for="Input.Observacion" class="form-label">Observación académica</label><textarea asp-for="Input.Observacion" class="form-control mb-3" rows="2"></textarea><div class="d-flex flex-wrap gap-2"><button class="btn btn-liceo-primary" name="siguiente" value="true">Guardar y siguiente pendiente</button><button class="btn btn-liceo-secondary" name="siguiente" value="false">Guardar y volver a la lista</button></div>
  }
  @if(Model.Input.Accion=="Publicar"){
- <h2 class="h4">Publicar resultados de esta asignatura</h2><p>Se comprobará que no falten resultados y que los pesos numéricos sumen 100 %. Las evaluaciones y notas quedarán bloqueadas. Esta publicación es interna; no envía mensajes ni habilita un portal de padres.</p><button class="btn btn-liceo-primary">Confirmar publicación y bloquear</button>
+ <h2 class="h4">Publicar resultados de esta asignatura</h2><p>Se comprobará que no falten resultados y que los pesos numéricos sumen 100 %. Las evaluaciones y notas quedarán bloqueadas. Esta publicación es interna; no envía mensajes ni habilita un portal de padres.</p>@if(!Model.PuedePublicar){<div class="alert alert-info">Antes de publicar: registra al menos una evaluación y estudiantes, completa los resultados pendientes y, si hay evaluaciones numéricas, ajusta sus pesos a 100 %.</div>}
+<button class="btn btn-liceo-primary" disabled="@(!Model.PuedePublicar)">Confirmar publicación y bloquear</button>
  }
 </form>
 }
 @if(Model.Input.AsignacionId>0){
-<section class="liceo-card mb-4"><h2 class="h4">Evaluaciones</h2><div class="table-responsive"><table class="table"><thead><tr><th>Nombre</th><th>Fecha</th><th>Modalidad</th><th>Máximo</th><th>Peso</th><th>Acción</th></tr></thead><tbody>
-@foreach(var e in Model.Filas("Evaluaciones")){<tr><td>@e["Nombre"]</td><td>@(((DateTime)e["Fecha"]).ToString("dd/MM/yyyy"))</td><td>@e["Modo"]</td><td>@(e["Modo"].ToString()=="Cuantitativa"?e["Maximo"]:"—")</td><td>@e["Peso"] %</td><td><a asp-route-asignacionId="@Model.Input.AsignacionId" asp-route-evaluacionId="@e["Id"]" asp-route-accion="Nota">Ver resultados</a> · <a asp-page="EditarEvaluacion" asp-route-id="@e["Id"]">Definición e historial</a></td></tr>}
+<section class="liceo-card mb-4"><h2 class="h4">Evaluaciones</h2>@if(!Model.Filas("Evaluaciones").Any()){<p>Aún no hay evaluaciones. Comienza por «Preparar evaluaciones».</p>}<div class="table-responsive"><table class="table"><thead><tr><th>Nombre</th><th>Fecha</th><th>Modalidad</th><th>Máximo</th><th>Peso</th><th>Acción</th></tr></thead><tbody>
+@foreach(var e in Model.Filas("Evaluaciones")){<tr><td>@e["Nombre"]</td><td>@(((DateTime)e["Fecha"]).ToString("dd/MM/yyyy"))</td><td>@e["Modo"]</td><td>@(e["Modo"].ToString()=="Cuantitativa"?e["Maximo"]:"—")</td><td>@e["Peso"] %</td><td><a asp-page="Index" asp-route-asignacionId="@Model.Input.AsignacionId" asp-route-evaluacionId="@e["Id"]" asp-route-accion="Nota">Ver resultados</a> · <a asp-page="EditarEvaluacion" asp-route-id="@e["Id"]">Definición e historial</a></td></tr>}
 </tbody></table></div></section>
 @if(Model.Evaluacion is not null){
 <section class="liceo-card mb-4"><h2 class="h4">Resultados · @Model.Evaluacion["Nombre"]</h2><div class="table-responsive"><table class="table"><thead><tr><th>Estudiante</th><th>Resultado</th><th>Observación</th><th>Acción</th></tr></thead><tbody>
-@foreach(var r in Model.Filas("Estudiantes")){<tr><td>@r["NombreEstudiante"] <small>(@r["Registro"])</small></td><td>@(r["Nota"] is not DBNull?r["Nota"]:r["Resultado"] is not DBNull?r["Resultado"]:"Pendiente")</td><td>@r["Observacion"]</td><td>@if(!Model.Bloqueado){<a asp-route-asignacionId="@Model.Input.AsignacionId" asp-route-evaluacionId="@Model.Input.EvaluacionId" asp-route-registro="@r["Registro"]" asp-route-accion="Nota">Calificar</a>}</td></tr>}
+@foreach(var r in Model.Filas("Estudiantes")){<tr><td>@r["NombreEstudiante"] <small>(@r["Registro"])</small></td><td>@(r["Nota"] is not DBNull?r["Nota"]:r["Resultado"] is not DBNull?r["Resultado"]:"Pendiente")</td><td>@r["Observacion"]</td><td>@if(!Model.Bloqueado){<a asp-page="Index" asp-route-asignacionId="@Model.Input.AsignacionId" asp-route-evaluacionId="@Model.Input.EvaluacionId" asp-route-registro="@r["Registro"]" asp-route-accion="Nota">Calificar</a>}</td></tr>}
 </tbody></table></div></section>
 }
-<section class="liceo-card"><h2 class="h4">Resumen del grupo</h2><p>Acumulado numérico = suma de (nota ÷ máximo × peso). Mientras haya pendientes o falte configurar peso, es un avance parcial. Las escalas cualitativas se consultan por evaluación.</p><partial name="~/Pages/Planificacion/_Tabla.cshtml" model='Model.Datos.Tables["Resumen"]!' /></section>
+<section class="liceo-card"><h2 class="h4">Resumen del grupo</h2><p>Acumulado numérico = suma de (nota ÷ máximo × peso). Mientras haya pendientes o falte configurar peso, es un avance parcial. Las escalas cualitativas se consultan por evaluación.</p><div class="table-responsive"><table class="table"><thead><tr><th>Estudiante</th><th>Evaluaciones</th><th>Resultados pendientes</th><th>Acumulado numérico</th></tr></thead><tbody>@foreach(var r in Model.Filas("Resumen")){<tr><td>@r["NombreEstudiante"] <small>(@r["Registro"])</small></td><td>@r["Evaluaciones"]</td><td>@r["Pendientes"]</td><td>@(r["AcumuladoNumerico"] is DBNull?"Sin resultados":r["AcumuladoNumerico"])</td></tr>}</tbody></table></div></section>
 }
+
+}
+@section Scripts { <partial name="_ValidationScriptsPartial" /><script src="~/js/flujo-academico.js" asp-append-version="true"></script> }

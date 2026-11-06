@@ -102,8 +102,7 @@
         <a asp-area="" asp-page="/Finanzas/Conciliacion" class="@(EstaActivo("/Finanzas/Conciliacion") ? "active" : "")">Conciliación de obligaciones</a>
         <a asp-area="" asp-page="/Finanzas/Aranceles" class="@(EstaActivo("/Finanzas/Aranceles") ? "active" : "")">Aranceles y preparación</a>
         <a asp-area="" asp-page="/Notas/Cierre" class="@(EstaActivo("/Notas/Cierre") ? "active" : "")">Cierre e historial académico</a>
-        <a asp-page="/Planificacion/Index" class="@(EstaActivo("/Planificacion/Index") ? "active" : "")">Planificación académica</a>
-        <a asp-page="/Planificacion/Catalogos" class="@(EstaActivo("/Planificacion/Catalogos") ? "active" : "")">Catálogos académicos</a>
+        <a asp-page="/Planificacion/Index" class="@(EstaActivo("/Planificacion/Index") ? "active" : "")">Organización académica</a>
         <a asp-area="" asp-page="/Personal/Administrar" class="@(EstaActivo("/Personal/Administrar") || EstaActivo("/Personal/Index") ? "active" : "")">Cuentas del personal</a>
 
         @if (mostrarAnterior)

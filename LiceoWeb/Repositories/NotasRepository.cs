@@ -18,7 +18,7 @@ public sealed class NotasRepository(SqlConnectionFactory factory)
   {var table=new DataTable(name);table.Load(reader);result.Tables.Add(table);}
   return result;
  }
- public async Task GuardarAsync(NotasInput input,string usuario)
+ public async Task<int> GuardarAsync(NotasInput input,string usuario)
  {
   await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();
   cmd.CommandText="dbo.Notas_Guardar";cmd.CommandType=CommandType.StoredProcedure;
@@ -26,7 +26,9 @@ public sealed class NotasRepository(SqlConnectionFactory factory)
   var datos=new{input.Accion,input.AsignacionId,input.EvaluacionId,input.TipoId,input.Nombre,input.Fecha,input.Modo,input.Maximo,input.Peso,Valores=input.Valores(),input.Registro,input.Nota,input.Resultado,input.Observacion,input.Version,input.VersionEvaluacion,input.Motivo};
   cmd.Parameters.Add("@UsuarioId",SqlDbType.NVarChar,450).Value=usuario;
   cmd.Parameters.Add("@Datos",SqlDbType.NVarChar,-1).Value=JsonSerializer.Serialize(datos);
+  var resultado=cmd.Parameters.Add("@ResultadoId",SqlDbType.Int);resultado.Direction=ParameterDirection.Output;
   await cmd.ExecuteNonQueryAsync();
+  return resultado.Value is int id ? id : 0;
  }
 
  public async Task<DataSet> ConsultarTiposAsync(string usuario,int id,int pagina)

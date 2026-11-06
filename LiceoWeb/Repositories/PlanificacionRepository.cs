@@ -17,13 +17,15 @@ public sealed class PlanificacionRepository(SqlConnectionFactory factory)
   foreach(var name in names){var table=new DataTable(name);table.Load(reader);result.Tables.Add(table);}
   return result;
  }
- public async Task GuardarAsync(string procedimiento,object input,string usuarioId)
+ public async Task<int> GuardarAsync(string procedimiento,object input,string usuarioId)
  {
   if(procedimiento is not ("dbo.CatalogoAcademico_Guardar" or "dbo.Planificacion_Guardar"))throw new ArgumentException("Procedimiento inválido.");
   await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();
   cmd.CommandText=procedimiento;cmd.CommandType=CommandType.StoredProcedure;
   cmd.Parameters.Add("@Datos",SqlDbType.NVarChar,-1).Value=JsonSerializer.Serialize(input);
   cmd.Parameters.Add("@UsuarioId",SqlDbType.NVarChar,450).Value=usuarioId;
+  var resultado=cmd.Parameters.Add("@ResultadoId",SqlDbType.Int);resultado.Direction=ParameterDirection.Output;
   await cmd.ExecuteNonQueryAsync();
+  return (int)resultado.Value;
  }
 }

@@ -1,4 +1,4 @@
-CREATE OR ALTER PROCEDURE dbo.CatalogoAcademico_Guardar @Datos nvarchar(max),@UsuarioId nvarchar(450)
+CREATE OR ALTER PROCEDURE dbo.CatalogoAcademico_Guardar @Datos nvarchar(max),@UsuarioId nvarchar(450),@ResultadoId int=NULL OUTPUT
 AS
 BEGIN
  SET NOCOUNT ON;SET XACT_ABORT ON;
@@ -92,6 +92,7 @@ BEGIN
  DECLARE @Operacion uniqueidentifier=NEWID(),@Registro nvarchar(100)=CONVERT(nvarchar(100),@Id);
  EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=N'GuardarCatalogoAcademico',@Entidad=@Tipo,@RegistroId=@Registro,@IdOperacion=@Operacion;
  COMMIT;
+ SET @ResultadoId=@Id;
  END TRY
  BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK;
@@ -99,7 +100,7 @@ BEGIN
  END CATCH;
 END;
 GO
-CREATE OR ALTER PROCEDURE dbo.Planificacion_Guardar @Datos nvarchar(max),@UsuarioId nvarchar(450)
+CREATE OR ALTER PROCEDURE dbo.Planificacion_Guardar @Datos nvarchar(max),@UsuarioId nvarchar(450),@ResultadoId int=NULL OUTPUT
 AS
 BEGIN
  SET NOCOUNT ON;SET XACT_ABORT ON;
@@ -204,6 +205,7 @@ BEGIN
  DECLARE @Operacion uniqueidentifier=NEWID(),@RegistroId nvarchar(100)=CONVERT(nvarchar(100),@Resultado),@AccionAudit nvarchar(50)=N'Planificar'+@Accion;
  EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=@AccionAudit,@Entidad=N'Planificacion',@RegistroId=@RegistroId,@IdOperacion=@Operacion;
  COMMIT;
+ SET @ResultadoId=@Resultado;
  END TRY
  BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK;
@@ -233,14 +235,14 @@ BEGIN
  SELECT Id,Nombre,Ubicacion,Capacidad,Activo,CONCAT(Nombre,' / ',Ubicacion) Etiqueta FROM dbo.Aula ORDER BY Nombre;
  SELECT Id,Codigo,Nombre,Activo,CONCAT(Codigo,' / ',Nombre) Etiqueta FROM dbo.Asignatura ORDER BY Nombre;
  SELECT P.Id,P.AnioId,P.ModalidadId,P.Nivel,CONCAT(Y.Anio,' / ',M.Nombre,' / ',P.Nivel) Etiqueta,CONVERT(bit,CASE WHEN Y.Activo=1 AND M.Activo=1 THEN 1 ELSE 0 END) Activo FROM dbo.Pensum P JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=P.ModalidadId ORDER BY Y.Anio DESC,M.Nombre,P.Nivel;
- SELECT P.PensumId,A.Nombre Asignatura FROM dbo.PensumAsignatura P JOIN dbo.Asignatura A ON A.Id=P.AsignaturaId ORDER BY P.PensumId,A.Nombre;
+ SELECT P.PensumId,P.AsignaturaId,A.Nombre Asignatura FROM dbo.PensumAsignatura P JOIN dbo.Asignatura A ON A.Id=P.AsignaturaId ORDER BY P.PensumId,A.Nombre;
  SELECT G.Id,G.PensumId,G.PeriodoId,G.TurnoId,G.AulaId,G.Seccion,CONCAT(Y.Anio,' / ',P.Nivel,' ',G.Seccion,' / ',T.Nombre) Etiqueta,
  CONVERT(bit,CASE WHEN Y.Activo=1 AND M.Activo=1 AND A.Activo=1 AND TA.Activo=1 AND T.Cerrado=0 THEN 1 ELSE 0 END) Activo
  FROM dbo.GrupoAcademico G JOIN dbo.Pensum P ON P.Id=G.PensumId JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId
  JOIN dbo.PeriodoAcademico T ON T.Id=G.PeriodoId JOIN dbo.ModalidadAcademica M ON M.Id=P.ModalidadId
  JOIN dbo.Aula A ON A.Id=G.AulaId JOIN dbo.TurnoAcademico TA ON TA.Id=G.TurnoId ORDER BY Y.Anio DESC,P.Nivel,G.Seccion;
  SELECT U.Id,U.UserName Etiqueta FROM dbo.AspNetUsers U WHERE NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0) AND U.EmailConfirmed=1 AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor') ORDER BY U.UserName;
- SELECT D.Id,D.GrupoId,S.Nombre Asignatura,U.UserName Docente,CONCAT(D.GrupoId,' / ',S.Nombre,' / ',U.UserName) Etiqueta FROM dbo.AsignacionDocente D JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId;
+ SELECT D.Id,D.GrupoId,D.AsignaturaId,S.Nombre Asignatura,U.UserName Docente,CONCAT(S.Nombre,' / ',U.UserName) Etiqueta,CONVERT(bit,CASE WHEN S.Activo=1 AND U.EmailConfirmed=1 AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0) AND EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor') THEN 1 ELSE 0 END) Activo FROM dbo.AsignacionDocente D JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId;
  SELECT H.Id,H.AsignacionId,G.Seccion,S.Nombre Asignatura,U.UserName Docente,A.Nombre Aula,H.Dia,H.Inicio,H.Fin FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId JOIN dbo.Aula A ON A.Id=G.AulaId ORDER BY H.Dia,H.Inicio;
  SELECT E.GrupoId,E.Registro,S.NombreEstudiante FROM dbo.GrupoEstudiante E JOIN dbo.Estudiantes S ON S.Registro=E.Registro ORDER BY E.GrupoId,S.NombreEstudiante;
 END;

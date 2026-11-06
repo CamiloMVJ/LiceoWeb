@@ -1,5 +1,7 @@
 # Planificación académica
 
+El recorrido de interfaz actual y su actualización se describen en [Organización académica y calificaciones](FlujoAcademico.md). Ese recorrido reemplaza los pasos de navegación de este documento; las reglas de integridad descritas abajo continúan vigentes.
+
 Actualización 021: la selección/asignación de docentes requiere cuenta activa, correo confirmado y ausencia de bloqueo Identity. Instalar 021 y actualizar los tres procedimientos de planificación indicados en [AdministracionPersonal.md](AdministracionPersonal.md).
 
 ## Instalación

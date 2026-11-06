@@ -1,0 +1,33 @@
+using System.Data;
+using LiceoWeb.ViewModels;
+var d = new DataSet();
+DataTable Tabla(string nombre, params (string,Type)[] columnas) {var t=new DataTable(nombre);foreach(var (n,tipo) in columnas)t.Columns.Add(n,tipo);d.Tables.Add(t);return t;}
+var i=typeof(int);var b=typeof(bool);var s=typeof(string);
+var anios=Tabla("Anios",("Id",i),("Activo",b),("Etiqueta",s));anios.Rows.Add(1,true,"2026");anios.Rows.Add(2,true,"2027");anios.Rows.Add(3,false,"2025");
+var planes=Tabla("Pensums",("Id",i),("AnioId",i),("Activo",b));planes.Rows.Add(10,1,true);planes.Rows.Add(20,2,true);planes.Rows.Add(11,1,false);
+var grupos=Tabla("Grupos",("Id",i),("PensumId",i),("Activo",b));grupos.Rows.Add(100,10,true);grupos.Rows.Add(200,20,true);grupos.Rows.Add(101,10,false);
+var periodos=Tabla("Periodos",("Id",i),("AnioId",i),("Disponible",b));periodos.Rows.Add(1,1,true);periodos.Rows.Add(2,1,false);periodos.Rows.Add(3,2,true);
+var materias=Tabla("Materias",("PensumId",i),("AsignaturaId",i));materias.Rows.Add(10,1);materias.Rows.Add(10,2);materias.Rows.Add(20,3);
+var asignaturas=Tabla("Asignaturas",("Id",i),("Activo",b));asignaturas.Rows.Add(1,true);asignaturas.Rows.Add(2,true);asignaturas.Rows.Add(3,true);asignaturas.Rows.Add(4,false);
+var docentes=Tabla("Asignaciones",("Id",i),("GrupoId",i),("AsignaturaId",i),("Activo",b));docentes.Rows.Add(1,100,1,true);docentes.Rows.Add(2,200,3,true);
+var alumnos=Tabla("EstudiantesGrupo",("GrupoId",i));alumnos.Rows.Add(100);alumnos.Rows.Add(200);
+var horarios=Tabla("Horario",("AsignacionId",i));horarios.Rows.Add(1);horarios.Rows.Add(2);
+int pruebas=0;
+void Check(bool ok,string caso){if(!ok)throw new Exception(caso);pruebas++;Console.WriteLine("PASS "+caso);}
+var c=new ContextoAcademico(d,1,10,100);c.Normalizar();
+Check(c.Anio==1&&c.Pensum==10&&c.Grupo==100,"conserva contexto válido");
+Check(c.Opciones("Pensums").Count()==1,"planes del año y activos");
+Check(c.Opciones("Grupos").Count()==1,"grupos del plan y activos");
+Check(c.Opciones("Periodos").Count()==1,"períodos abiertos del año");
+Check(c.MateriasDisponibles("Docente").Single().Field<int>("Id")==2,"asigna solamente materias del plan aún sin docente");
+Check(c.MateriasDisponibles("Materia").Single().Field<int>("Id")==3,"excluye materias ya incluidas y asignaturas inactivas");
+Check(c.Estudiantes.Count()==1&&c.Horarios.Count()==1,"no mezcla estudiantes ni horarios de otros grupos");
+c=new(d,2,10,100);c.Normalizar();Check(c.Anio==2&&c.Pensum==0&&c.Grupo==0,"cambiar año limpia descendientes incompatibles");
+c=new(d,1,10,200);c.Normalizar();Check(c.Pensum==10&&c.Grupo==0,"grupo ajeno al plan no persiste");
+c=new(d,3,10,100);c.Normalizar();Check(c.Anio==0&&c.Pensum==0&&c.Grupo==0,"año inactivo limpia contexto");
+c=new(d,1,11,101);c.Normalizar();Check(c.Pensum==0&&c.Grupo==0,"plan inactivo no seleccionable");
+c=new(new(),1,10,100);c.Normalizar();Check(c.Anio==0&&!c.Opciones("Grupos").Any(),"base vacía no rompe navegación");
+docentes.Rows[0]["Activo"]=false;c=new(d,1,10,100);c.Normalizar();
+Check(!c.Opciones("Asignaciones").Any()&&c.Asignaciones.Count()==1,"clase inactiva se consulta pero no se elige para nuevos horarios");
+Check(c.MateriasDisponibles("Docente").Count()==1,"docente inactivo no permite duplicar su asignación");
+Console.WriteLine($"{pruebas} pruebas aprobadas.");

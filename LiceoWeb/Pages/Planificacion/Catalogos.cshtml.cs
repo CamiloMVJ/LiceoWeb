@@ -17,20 +17,10 @@ public class CatalogosModel(PlanificacionRepository repository,PlanificacionServ
  [TempData] public string? Mensaje {get;set;}
  public IEnumerable<SelectListItem> Anios=>Datos.Tables.Contains("Anios")?Datos.Tables["Anios"]!.AsEnumerable().Where(r=>r.Field<bool>("Activo")).Select(r=>new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString())):[];
  private async Task CargarAsync(){Datos=await repository.ConsultarAsync(usuario.ObtenerId());}
- public async Task<IActionResult> OnGetAsync(string tipo="Anios",int id=0)
+ public IActionResult OnGet(string tipo="Anios",int id=0)
  {
   if(!Tipos.Contains(tipo)||id<0)return BadRequest();
-  Input.Tipo=tipo;await CargarAsync();
-  if(id==0)return Page();
-  var row=Datos.Tables[tipo]!.AsEnumerable().FirstOrDefault(r=>(int)r["Id"]==id);if(row is null)return NotFound();
-  Input.Id=id;
-  if(row.Table.Columns.Contains("Nombre"))Input.Nombre=(string)row["Nombre"];
-  if(row.Table.Columns.Contains("Activo"))Input.Activo=(bool)row["Activo"];
-  if(tipo=="Anios")Input.Anio=(int)row["Anio"];
-  if(tipo=="Periodos"){Input.AnioId=(int)row["AnioId"];Input.Inicio=DateOnly.FromDateTime((DateTime)row["Inicio"]);Input.Fin=DateOnly.FromDateTime((DateTime)row["Fin"]);}
-  if(tipo=="Aulas"){Input.Ubicacion=(string)row["Ubicacion"];Input.Capacidad=(int)row["Capacidad"];}
-  if(tipo=="Asignaturas")Input.Codigo=(string)row["Codigo"];
-  return Page();
+  return RedirectToPage("Index",new{accion="Base",catalogo=tipo,id});
  }
  public async Task<IActionResult> OnPostAsync()
  {

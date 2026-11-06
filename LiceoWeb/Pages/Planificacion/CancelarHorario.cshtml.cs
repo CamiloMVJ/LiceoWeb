@@ -11,6 +11,8 @@ namespace LiceoWeb.Pages.Planificacion;
 [ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
 public class CancelarHorarioModel(HorarioRepository repository,UsuarioActual usuario,ILogger<CancelarHorarioModel> logger):PageModel
 {
+ [BindProperty(SupportsGet=true)] public string? Retorno {get;set;}
+ public string Volver => Url.IsLocalUrl(Retorno) ? Retorno! : Url.Page("/Planificacion/Index")!;
  [BindProperty] public CancelarHorarioInput Input {get;set;}=new();
  public DataRow? Horario {get;private set;}
  public bool PuedeCancelar=>Horario is not null && !(bool)Horario["Cancelado"] && !(bool)Horario["Cerrado"];
@@ -24,7 +26,7 @@ public class CancelarHorarioModel(HorarioRepository repository,UsuarioActual usu
   if(id!=Input.HorarioId)return BadRequest();
   if(ModelState.IsValid)
   {
-   try { await repository.CancelarAsync(usuario.ObtenerId(),Input);TempData["Mensaje"]="Horario cancelado. El registro original se conserva en el historial.";return RedirectToPage("HistorialHorarios"); }
+   try { await repository.CancelarAsync(usuario.ObtenerId(),Input);TempData["Mensaje"]="Horario cancelado. El registro original se conserva en el historial.";return Url.IsLocalUrl(Retorno)?LocalRedirect(Retorno!):RedirectToPage("HistorialHorarios"); }
    catch(SqlException ex) when(ex.Number==54201){return Forbid();}
    catch(SqlException ex) when(ex.Number is >=54202 and <=54208){ModelState.AddModelError("",ex.Message);}
    catch(Exception ex){logger.LogError("Cancelación de horario: {Tipo}",ex.GetType().Name);ModelState.AddModelError("","No se pudo cancelar. Revisa la conexión y los scripts de horarios.");}

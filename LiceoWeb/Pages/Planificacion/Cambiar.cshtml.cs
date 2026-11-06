@@ -12,6 +12,8 @@ namespace LiceoWeb.Pages.Planificacion;
 [ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
 public class CambiarModel(CambioPlanificacionRepository repository,UsuarioActual usuario,ILogger<CambiarModel> logger):PageModel
 {
+ [BindProperty(SupportsGet=true)] public string? Retorno {get;set;}
+ public string Volver => Url.IsLocalUrl(Retorno) ? Retorno! : Url.Page("/Planificacion/Index")!;
  [BindProperty] public CambioPlanificacionInput Input {get;set;}=new();
  public DataSet Datos {get;private set;}=new();
  public DataRow? Origen=>Datos.Tables.Contains("Origen")&&Datos.Tables["Origen"]!.Rows.Count>0?Datos.Tables["Origen"]!.Rows[0]:null;
@@ -28,7 +30,7 @@ public class CambiarModel(CambioPlanificacionRepository repository,UsuarioActual
   if(Input.Tipo is not ("Docente" or "Estudiante")||Input.OrigenId<=0||Input.Registro?.Length>10)return BadRequest();
   if(ModelState.IsValid)
   {
-   try{await repository.GuardarAsync(usuario.ObtenerId(),Input);TempData["Mensaje"]="Cambio registrado con historial y auditoría.";return RedirectToPage("HistorialCambios");}
+   try{await repository.GuardarAsync(usuario.ObtenerId(),Input);TempData["Mensaje"]="Cambio registrado con historial y auditoría.";return Url.IsLocalUrl(Retorno)?LocalRedirect(Retorno!):RedirectToPage("HistorialCambios");}
    catch(SqlException ex) when(ex.Number==54301){return Forbid();}
    catch(SqlException ex) when(ex.Number is >=54302 and <=54312){ModelState.AddModelError("",ex.Message);}
    catch(Exception ex){logger.LogError("Cambio de planificación: {Tipo}",ex.GetType().Name);ModelState.AddModelError("","No se pudo guardar. Revisa conexión y scripts de cambios de planificación.");}

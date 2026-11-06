@@ -1,4 +1,4 @@
-CREATE OR ALTER PROCEDURE dbo.Notas_Guardar @Datos nvarchar(max),@UsuarioId nvarchar(450)
+CREATE OR ALTER PROCEDURE dbo.Notas_Guardar @Datos nvarchar(max),@UsuarioId nvarchar(450),@ResultadoId int=NULL OUTPUT
 AS
 BEGIN
  SET NOCOUNT ON;SET XACT_ABORT ON;
@@ -26,6 +26,7 @@ BEGIN
   IF ISNULL(@Admin,0)=0 THROW 52401,N'Solo administración puede crear tipos.',1;
   IF @Nombre IS NULL THROW 52400,N'Escribe el nombre del tipo.',1;
   INSERT dbo.TipoEvaluacion(Nombre) VALUES(@Nombre);
+  SET @ResultadoId=CONVERT(int,SCOPE_IDENTITY());
  END
  ELSE
  BEGIN
@@ -98,6 +99,7 @@ BEGIN
  DECLARE @AccionAudit nvarchar(100)=N'Notas_'+@Accion,@Id nvarchar(100)=CONCAT(@Asignacion,':',@Evaluacion,':',@Registro);
  EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=@AccionAudit,@Entidad=N'Calificaciones',@RegistroId=@Id,@IdOperacion=@Operacion;
  COMMIT;
+ IF @Accion='Evaluacion' SET @ResultadoId=@Evaluacion;
  END TRY
  BEGIN CATCH
   IF @@TRANCOUNT>0 ROLLBACK;
@@ -115,7 +117,7 @@ BEGIN
  IF ISNULL(@Admin,0)=0 AND ISNULL(@Profesor,0)=0 THROW 52401,N'Acceso académico denegado.',1;
  IF @AsignacionId<>0 AND NOT EXISTS(SELECT 1 FROM dbo.AsignacionDocente WHERE Id=@AsignacionId AND (@Admin=1 OR UsuarioId=@UsuarioId)) THROW 52401,N'Asignación no disponible para tu cuenta.',1;
  IF @EvaluacionId<>0 AND NOT EXISTS(SELECT 1 FROM dbo.Evaluacion WHERE Id=@EvaluacionId AND AsignacionId=@AsignacionId) THROW 52401,N'Evaluación ajena a la asignación.',1;
- SELECT A.Id,CONCAT(Y.Anio,' / ',P.Nombre,' / ',PS.Nivel,' ',G.Seccion,' / ',S.Nombre) Etiqueta,P.Cerrado,
+ SELECT A.Id,PS.AnioId,G.PensumId,A.GrupoId,CONCAT(Y.Anio,' / ',P.Nombre,' / ',PS.Nivel,' ',G.Seccion,' / ',S.Nombre) Etiqueta,P.Cerrado,
  CONVERT(bit,CASE WHEN PN.AsignacionId IS NULL THEN 0 ELSE 1 END) Publicado
  FROM dbo.AsignacionDocente A JOIN dbo.GrupoAcademico G ON G.Id=A.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId
  JOIN dbo.AnioLectivo Y ON Y.Id=P.AnioId JOIN dbo.Pensum PS ON PS.Id=G.PensumId JOIN dbo.Asignatura S ON S.Id=A.AsignaturaId
@@ -127,10 +129,10 @@ BEGIN
  JOIN dbo.Estudiantes S ON S.Registro=G.Registro LEFT JOIN dbo.Calificacion C ON C.Registro=G.Registro AND C.EvaluacionId=@EvaluacionId WHERE A.Id=@AsignacionId AND @EvaluacionId<>0 ORDER BY G.Registro;
  SELECT Valor FROM dbo.OpcionEvaluacion WHERE EvaluacionId=@EvaluacionId ORDER BY Valor;
  -- Pendientes se muestran explícitamente; el acumulado parcial no es una nota final.
- SELECT G.Registro,COUNT(E.Id) Evaluaciones,SUM(CASE WHEN E.Id IS NOT NULL AND ((E.Modo='Cuantitativa' AND C.Nota IS NULL) OR (E.Modo='Cualitativa' AND C.Resultado IS NULL)) THEN 1 ELSE 0 END) Pendientes,
+ SELECT G.Registro,S.NombreEstudiante,COUNT(E.Id) Evaluaciones,SUM(CASE WHEN E.Id IS NOT NULL AND ((E.Modo='Cuantitativa' AND C.Nota IS NULL) OR (E.Modo='Cualitativa' AND C.Resultado IS NULL)) THEN 1 ELSE 0 END) Pendientes,
  CAST(SUM(CASE WHEN E.Modo='Cuantitativa' THEN C.Nota/NULLIF(E.Maximo,0)*E.Peso END) AS decimal(7,2)) AcumuladoNumerico,
  SUM(CASE WHEN E.Modo='Cuantitativa' THEN E.Peso ELSE 0 END) PesoConfigurado
- FROM dbo.AsignacionDocente A JOIN dbo.GrupoEstudiante G ON G.GrupoId=A.GrupoId LEFT JOIN dbo.Evaluacion E ON E.AsignacionId=A.Id
- LEFT JOIN dbo.Calificacion C ON C.EvaluacionId=E.Id AND C.Registro=G.Registro WHERE A.Id=@AsignacionId GROUP BY G.Registro ORDER BY G.Registro;
+ FROM dbo.AsignacionDocente A JOIN dbo.GrupoEstudiante G ON G.GrupoId=A.GrupoId JOIN dbo.Estudiantes S ON S.Registro=G.Registro LEFT JOIN dbo.Evaluacion E ON E.AsignacionId=A.Id
+ LEFT JOIN dbo.Calificacion C ON C.EvaluacionId=E.Id AND C.Registro=G.Registro WHERE A.Id=@AsignacionId GROUP BY G.Registro,S.NombreEstudiante ORDER BY S.NombreEstudiante,G.Registro;
 END;
 GO

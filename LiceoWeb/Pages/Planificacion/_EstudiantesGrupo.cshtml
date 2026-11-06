@@ -1,6 +1,6 @@
 @model System.Data.DataTable
 @using System.Data
-<div class="table-responsive"><table class="table liceo-table"><thead><tr><th>Grupo</th><th>Código</th><th>Estudiante</th><th>Acciones</th></tr></thead><tbody>
-@foreach(DataRow r in Model.Rows){<tr><td>@r["GrupoId"]</td><td>@r["Registro"]</td><td>@r["NombreEstudiante"]</td><td><a asp-page="/Planificacion/Cambiar" asp-route-tipo="Estudiante" asp-route-origenId="@r["GrupoId"]" asp-route-registro="@r["Registro"]" class="btn btn-liceo-secondary">Trasladar</a></td></tr>}
+<div class="table-responsive"><table class="table liceo-table"><thead><tr><th>Código</th><th>Estudiante</th><th>Acciones</th></tr></thead><tbody>
+@foreach(DataRow r in Model.Rows){<tr><td>@r["Registro"]</td><td>@r["NombreEstudiante"]</td><td><a asp-page="/Planificacion/Cambiar" asp-route-retorno='@ViewData["RetornoAcademico"]' asp-route-tipo="Estudiante" asp-route-origenId="@r["GrupoId"]" asp-route-registro="@r["Registro"]" class="btn btn-liceo-secondary">Trasladar</a></td></tr>}
 </tbody></table></div>
 @if(Model.Rows.Count==0){<p>Todavía no hay estudiantes inscritos.</p>}

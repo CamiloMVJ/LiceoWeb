@@ -7,7 +7,7 @@
 {
  <section class="liceo-card mb-3"><h2 class="h4">Origen</h2><p>@origen["Descripcion"]</p></section>
  <form method="post" class="liceo-card">
- <input asp-for="Input.Tipo" type="hidden"/><input asp-for="Input.OrigenId" type="hidden"/><input asp-for="Input.Registro" type="hidden"/><input asp-for="Input.Version" type="hidden"/><input asp-for="Input.Operacion" type="hidden"/>
+ <input asp-for="Retorno" type="hidden" /><input asp-for="Input.Tipo" type="hidden"/><input asp-for="Input.OrigenId" type="hidden"/><input asp-for="Input.Registro" type="hidden"/><input asp-for="Input.Version" type="hidden"/><input asp-for="Input.Operacion" type="hidden"/>
  @if(Model.Input.Tipo=="Docente")
  {
   <label asp-for="Input.DocenteId" class="form-label">Nuevo docente</label><select asp-for="Input.DocenteId" asp-items="Model.Destinos" class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.DocenteId" class="text-danger"></span>
@@ -22,5 +22,5 @@
  <p id="motivo-ayuda" class="text-muted">Entre 10 y 500 caracteres.</p><button class="btn btn-liceo-primary">Confirmar cambio</button>
  </form>
 }
-<div class="d-flex flex-wrap gap-2 mt-3"><a asp-page="Index" class="btn btn-liceo-secondary">Volver a planificación</a><a asp-page="HistorialCambios" class="btn btn-liceo-secondary">Historial de cambios</a></div>
+<div class="d-flex flex-wrap gap-2 mt-3"><a href="@Model.Volver" class="btn btn-liceo-secondary">Volver al grupo</a><a asp-page="HistorialCambios" class="btn btn-liceo-secondary">Historial de cambios</a></div>
 @section Scripts{<partial name="_ValidationScriptsPartial"/>}
