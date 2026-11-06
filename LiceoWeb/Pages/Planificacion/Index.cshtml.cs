@@ -17,8 +17,8 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
     public static readonly string[] Acciones = ["Base", "Pensum", "Materia", "Grupo", "Docente", "Horario", "Estudiante", "Listo"];
     public static string Titulo(string accion) => accion switch { "Base" => "Preparar año", "Pensum" => "Plan de estudios", "Materia" => "Materias del plan", "Grupo" => "Crear grupos", "Docente" => "Asignar docentes", "Horario" => "Organizar horarios", "Estudiante" => "Inscribir estudiantes", _ => "Ir a calificaciones" };
     // Se valida únicamente el formulario enviado, no el catálogo y el plan simultáneamente.
-    [BindProperty, ValidateNever] public PlanificacionInput Input { get; set; } = new();
-    [BindProperty, ValidateNever] public CatalogoInput Catalogo { get; set; } = new();
+    public PlanificacionInput Input { get; set; } = new();
+    public CatalogoInput Catalogo { get; set; } = new();
     [BindProperty(SupportsGet = true)] public int Anio { get; set; }
     [BindProperty(SupportsGet = true)] public int Pensum { get; set; }
     [BindProperty(SupportsGet = true)] public int Grupo { get; set; }
@@ -91,8 +91,9 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
         }
         return Page();
     }
-    public async Task<IActionResult> OnPostAsync(bool continuar = false)
+    public async Task<IActionResult> OnPostAsync([FromForm(Name = "Input"), ValidateNever] PlanificacionInput input, [FromForm] bool continuar = false)
     {
+        Input = input;
         if (!Acciones.Contains(Input.Accion) || Input.Accion is "Base" or "Listo") return BadRequest();
         await CargarAsync();
         if (!Cargado) return Page();
@@ -123,8 +124,10 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
         }
         await CargarAsync(); return Page();
     }
-    public async Task<IActionResult> OnPostCatalogoAsync()
+    public async Task<IActionResult> OnPostCatalogoAsync([FromForm(Name = "Catalogo"), ValidateNever] CatalogoInput catalogo, [FromForm(Name = "Input.Accion")] string accion)
     {
+        Catalogo = catalogo;
+        Input.Accion = accion;
         if (!Acciones.Contains(Input.Accion) || !CatalogosModel.Tipos.Contains(Catalogo.Tipo)) return BadRequest();
         MostrarCatalogo = true;
         TryValidateModel(Catalogo, nameof(Catalogo));

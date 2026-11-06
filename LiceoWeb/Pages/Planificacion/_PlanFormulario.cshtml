@@ -1,6 +1,6 @@
 @model LiceoWeb.Pages.Planificacion.IndexModel
-<form method="post" class="liceo-card mb-4"><h2 class="h4">@LiceoWeb.Pages.Planificacion.IndexModel.Titulo(Model.Input.Accion)</h2><partial name="~/Pages/Planificacion/_ContextoCampos.cshtml" model="Model" /><input asp-for="Input.Accion" type="hidden" /><div class="row g-3">
-@if(Model.Input.Accion=="Pensum"){<input asp-for="Input.AnioId" type="hidden" />
+<form method="post" asp-page="/Planificacion/Index" class="liceo-card mb-4"><h2 class="h4">@LiceoWeb.Pages.Planificacion.IndexModel.Titulo(Model.Input.Accion)</h2><partial name="~/Pages/Planificacion/_ContextoCampos.cshtml" model="Model" /><input asp-for="Input.Accion" type="hidden" /><div class="row g-3">
+@if(Model.Input.Accion=="Pensum"){
 <div class="col-md-6"><label asp-for="Input.ModalidadId" class="form-label">Modalidad</label>
 <select asp-for="Input.ModalidadId" class="form-select" data-modalidad-plan required>
 <option value="">Seleccionar modalidad</option>
@@ -19,16 +19,16 @@
 </template>
 <noscript><p>Activa JavaScript para seleccionar los grados de la modalidad.</p></noscript>
 }
-@if(Model.Input.Accion=="Materia"){<input asp-for="Input.PensumId" type="hidden" />
+@if(Model.Input.Accion=="Materia"){
 <div class="col-md-6"><label asp-for="Input.AsignaturaId" class="form-label">Asignatura</label><select asp-for="Input.AsignaturaId" asp-items='Model.Opciones("Asignaturas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignaturaId" class="text-danger"></span></div>
 }
-@if(Model.Input.Accion=="Grupo"){<input asp-for="Input.PensumId" type="hidden" />
+@if(Model.Input.Accion=="Grupo"){
 <div class="col-md-6"><label asp-for="Input.PeriodoId" class="form-label">Período</label><select asp-for="Input.PeriodoId" asp-items='Model.Opciones("Periodos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.PeriodoId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.TurnoId" class="form-label">Turno</label><select asp-for="Input.TurnoId" asp-items='Model.Opciones("Turnos")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.TurnoId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.AulaId" class="form-label">Aula</label><select asp-for="Input.AulaId" asp-items='Model.Opciones("Aulas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AulaId" class="text-danger"></span></div>
 <p class="text-muted">El sistema asignará el nombre del grupo automáticamente.</p>
 }
-@if(Model.Input.Accion=="Docente"){<input asp-for="Input.GrupoId" type="hidden" />
+@if(Model.Input.Accion=="Docente"){
 <div class="col-md-6"><label asp-for="Input.AsignaturaId" class="form-label">Asignatura</label><select asp-for="Input.AsignaturaId" asp-items='Model.Opciones("Asignaturas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignaturaId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.DocenteId" class="form-label">Docente</label><select asp-for="Input.DocenteId" asp-items='Model.Opciones("Docentes")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.DocenteId" class="text-danger"></span></div>
 }
@@ -39,7 +39,7 @@
 }
 @if(Model.Input.Accion=="Estudiante"){
 <div class="col-12 alert alert-info">Después del corte, genera primero el cargo anual de matrícula desde <a asp-page="/Finanzas/Cargos">Generar cargos</a>. Al guardar se vinculará ese cargo y se confirmará la matrícula académica del año junto con la inscripción al grupo. Una matrícula histórica del mismo año, modalidad y nivel se reconoce sin generar otro cobro. El cargo puede estar pendiente de pago; no se exige solvencia para inscribir.</div>
-<input asp-for="Input.GrupoId" type="hidden" />
+
 <div class="col-md-6"><label asp-for="Input.Registro" class="form-label">Estudiante con matrícula vigente</label><input data-buscar-estudiante asp-for="Input.Registro" type="text" class="form-control" required /><span asp-validation-for="Input.Registro" class="text-danger"></span></div>
 }
 </div><div class="d-flex flex-wrap gap-2 mt-4">

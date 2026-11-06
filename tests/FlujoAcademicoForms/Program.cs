@@ -34,3 +34,20 @@ clases.Rows[0]["Cerrado"]=false;clases.Rows[0]["Publicado"]=true;Check(!notas.Pu
 clases.Rows[0]["Publicado"]=false;evaluaciones.Rows[0]["Modo"]="Cualitativa";evaluaciones.Rows[0]["Peso"]=0m;Check(notas.PuedePublicar,"evaluación solo cualitativa no requiere peso numérico");
 resumen.Rows.Clear();Check(!notas.PuedePublicar,"sin estudiantes no se publica");
 resumen.Rows.Add(0);evaluaciones.Rows.Clear();Check(!notas.PuedePublicar,"sin evaluaciones no se publica");
+var operaciones = new PlanificacionInput[]
+{
+ new(){Accion="Pensum",AnioId=1,ModalidadId=1,Nivel="I Nivel"},
+ new(){Accion="Materia",PensumId=1,AsignaturaId=1},
+ new(){Accion="Grupo",PensumId=1,PeriodoId=1,TurnoId=1,AulaId=1},
+ new(){Accion="Docente",GrupoId=1,AsignaturaId=1,DocenteId="docente"},
+ new(){Accion="Horario",AsignacionId=1,Dia=1,Inicio=new(7,0),Fin=new(8,0)},
+ new(){Accion="Estudiante",GrupoId=1,Registro="123"}
+};
+foreach(var operacion in operaciones)
+{
+ m.ModelState.Clear();
+ Check(m.TryValidateModel(operacion,"Input"),$"{operacion.Accion}: datos completos aceptados");
+}
+m.ModelState.Clear();
+Check(!m.TryValidateModel(new PlanificacionInput{Accion="Grupo",PensumId=1,PeriodoId=1,TurnoId=1},"Input")
+ && m.ModelState.ContainsKey("Input.AulaId"),"campo faltante informado por nombre");

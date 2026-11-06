@@ -47,15 +47,42 @@ public sealed class PlanificacionInput : IValidatableObject
  [StringLength(10)] public string? Registro {get;set;}
  public IEnumerable<ValidationResult> Validate(ValidationContext context)
  {
-  bool valido=Accion switch {
-   "Pensum"=>AnioId>0 && ModalidadId>0 && !string.IsNullOrWhiteSpace(Nivel),
-   "Materia"=>PensumId>0 && AsignaturaId>0,
-   "Grupo"=>PensumId>0 && PeriodoId>0 && TurnoId>0 && AulaId>0,
-   "Docente"=>GrupoId>0 && AsignaturaId>0 && !string.IsNullOrWhiteSpace(DocenteId),
-   "Horario"=>AsignacionId>0 && Dia>=1 && Dia<=7 && Inicio is not null && Fin is not null && Fin>Inicio,
-   "Estudiante"=>GrupoId>0 && !string.IsNullOrWhiteSpace(Registro),
-   _=>false
-  };
-  if(!valido)yield return new("Completa los datos de la operación seleccionada.");
+  ValidationResult Falta(string campo,string mensaje) => new(mensaje,[campo]);
+  switch(Accion)
+  {
+   case "Pensum":
+    if(AnioId<=0)yield return Falta(nameof(AnioId),"Selecciona un año lectivo activo arriba.");
+    if(ModalidadId<=0)yield return Falta(nameof(ModalidadId),"Selecciona una modalidad.");
+    if(string.IsNullOrWhiteSpace(Nivel))yield return Falta(nameof(Nivel),"Selecciona un grado o nivel.");
+    break;
+   case "Materia":
+   case "Grupo":
+    if(PensumId<=0)yield return Falta(nameof(PensumId),"Selecciona el plan de estudios arriba.");
+    if(Accion=="Materia" && AsignaturaId<=0)yield return Falta(nameof(AsignaturaId),"Selecciona una asignatura.");
+    if(Accion=="Grupo")
+    {
+     if(PeriodoId<=0)yield return Falta(nameof(PeriodoId),"Selecciona un período.");
+     if(TurnoId<=0)yield return Falta(nameof(TurnoId),"Selecciona un turno.");
+     if(AulaId<=0)yield return Falta(nameof(AulaId),"Selecciona un aula.");
+    }
+    break;
+   case "Docente":
+   case "Estudiante":
+    if(GrupoId<=0)yield return Falta(nameof(GrupoId),"Selecciona el grupo arriba.");
+    if(Accion=="Docente")
+    {
+     if(AsignaturaId<=0)yield return Falta(nameof(AsignaturaId),"Selecciona una asignatura.");
+     if(string.IsNullOrWhiteSpace(DocenteId))yield return Falta(nameof(DocenteId),"Selecciona un docente.");
+    }
+    else if(string.IsNullOrWhiteSpace(Registro))yield return Falta(nameof(Registro),"Selecciona un estudiante.");
+    break;
+   case "Horario":
+    if(AsignacionId<=0)yield return Falta(nameof(AsignacionId),"Selecciona una clase.");
+    if(Dia is <1 or >7)yield return Falta(nameof(Dia),"Selecciona un día.");
+    if(Inicio is null)yield return Falta(nameof(Inicio),"Indica la hora de inicio.");
+    if(Fin is null || (Inicio is not null && Fin<=Inicio))yield return Falta(nameof(Fin),"Indica una hora de fin posterior al inicio.");
+    break;
+   default: yield return Falta(nameof(Accion),"Operación académica inválida."); break;
+  }
  }
 }
