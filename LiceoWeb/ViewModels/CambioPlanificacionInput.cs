@@ -7,7 +7,7 @@ public sealed class CambioPlanificacionInput : IValidatableObject
  [StringLength(10),RegularExpression(@"^E_[0-9]{7}$")] public string? Registro {get;set;}
  [StringLength(450)] public string? DocenteId {get;set;}
  public int? GrupoDestino {get;set;}
- [Required,RegularExpression(@"^0x[0-9A-Fa-f]{16}$")] public string Version {get;set;}="";
+ [Required(ErrorMessage="Falta la versión del registro. Vuelve a abrir el formulario."),RegularExpression(@"^0x[0-9A-Fa-f]{16}$", ErrorMessage="La versión del registro no es válida. Vuelve a abrir el formulario.")] public string Version {get;set;}="";
  public Guid Operacion {get;set;}
  [Required,StringLength(500,MinimumLength=10)] public string Motivo {get;set;}="";
  public IEnumerable<ValidationResult> Validate(ValidationContext context)

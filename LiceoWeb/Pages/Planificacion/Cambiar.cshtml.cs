@@ -1,4 +1,5 @@
 using System.Data;
+using LiceoWeb.Data;
 using LiceoWeb.Repositories;
 using LiceoWeb.Services;
 using LiceoWeb.ViewModels;
@@ -22,13 +23,22 @@ public class CambiarModel(CambioPlanificacionRepository repository,UsuarioActual
  public IEnumerable<SelectListItem> Destinos => FilasDestino.Select(r => new SelectListItem(r["Etiqueta"].ToString(),r["Id"].ToString()) { Disabled=Conflicto(r) is not null });
  public IEnumerable<(string? Docente,string? Detalle)> DocentesOcupados => FilasDestino.Where(r=>Conflicto(r) is not null)
   .Select(r=>(r["Etiqueta"].ToString(),Conflicto(r)));
+ public bool VersionDisponible {get;private set;}=true;
  public bool HayDestinoDisponible => Destinos.Any(d=>!d.Disabled);
  public async Task<IActionResult> OnGetAsync(string tipo,int origenId,string? registro)
  {
   if(tipo is not ("Docente" or "Estudiante")||origenId<=0||registro?.Length>10)return BadRequest();
   Input=new(){Tipo=tipo,OrigenId=origenId,Registro=registro,Operacion=Guid.NewGuid()};
   var error=await CargarAsync();if(error is not null)return error;
-  if(Origen is null)return NotFound();Input.Version=(string)Origen["Version"];return Page();
+  if(Origen is not { } origen)return NotFound();
+  try { Input.Version=RowVersionToken.DesdeSql(origen["Version"]); }
+  catch(InvalidDataException)
+  {
+   VersionDisponible=false;
+   logger.LogWarning("Versión inválida al consultar {Tipo} {OrigenId}", tipo, origenId);
+   ModelState.AddModelError("", "No se pudo leer la versión de la asignación o inscripción. Actualiza Planificacion_CambioConsultar.sql y vuelve a abrir el formulario.");
+  }
+  return Page();
  }
  public async Task<IActionResult> OnPostAsync()
  {

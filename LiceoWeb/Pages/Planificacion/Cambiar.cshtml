@@ -3,7 +3,7 @@
 @{ViewData["Title"]=Model.Input.Tipo=="Docente"?"Cambiar docente":"Trasladar estudiante";}
 <div class="liceo-page-heading"><h1>@ViewData["Title"]</h1><p>Confirma el destino y explica el motivo. Se conservarán los datos anteriores y el responsable del cambio.</p></div>
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-@if(Model.Origen is { } origen)
+@if(Model.VersionDisponible && Model.Origen is { } origen)
 {
  <section class="liceo-card mb-3"><h2 class="h4">Origen</h2><p>@origen["Descripcion"]</p></section>
  <form method="post" class="liceo-card">

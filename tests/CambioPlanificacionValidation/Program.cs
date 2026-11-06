@@ -9,6 +9,7 @@ void Probar(string nombre,Action<CambioPlanificacionInput> cambio,bool esperado)
 }
 void Traslado(CambioPlanificacionInput x){x.Tipo="Estudiante";x.DocenteId=null;x.Registro="E_0000001";x.GrupoDestino=2;}
 Probar("Docente válido",x=>{},true);
+Probar("Versión binaria de SQL válida para cambiar docente", x=>x.Version=LiceoWeb.Data.RowVersionToken.DesdeSql(new byte[]{0,0,0,0,0,0,0,42}), true);
 Probar("Traslado válido",Traslado,true);
 Probar("Tipo inválido",x=>x.Tipo="SQL",false);
 Probar("Origen inválido",x=>x.OrigenId=0,false);
