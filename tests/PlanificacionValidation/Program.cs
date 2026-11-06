@@ -19,6 +19,8 @@ static class Program
   Check(Valida(new PlanificacionInput{Accion="Horario",AsignacionId=1,Dia=1,Inicio=new(9,0),Fin=new(10,0)}),"Horario válido");
   Check(!Valida(new PlanificacionInput{Accion="Docente",GrupoId=1,AsignaturaId=1}),"Docente requerido");
   Check(Valida(new PlanificacionInput{Accion="Grupo",PensumId=1,PeriodoId=1,TurnoId=1,AulaId=1}),"Grupo válido sin sección manual");
+  Check(!Valida(new PlanificacionInput{Accion="Horario",HorarioId=1,AsignacionId=1,Dia=7,Inicio=new(8,15),Fin=new(9,5)}),"Reprogramación exige versión y motivo");
+  Check(Valida(new PlanificacionInput{Accion="Horario",HorarioId=1,VersionHorario="0x0000000000000001",MotivoHorario="Cambio de jornada",AsignacionId=1,Dia=7,Inicio=new(8,15),Fin=new(9,5)}),"Reprogramación dominical de duración variable");
   Check(!Valida(new PlanificacionInput{Accion="SQL"}),"Acción no permitida");
  }
 }

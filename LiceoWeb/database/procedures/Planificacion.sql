@@ -165,11 +165,23 @@ BEGIN
  END;
  IF @Accion='Horario'
  BEGIN
-  DECLARE @Desde date,@Hasta date;
+  DECLARE @Desde date,@Hasta date,
+   @HorarioAnterior int=ISNULL(TRY_CONVERT(int,JSON_VALUE(@Datos,'$.HorarioId')),0),
+   @VersionHorario varchar(max)=JSON_VALUE(@Datos,'$.VersionHorario'),
+   @MotivoHorario nvarchar(max)=JSON_VALUE(@Datos,'$.MotivoHorario');
+  IF @HorarioAnterior<0 OR (@HorarioAnterior>0 AND NOT EXISTS(
+   SELECT 1 FROM dbo.HorarioClaseVigente WHERE Id=@HorarioAnterior AND AsignacionId=@Asignacion
+  )) THROW 52312,N'El bloque ya no está vigente o no corresponde a esta clase. Recarga el horario.',1;
   SELECT @Grupo=G.Id,@Aula=G.AulaId,@Docente=D.UsuarioId,@Desde=P.Inicio,@Hasta=P.Fin FROM dbo.AsignacionDocente D JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId WHERE D.Id=@Asignacion AND P.Cerrado=0;
   IF @Desde IS NULL OR @Dia IS NULL OR @Dia NOT BETWEEN 1 AND 7 OR @Inicio IS NULL OR @Fin IS NULL OR @Fin<=@Inicio THROW 52312,N'Asignación u horario inválido.',1;
   IF EXISTS(SELECT 1 FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.PeriodoAcademico P ON P.Id=G.PeriodoId
-   WHERE H.Dia=@Dia AND H.Inicio<@Fin AND @Inicio<H.Fin AND P.Inicio<=@Hasta AND @Desde<=P.Fin AND (G.Id=@Grupo OR G.AulaId=@Aula OR D.UsuarioId=@Docente)) THROW 52313,N'El horario se cruza con otra clase del docente, aula o grupo.',1;
+   WHERE H.Id<>@HorarioAnterior AND H.Dia=@Dia AND H.Inicio<@Fin AND @Inicio<H.Fin AND P.Inicio<=@Hasta AND @Desde<=P.Fin AND (G.Id=@Grupo OR G.AulaId=@Aula OR D.UsuarioId=@Docente)) THROW 52313,N'El horario se cruza con otra clase del docente, aula o grupo.',1;
+  -- La cancelación y el bloque nuevo comparten transacción y bloqueo.
+  IF @HorarioAnterior>0
+  BEGIN
+   DECLARE @OperacionCambioHorario uniqueidentifier=NEWID();
+   EXEC dbo.Horario_Cancelar @UsuarioId,@HorarioAnterior,@VersionHorario,@OperacionCambioHorario,@MotivoHorario;
+  END;
   INSERT dbo.HorarioClase(AsignacionId,Dia,Inicio,Fin) VALUES(@Asignacion,@Dia,@Inicio,@Fin);SET @Resultado=CONVERT(int,SCOPE_IDENTITY());
  END;
  IF @Accion='Estudiante'
@@ -251,7 +263,7 @@ BEGIN
  JOIN dbo.Aula A ON A.Id=G.AulaId JOIN dbo.TurnoAcademico TA ON TA.Id=G.TurnoId ORDER BY Y.Anio DESC,P.Nivel,G.Seccion;
  SELECT U.Id,U.UserName Etiqueta FROM dbo.AspNetUsers U WHERE NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0) AND U.EmailConfirmed=1 AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor') ORDER BY U.UserName;
  SELECT D.Id,D.GrupoId,D.AsignaturaId,S.Nombre Asignatura,U.UserName Docente,CONCAT(S.Nombre,' / ',U.UserName) Etiqueta,CONVERT(bit,CASE WHEN S.Activo=1 AND U.EmailConfirmed=1 AND (U.LockoutEnabled=0 OR U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME()) AND NOT EXISTS(SELECT 1 FROM dbo.EstadoCuentaPersonal E WHERE E.UsuarioId=U.Id AND E.Activa=0) AND EXISTS(SELECT 1 FROM dbo.AspNetUserRoles UR JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId WHERE UR.UserId=U.Id AND R.Name='Profesor') THEN 1 ELSE 0 END) Activo FROM dbo.AsignacionDocente D JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId;
- SELECT H.Id,H.AsignacionId,G.Seccion,S.Nombre Asignatura,U.UserName Docente,A.Nombre Aula,H.Dia,H.Inicio,H.Fin FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId JOIN dbo.Aula A ON A.Id=G.AulaId ORDER BY H.Dia,H.Inicio;
+ SELECT H.Id,H.AsignacionId,CONVERT(varchar(18),H.Version,1) VersionHorario,G.Seccion,S.Nombre Asignatura,U.UserName Docente,A.Nombre Aula,H.Dia,H.Inicio,H.Fin FROM dbo.HorarioClaseVigente H JOIN dbo.AsignacionDocente D ON D.Id=H.AsignacionId JOIN dbo.GrupoAcademico G ON G.Id=D.GrupoId JOIN dbo.Asignatura S ON S.Id=D.AsignaturaId JOIN dbo.AspNetUsers U ON U.Id=D.UsuarioId JOIN dbo.Aula A ON A.Id=G.AulaId ORDER BY H.Dia,H.Inicio;
  SELECT E.GrupoId,E.Registro,S.NombreEstudiante FROM dbo.GrupoEstudiante E JOIN dbo.Estudiantes S ON S.Registro=E.Registro ORDER BY E.GrupoId,S.NombreEstudiante;
 END;
 GO

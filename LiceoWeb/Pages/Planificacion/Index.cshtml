@@ -47,6 +47,14 @@ var paso=LiceoWeb.Pages.Planificacion.IndexModel.Acciones[i];
 }</td></tr>}
 </tbody></table></div><p class="small text-muted">Los datos ya utilizados conservan su definición histórica. Inactivarlos evita nuevas selecciones; no elimina los registros existentes.</p></section>
 }
+@if(Model.Grupo>0 && Model.Input.Accion=="Horario"){
+<section class="liceo-card mb-4" id="horario-semanal">
+<h2 class="h4">Horario semanal del grupo</h2>
+<p class="text-muted">Consulta los bloques en orden por día. Define el inicio y fin de cada clase según la jornada de este grupo.</p>
+@{ ViewData["HorarioEdicion"] = Model.Pendiente is null && !Model.MostrarCatalogo ? Model.Enlace("Horario") : null; }
+<partial name="~/Pages/Planificacion/_Horarios.cshtml" model="Model.Contexto.Horarios" />
+</section>
+}
 @if(Model.Pendiente is not null){<div class="alert alert-info" role="status">@Model.Pendiente</div>}
 else if(Model.Input.Accion is not ("Base" or "Listo") && !Model.MostrarCatalogo){<partial name="~/Pages/Planificacion/_PlanFormulario.cshtml" model="Model" />}
 @if(Model.Input.Accion=="Materia"){
@@ -59,10 +67,6 @@ else if(Model.Input.Accion is not ("Base" or "Listo") && !Model.MostrarCatalogo)
 <section class="liceo-card mb-4"><h2 class="h4">Clases del grupo</h2><div class="table-responsive"><table class="table"><thead><tr><th>Materia</th><th>Docente</th><th>Acciones</th></tr></thead><tbody>
 @foreach(var r in Model.Contexto.Asignaciones){<tr><td>@r["Asignatura"]</td><td>@r["Docente"]</td><td><a asp-page="/Notas/Index" asp-route-asignacionId="@r["Id"]">Abrir calificaciones</a> · <a asp-page="Cambiar" asp-route-retorno="@Model.Enlace(Model.Input.Accion)" asp-route-tipo="Docente" asp-route-origenId="@r["Id"]">Cambiar docente</a></td></tr>}
 </tbody></table></div>@if(!Model.Contexto.Asignaciones.Any()){<p>Asigna un docente a cada materia en el paso 5.</p>}</section>
-}
-@if(Model.Grupo>0 && Model.Input.Accion=="Horario"){
-var tabla=Model.Contexto.Filas("Horario").FirstOrDefault()?.Table.Clone();
-if(tabla is not null){foreach(var r in Model.Contexto.Horarios){tabla.ImportRow(r);}<section class="liceo-card mb-4"><h2 class="h4">Horario de este grupo</h2><partial name="~/Pages/Planificacion/_Horarios.cshtml" model="tabla" /></section>}
 }
 @if(Model.Grupo>0 && Model.Input.Accion=="Estudiante"){
 var tabla=Model.Contexto.Filas("EstudiantesGrupo").FirstOrDefault()?.Table.Clone();

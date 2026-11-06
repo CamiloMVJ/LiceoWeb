@@ -69,9 +69,11 @@ Si la base todavía devuelve el contrato anterior, las pantallas muestran un men
 
 ### 6. Organizar horarios
 
-- Seleccionar una clase del grupo, día por nombre y horas de inicio/fin.
-- Guardar y repetir por bloque. La base sigue rechazando cruces del grupo, aula o docente.
-- El listado muestra únicamente los bloques de este grupo. Cancelar conserva el historial y vuelve al contexto de trabajo.
+- El tablero muestra lunes a domingo con los bloques reales de ese grupo y los espacios libres entre clases. Cada día admite su propio número de clases y duraciones.
+- Pulsa «Agregar bloque» en el día correspondiente y elige la clase y las horas. El sistema comprueba cruces de grupo, aula y docente.
+- «Reprogramar» permite cambiar el día y las horas de un bloque. Indica un motivo. El bloque anterior solo se cancela si el nuevo se puede guardar; ambas operaciones se registran y el original sigue en el historial.
+- «Cancelar bloque» abre la confirmación existente. El docente puede consultar su semana por período en **Mi horario**.
+- Para instalar la reprogramación, la base debe tener la etapa 018 de cancelación y el procedimiento `Horario_Cancelar.sql`, además de la versión actual de `Planificacion.sql`.
 
 ### 7. Inscribir estudiantes
 

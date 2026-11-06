@@ -1,5 +1,17 @@
 @page
+@using System.Data
 @model LiceoWeb.Pages.Planificacion.MiHorarioModel
-@{ViewData["Title"]="Mi horario";}
-<div class="liceo-page-heading"><h1>Mi horario</h1><p>Asignaciones de tu cuenta. Días: 1 lunes a 7 domingo.</p></div>
-<section class="liceo-card"><partial name="_Tabla" model="Model.Horario" /></section>
+@{ ViewData["Title"]="Mi horario"; ViewData["HorarioDocente"]=true; }
+<div class="liceo-page-heading"><h1>Mi horario</h1><p>Consulta tus clases por período y día de la semana.</p></div>
+@{ var clases = Model.Horario.AsEnumerable().Where(r => r["Dia"] is not DBNull).ToArray(); }
+@if (clases.Length == 0)
+{
+    <p class="liceo-card">Todavía no tienes bloques de horario asignados.</p>
+}
+@foreach (var periodo in clases.GroupBy(r => (Anio:r["Anio"], Periodo:r["Periodo"])))
+{
+    <section class="liceo-card mb-4">
+        <h2 class="h4">@periodo.Key.Anio · @periodo.Key.Periodo</h2>
+        <partial name="~/Pages/Planificacion/_Horarios.cshtml" model="periodo" />
+    </section>
+}

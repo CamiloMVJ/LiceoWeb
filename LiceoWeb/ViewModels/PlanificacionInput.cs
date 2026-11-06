@@ -41,6 +41,9 @@ public sealed class PlanificacionInput : IValidatableObject
  public int GrupoId {get;set;}
  [StringLength(450)] public string? DocenteId {get;set;}
  public int AsignacionId {get;set;}
+ public int HorarioId {get;set;}
+ [RegularExpression("^0x[0-9A-Fa-f]{16}$")] public string? VersionHorario {get;set;}
+ [StringLength(500)] public string? MotivoHorario {get;set;}
  public int Dia {get;set;}
  [DataType(DataType.Time)] public TimeOnly? Inicio {get;set;}
  [DataType(DataType.Time)] public TimeOnly? Fin {get;set;}
@@ -84,6 +87,10 @@ public sealed class PlanificacionInput : IValidatableObject
     else if(string.IsNullOrWhiteSpace(Registro))yield return Falta(nameof(Registro),"Selecciona un estudiante.");
     break;
    case "Horario":
+    if(HorarioId<0 || (HorarioId>0 && string.IsNullOrEmpty(VersionHorario)))
+     yield return Falta(nameof(HorarioId),"Recarga el bloque antes de reprogramarlo.");
+    if(HorarioId>0 && (MotivoHorario?.Trim().Length ?? 0)<10)
+     yield return Falta(nameof(MotivoHorario),"Indica un motivo de al menos 10 caracteres.");
     if(AsignacionId<=0)yield return Falta(nameof(AsignacionId),"Selecciona una clase.");
     if(Dia is <1 or >7)yield return Falta(nameof(Dia),"Selecciona un día.");
     if(Inicio is null)yield return Falta(nameof(Inicio),"Indica la hora de inicio.");

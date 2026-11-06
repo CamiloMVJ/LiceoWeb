@@ -1,6 +1,48 @@
-@model System.Data.DataTable
+@model IEnumerable<System.Data.DataRow>
 @using System.Data
-<div class="table-responsive"><table class="table liceo-table"><thead><tr><th>Sección</th><th>Asignatura</th><th>Docente</th><th>Aula</th><th>Día</th><th>Inicio</th><th>Fin</th><th>Acciones</th></tr></thead><tbody>
-@foreach(DataRow h in Model.Rows){<tr><td>@h["Seccion"]</td><td>@h["Asignatura"]</td><td>@h["Docente"]</td><td>@h["Aula"]</td><td>@(new[]{"Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"}[(int)h["Dia"]-1])</td><td>@h["Inicio"]</td><td>@h["Fin"]</td><td><a asp-page="/Planificacion/CancelarHorario" asp-route-retorno='@ViewData["RetornoAcademico"]' asp-route-id="@h["Id"]" class="btn btn-outline-danger" aria-label="Cancelar horario @h["Id"]">Cancelar</a></td></tr>}
-</tbody></table></div>
-@if(Model.Rows.Count==0){<p class="text-muted">Todavía no hay horarios vigentes.</p>}
+@{
+    string[] dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+    var porDia = Model.Where(r => r["Dia"] is not DBNull).ToLookup(r => Convert.ToInt32(r["Dia"]));
+    var edicion = ViewData["HorarioEdicion"] as string;
+    var docente = ViewData["HorarioDocente"] is true;
+    string Hora(TimeSpan hora) => hora.ToString(@"hh\:mm");
+}
+<div class="horario-semana" tabindex="0" role="region" aria-label="Horario semanal; desplázate para ver todos los días">
+@for (var i = 1; i <= dias.Length; i++)
+{
+    var bloques = porDia[i].OrderBy(r => r.Field<TimeSpan>("Inicio")).ToArray();
+    var dia = dias[i-1];
+    TimeSpan? finAnterior = null;
+    <section class="horario-dia" aria-label="@dia">
+        <header><h3>@dia</h3><span>@bloques.Length @(bloques.Length == 1 ? "bloque" : "bloques")</span></header>
+        @if (bloques.Length == 0) { <p class="horario-vacio">Sin clases</p> }
+        @foreach (var h in bloques)
+        {
+            var inicio = h.Field<TimeSpan>("Inicio");
+            var fin = h.Field<TimeSpan>("Fin");
+            if (finAnterior is { } anterior && inicio > anterior)
+            {
+                <p class="horario-pausa">Libre · @Hora(anterior)–@Hora(inicio)</p>
+            }
+            if (finAnterior is null || fin > finAnterior) finAnterior = fin;
+            <article class="horario-bloque">
+                <p class="horario-hora">@Hora(inicio)–@Hora(fin)</p>
+                <h4>@h["Asignatura"]</h4>
+                <p>@(docente ? $"Sección {h["Seccion"]}" : h["Docente"])<br />@h["Aula"]</p>
+                @if (edicion is not null)
+                {
+                    <div class="horario-acciones">
+                        @if (h.Table.Columns.Contains("VersionHorario"))
+                        { <a href="@(edicion + "&bloque=" + h.Field<int>("Id") + "#formulario-plan")">Reprogramar</a> }
+                        <a asp-page="/Planificacion/CancelarHorario" asp-route-retorno='@(edicion + "#horario-semanal")' asp-route-id="@h["Id"]">Cancelar bloque</a>
+                    </div>
+                }
+            </article>
+        }
+        @if (edicion is not null)
+        {
+            <a href="@(edicion + "&dia=" + i + "#formulario-plan")" class="btn btn-sm btn-liceo-secondary horario-agregar" aria-label="Agregar bloque el @dia">+ Agregar bloque</a>
+        }
+    </section>
+}
+</div>

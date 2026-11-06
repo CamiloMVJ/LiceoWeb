@@ -742,3 +742,18 @@ textarea:focus-visible {
 .validation-summary-valid { display:none; }
 @media(max-width:1100px){.academic-workspace{grid-template-columns:1fr}.academic-summary{position:static}}
 @media(max-width:700px){.academic-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.academic-steps a{font-size:.85rem}}
+
+/* Cada día tiene su propia jornada y admite cualquier número de bloques. */
+.horario-semana { display:grid; grid-template-columns:repeat(7,minmax(10rem,1fr)); gap:.65rem; overflow-x:auto; padding:.2rem .15rem .75rem; }
+.horario-dia { display:flex; flex-direction:column; gap:.55rem; min-width:0; padding:.6rem; background:#f4f6f8; border:1px solid #d8dfeb; border-radius:.65rem; }
+.horario-dia header { padding:.3rem .2rem .55rem; border-bottom:2px solid #c99700; }
+.horario-dia header h3,.horario-bloque h4 { margin:0; color:#1b264f; font-size:1rem; }
+.horario-dia header span,.horario-bloque p,.horario-pausa,.horario-vacio { font-size:.85rem; margin:0; }
+.horario-bloque { display:grid; gap:.35rem; background:white; border:1px solid #cbd2df; border-left:3px solid #1b264f; border-radius:.45rem; padding:.6rem; overflow-wrap:anywhere; }
+.horario-bloque .horario-hora { font-weight:700; color:#1b264f; font-variant-numeric:tabular-nums; }
+.horario-pausa { border:1px dashed #a9b3c6; border-radius:.4rem; color:#49566e; padding:.25rem .45rem; }
+.horario-vacio { color:#49566e; padding:.25rem; }
+.horario-acciones { display:flex; flex-wrap:wrap; gap:.25rem .5rem; font-size:.8rem; }
+.horario-agregar { margin-top:auto; }
+#horario-semanal,#formulario-plan { scroll-margin-top:1rem; }
+@media(max-width:600px) { .horario-semana { grid-template-columns:1fr; overflow-x:visible; } }

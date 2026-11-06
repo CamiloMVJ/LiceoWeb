@@ -38,6 +38,17 @@ BEGIN TRY
  SET @Json=JSON_MODIFY(JSON_MODIFY(@Json,'$.Inicio','10:00'),'$.Fin','11:00');
  EXEC dbo.Planificacion_Guardar @Json,@Admin;
  IF (SELECT COUNT(*) FROM dbo.HorarioClase WHERE AsignacionId=@Asignacion)<>2 THROW 52401,N'No se guardaron horarios adyacentes.',1;
+ DECLARE @Bloque int,@VersionBloque varchar(18);
+ SELECT @Bloque=Id,@VersionBloque=CONVERT(varchar(18),Version,1)
+ FROM dbo.HorarioClaseVigente WHERE AsignacionId=@Asignacion AND Inicio='10:00';
+ DECLARE @Cambio nvarchar(max)=(SELECT 'Horario' Accion,@Asignacion AsignacionId,@Bloque HorarioId,
+  @VersionBloque VersionHorario,N'Reprogramación de prueba' MotivoHorario,7 Dia,'08:15' Inicio,'09:05' Fin
+  FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ EXEC dbo.Planificacion_Guardar @Cambio,@Admin;
+ IF NOT EXISTS(SELECT 1 FROM dbo.CancelacionHorario WHERE HorarioId=@Bloque)
+ OR NOT EXISTS(SELECT 1 FROM dbo.HorarioClaseVigente WHERE AsignacionId=@Asignacion AND Dia=7 AND Inicio='08:15' AND Fin='09:05')
+ OR (SELECT COUNT(*) FROM dbo.HorarioClaseVigente WHERE AsignacionId=@Asignacion)<>2
+  THROW 52401,N'La reprogramación no conservó el historial y los bloques vigentes esperados.',1;
  SET @Json=JSON_MODIFY(JSON_MODIFY(@Json,'$.Inicio','09:30'),'$.Fin','10:30');
  EXEC dbo.Planificacion_Guardar @Json,@Admin;
  THROW 52402,N'No se rechazó el cruce.',1;
@@ -47,4 +58,4 @@ BEGIN CATCH
  IF ERROR_NUMBER()=52313 SET @Esperado=1;ELSE THROW;
 END CATCH;
 IF @Esperado<>1 OR (SELECT COUNT(*) FROM dbo.GrupoAcademico)<>@Antes THROW 52403,N'No se revirtió la prueba.',1;
-SELECT N'Correcto: planificación y horarios adyacentes; cruce rechazado y datos revertidos.' Resultado;
+SELECT N'Correcto: planificación, horarios adyacentes y reprogramación; cruce rechazado y datos revertidos.' Resultado;

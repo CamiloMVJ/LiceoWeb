@@ -1,5 +1,5 @@
 @model LiceoWeb.Pages.Planificacion.IndexModel
-<form method="post" asp-page="/Planificacion/Index" class="liceo-card mb-4"><h2 class="h4">@LiceoWeb.Pages.Planificacion.IndexModel.Titulo(Model.Input.Accion)</h2><partial name="~/Pages/Planificacion/_ContextoCampos.cshtml" model="Model" /><input asp-for="Input.Accion" type="hidden" /><div class="row g-3">
+<form id="formulario-plan" method="post" asp-page="/Planificacion/Index" class="liceo-card mb-4"><h2 class="h4">@(Model.Input.Accion=="Horario" && Model.Input.HorarioId>0 ? "Reprogramar bloque" : LiceoWeb.Pages.Planificacion.IndexModel.Titulo(Model.Input.Accion))</h2><partial name="~/Pages/Planificacion/_ContextoCampos.cshtml" model="Model" /><input asp-for="Input.Accion" type="hidden" /><div class="row g-3">
 @if(Model.Input.Accion=="Pensum"){
 <div class="col-md-6"><label asp-for="Input.ModalidadId" class="form-label">Modalidad</label>
 <select asp-for="Input.ModalidadId" class="form-select" data-modalidad-plan required>
@@ -32,10 +32,19 @@
 <div class="col-md-6"><label asp-for="Input.AsignaturaId" class="form-label">Asignatura</label><select asp-for="Input.AsignaturaId" asp-items='Model.Opciones("Asignaturas")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignaturaId" class="text-danger"></span></div>
 <div class="col-md-6"><label asp-for="Input.DocenteId" class="form-label">Docente</label><select asp-for="Input.DocenteId" asp-items='Model.Opciones("Docentes")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.DocenteId" class="text-danger"></span></div>
 }
-@if(Model.Input.Accion=="Horario"){<div class="col-md-6"><label asp-for="Input.AsignacionId" class="form-label">Clase (materia y docente)</label><select asp-for="Input.AsignacionId" asp-items='Model.Opciones("Asignaciones")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignacionId" class="text-danger"></span></div>
+@if(Model.Input.Accion=="Horario"){
+@if(Model.Input.HorarioId>0){
+<input asp-for="Input.HorarioId" type="hidden" /><input asp-for="Input.VersionHorario" type="hidden" />
+<input asp-for="Input.AsignacionId" type="hidden" />
+<div class="col-12"><p>Clase: @Model.Contexto.Etiqueta("Asignaciones", Model.Input.AsignacionId)</p><p class="text-muted">El bloque anterior se conserva en el historial si se guarda el nuevo.</p></div>
+}else{<div class="col-md-6"><label asp-for="Input.AsignacionId" class="form-label">Clase (materia y docente)</label><select asp-for="Input.AsignacionId" asp-items='Model.Opciones("Asignaciones")' class="form-select"><option value="">Seleccionar</option></select><span asp-validation-for="Input.AsignacionId" class="text-danger"></span></div>
+}
 <div class="col-md-6"><label asp-for="Input.Dia" class="form-label">Día</label><select asp-for="Input.Dia" class="form-select"><option value="0">Seleccionar día</option>@{var dias=new[]{"Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"};}@for(var i=0;i<dias.Length;i++){<option value="@(i+1)">@dias[i]</option>}</select><span asp-validation-for="Input.Dia" class="text-danger"></span></div>
-<div class="col-md-6"><label asp-for="Input.Inicio" class="form-label">Hora de inicio</label><input asp-for="Input.Inicio" type="time" class="form-control" /><span asp-validation-for="Input.Inicio" class="text-danger"></span></div>
-<div class="col-md-6"><label asp-for="Input.Fin" class="form-label">Hora de fin</label><input asp-for="Input.Fin" type="time" class="form-control" /><span asp-validation-for="Input.Fin" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Inicio" class="form-label">Hora de inicio</label><input asp-for="Input.Inicio" asp-format="{0:HH:mm}" type="time" required class="form-control" /><span asp-validation-for="Input.Inicio" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="Input.Fin" class="form-label">Hora de fin</label><input asp-for="Input.Fin" asp-format="{0:HH:mm}" type="time" required class="form-control" /><span asp-validation-for="Input.Fin" class="text-danger"></span></div>
+@if(Model.Input.HorarioId>0){
+<div class="col-12"><label asp-for="Input.MotivoHorario" class="form-label">Motivo de la reprogramación</label><textarea asp-for="Input.MotivoHorario" class="form-control" required minlength="10" maxlength="500"></textarea><span asp-validation-for="Input.MotivoHorario" class="text-danger"></span></div>
+}
 }
 @if(Model.Input.Accion=="Estudiante"){
 <div class="col-12 alert alert-info">Después del corte, genera primero el cargo anual de matrícula desde <a asp-page="/Finanzas/Cargos">Generar cargos</a>. Al guardar se vinculará ese cargo y se confirmará la matrícula académica del año junto con la inscripción al grupo. Una matrícula histórica del mismo año, modalidad y nivel se reconoce sin generar otro cobro. El cargo puede estar pendiente de pago; no se exige solvencia para inscribir.</div>
@@ -43,6 +52,11 @@
 <div class="col-md-6"><label asp-for="Input.Registro" class="form-label">Estudiante con matrícula vigente</label><input data-buscar-estudiante asp-for="Input.Registro" type="text" class="form-control" required /><span asp-validation-for="Input.Registro" class="text-danger"></span></div>
 }
 </div><div class="d-flex flex-wrap gap-2 mt-4">
+@if(Model.Input.Accion=="Horario"){
+<button class="btn btn-liceo-primary" name="continuar" value="false">@(Model.Input.HorarioId>0?"Guardar cambio":"Agregar bloque")</button>
+<a href="@(Model.Enlace("Horario")+"#horario-semanal")" class="btn btn-liceo-secondary">Volver al horario</a>
+}else{
 <button class="btn btn-liceo-primary" name="continuar" value="false">Guardar y agregar otro</button>
 <button class="btn btn-liceo-secondary" name="continuar" value="true">Guardar y continuar</button>
+}
 </div></form>

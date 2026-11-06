@@ -69,7 +69,7 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
             ModelState.AddModelError("", "No se pudo cargar la planificación. Revisa la conexión y actualiza Planificacion.sql antes de usar este flujo.");
         }
     }
-    public async Task<IActionResult> OnGetAsync(string accion = "Base", string? catalogo = null, int id = 0)
+    public async Task<IActionResult> OnGetAsync(string accion = "Base", string? catalogo = null, int id = 0, int dia = 0, int bloque = 0)
     {
         if (!Acciones.Contains(accion) || Anio < 0 || Pensum < 0 || Grupo < 0 || id < 0 || (catalogo is not null && !CatalogosModel.Tipos.Contains(catalogo))) return BadRequest();
         Input.Accion = accion; MostrarCatalogo = catalogo is not null || accion == "Base";
@@ -77,6 +77,27 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
         await CargarAsync();
         if (!Cargado) return Page();
         Input.AnioId = Anio; Input.PensumId = Pensum; Input.GrupoId = Grupo;
+        if (accion == "Horario" && !MostrarCatalogo)
+        {
+            if (dia is < 0 or > 7 || bloque < 0) return BadRequest();
+            Input.Dia = dia;
+            if (bloque > 0)
+            {
+                var horario = Contexto.Horarios.FirstOrDefault(r => r.Field<int>("Id") == bloque);
+                if (horario is null) return NotFound();
+                if (!horario.Table.Columns.Contains("VersionHorario"))
+                {
+                    ModelState.AddModelError("", "Actualiza Planificacion.sql para habilitar la reprogramación.");
+                    return Page();
+                }
+                Input.HorarioId = bloque;
+                Input.VersionHorario = horario.Field<string>("VersionHorario");
+                Input.AsignacionId = horario.Field<int>("AsignacionId");
+                Input.Dia = Convert.ToInt32(horario["Dia"]);
+                Input.Inicio = TimeOnly.FromTimeSpan(horario.Field<TimeSpan>("Inicio"));
+                Input.Fin = TimeOnly.FromTimeSpan(horario.Field<TimeSpan>("Fin"));
+            }
+        }
         if (id > 0)
         {
             var r = Contexto.Filas(Catalogo.Tipo).FirstOrDefault(r => r.Field<int>("Id") == id);
@@ -106,6 +127,9 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
         }
         if (Pendiente is not null) ModelState.AddModelError("", Pendiente);
         if (Input.Accion == "Horario" && !Contexto.Opciones("Asignaciones").Any(r => r.Field<int>("Id") == Input.AsignacionId)) ModelState.AddModelError("", "Selecciona una clase activa del grupo actual.");
+        if (Input.Accion == "Horario" && Input.HorarioId > 0 && !Contexto.Horarios.Any(r =>
+            r.Field<int>("Id") == Input.HorarioId && r.Field<int>("AsignacionId") == Input.AsignacionId))
+            ModelState.AddModelError("", "El bloque ya no pertenece a esta clase o grupo. Recarga el horario.");
         foreach (var error in Input.ValidarContexto())
             foreach (var campo in error.MemberNames)
                 ModelState.AddModelError($"{nameof(Input)}.{campo}", error.ErrorMessage!);
@@ -118,10 +142,11 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
                 // Identificador devuelto por la misma transacción: no buscar por MAX(Id).
                 if (Input.Accion == "Pensum") { Anio = Input.AnioId; Pensum = id; Grupo = 0; }
                 if (Input.Accion == "Grupo") Grupo = id;
-                Mensaje = "Guardado. Puedes seguir trabajando en este contexto.";
+                Mensaje = Input.HorarioId > 0 && Input.Accion == "Horario" ? "Horario reprogramado. El bloque anterior quedó en el historial." : "Guardado. Puedes seguir trabajando en este contexto.";
+                if (Input.Accion == "Horario" && !continuar) return Redirect(Enlace("Horario") + "#horario-semanal");
                 return Redirect(Enlace(continuar ? Siguiente : Input.Accion));
             }
-            catch (SqlException ex) when (ex.Number is >= 52300 and <= 52316) { ModelState.AddModelError("", ex.Message); }
+            catch (SqlException ex) when (ex.Number is >= 52300 and <= 52316 or >= 54201 and <= 54208) { ModelState.AddModelError("", ex.Message); }
             catch (SqlException ex) when (ex.Number is 2601 or 2627) { ModelState.AddModelError("", "Ese registro ya existe. No se duplicó."); }
             catch (Exception ex) { logger.LogError(ex, "Guardar planificación"); ModelState.AddModelError("", "No se pudo guardar. Revisa la conexión y la versión de Planificacion.sql."); }
         }
