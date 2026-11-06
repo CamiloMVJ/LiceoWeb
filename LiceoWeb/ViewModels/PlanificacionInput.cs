@@ -45,19 +45,27 @@ public sealed class PlanificacionInput : IValidatableObject
  [DataType(DataType.Time)] public TimeOnly? Inicio {get;set;}
  [DataType(DataType.Time)] public TimeOnly? Fin {get;set;}
  [StringLength(10)] public string? Registro {get;set;}
+ // El contexto lo resuelve el servidor después de que MVC recibe el formulario.
+ public IEnumerable<ValidationResult> ValidarContexto()
+ {
+  if(Accion=="Pensum" && AnioId<=0)
+   yield return new("Selecciona un año lectivo activo arriba.", [nameof(AnioId)]);
+  if(Accion is "Materia" or "Grupo" && PensumId<=0)
+   yield return new("Selecciona el plan de estudios arriba.", [nameof(PensumId)]);
+  if(Accion is "Docente" or "Estudiante" && GrupoId<=0)
+   yield return new("Selecciona el grupo arriba.", [nameof(GrupoId)]);
+ }
  public IEnumerable<ValidationResult> Validate(ValidationContext context)
  {
   ValidationResult Falta(string campo,string mensaje) => new(mensaje,[campo]);
   switch(Accion)
   {
    case "Pensum":
-    if(AnioId<=0)yield return Falta(nameof(AnioId),"Selecciona un año lectivo activo arriba.");
     if(ModalidadId<=0)yield return Falta(nameof(ModalidadId),"Selecciona una modalidad.");
     if(string.IsNullOrWhiteSpace(Nivel))yield return Falta(nameof(Nivel),"Selecciona un grado o nivel.");
     break;
    case "Materia":
    case "Grupo":
-    if(PensumId<=0)yield return Falta(nameof(PensumId),"Selecciona el plan de estudios arriba.");
     if(Accion=="Materia" && AsignaturaId<=0)yield return Falta(nameof(AsignaturaId),"Selecciona una asignatura.");
     if(Accion=="Grupo")
     {
@@ -68,7 +76,6 @@ public sealed class PlanificacionInput : IValidatableObject
     break;
    case "Docente":
    case "Estudiante":
-    if(GrupoId<=0)yield return Falta(nameof(GrupoId),"Selecciona el grupo arriba.");
     if(Accion=="Docente")
     {
      if(AsignaturaId<=0)yield return Falta(nameof(AsignaturaId),"Selecciona una asignatura.");

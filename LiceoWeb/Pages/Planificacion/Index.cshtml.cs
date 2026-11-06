@@ -106,6 +106,9 @@ public class IndexModel(PlanificacionRepository repository, PlanificacionService
         }
         if (Pendiente is not null) ModelState.AddModelError("", Pendiente);
         if (Input.Accion == "Horario" && !Contexto.Opciones("Asignaciones").Any(r => r.Field<int>("Id") == Input.AsignacionId)) ModelState.AddModelError("", "Selecciona una clase activa del grupo actual.");
+        foreach (var error in Input.ValidarContexto())
+            foreach (var campo in error.MemberNames)
+                ModelState.AddModelError($"{nameof(Input)}.{campo}", error.ErrorMessage!);
         TryValidateModel(Input, nameof(Input));
         if (ModelState.IsValid)
         {

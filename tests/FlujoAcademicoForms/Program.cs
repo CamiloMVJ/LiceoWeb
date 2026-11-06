@@ -51,3 +51,16 @@ foreach(var operacion in operaciones)
 m.ModelState.Clear();
 Check(!m.TryValidateModel(new PlanificacionInput{Accion="Grupo",PensumId=1,PeriodoId=1,TurnoId=1},"Input")
  && m.ModelState.ContainsKey("Input.AulaId"),"campo faltante informado por nombre");
+
+// MVC puede validar antes de que el handler resuelva el contexto del formulario.
+foreach (var operacion in operaciones)
+{
+ var (anio, plan, grupo) = (operacion.AnioId, operacion.PensumId, operacion.GrupoId);
+ operacion.AnioId = operacion.PensumId = operacion.GrupoId = 0;
+ m.ModelState.Clear();
+ Check(m.TryValidateModel(operacion,"Input"), $"{operacion.Accion}: la validación inicial no exige contexto aún");
+ if (anio + plan + grupo > 0)
+   Check(operacion.ValidarContexto().Any(), $"{operacion.Accion}: el contexto ausente se detecta al resolverlo");
+ (operacion.AnioId, operacion.PensumId, operacion.GrupoId) = (anio, plan, grupo);
+ Check(!operacion.ValidarContexto().Any() && m.ModelState.IsValid, $"{operacion.Accion}: el contexto resuelto permite continuar");
+}
