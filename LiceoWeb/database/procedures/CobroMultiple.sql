@@ -37,6 +37,9 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.ReciboMultiple WHERE Id=@Id AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId) THROW 53502,N'Esta operación ya se usó con otros datos. Consulte el recibo antes de continuar.',1;
   COMMIT;SELECT @Id Id,@Numero Numero;RETURN;
  END;
+ DECLARE @CorteCajaId bigint;
+ SELECT @CorteCajaId=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ IF @CorteCajaId IS NULL THROW 54802,N'La caja está cerrada. Un administrador debe abrir un nuevo corte.',1;
  SELECT @Nombre=NombreEstudiante FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
  IF @Nombre IS NULL THROW 53502,N'Estudiante inexistente.',1;
  SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
@@ -45,8 +48,8 @@ BEGIN
  DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
  SET @Numero=N'RC-'+CONVERT(nvarchar(20),@Secuencia);
  IF EXISTS(SELECT 1 FROM dbo.Pagos WHERE Id_Comprobante=@Numero) THROW 53502,N'Numeración ocupada. Revise la secuencia con administración.',1;
- INSERT dbo.ReciboMultiple(Numero,Operacion,Registro,Pagador,UsuarioId,Metodo,Referencia,Recibido,Cambio,SolicitudHash,NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado)
- VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Recibido,@Cambio,@Hash,@Nombre,@Saldo,@SaldoAplicado,@Saldo-@SaldoAplicado,@Total);
+ INSERT dbo.ReciboMultiple(Numero,Operacion,Registro,Pagador,UsuarioId,Metodo,Referencia,Recibido,Cambio,SolicitudHash,NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado,CorteCajaId)
+ VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Recibido,@Cambio,@Hash,@Nombre,@Saldo,@SaldoAplicado,@Saldo-@SaldoAplicado,@Total,@CorteCajaId);
  SET @Id=SCOPE_IDENTITY();
  INSERT dbo.AplicacionPago(ReciboId,CargoId,Importe,DescripcionHistorica) SELECT @Id,I.CargoId,I.Importe,C.DescripcionHistorica FROM @Items I JOIN dbo.CargoEstudiante C ON C.Id=I.CargoId;
  IF @SaldoAplicado>0 UPDATE dbo.SaldoFinanciero SET Disponible=Disponible-@SaldoAplicado WHERE Registro=@Registro;

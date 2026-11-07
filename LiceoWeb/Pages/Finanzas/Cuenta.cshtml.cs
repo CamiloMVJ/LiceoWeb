@@ -91,6 +91,7 @@ public class CuentaModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
             }
             catch (SqlException ex) when (ex.Number == 53501) { return Forbid(); }
             catch (SqlException ex) when (ex.Number is >= 53500 and <= 53504) { ModelState.AddModelError("", ex.Message); }
+            catch (SqlException ex) when (ex.Number is 54802 or 54803) { ModelState.AddModelError("", ex.Message); }
             catch (Exception ex)
             {
                 logger.LogError("Cobro no confirmado: {Tipo}", ex.GetType().Name);

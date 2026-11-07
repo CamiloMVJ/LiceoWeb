@@ -21,6 +21,9 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.AnulacionRecibo WHERE Id=@Id AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId) THROW 53702,N'La operación ya se usó con otros datos.',1;
   COMMIT;SELECT @Id Id;RETURN;
  END;
+ DECLARE @CorteCajaId bigint;
+ SELECT @CorteCajaId=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ IF @CorteCajaId IS NULL THROW 54802,N'La caja está cerrada. Un administrador debe abrir un nuevo corte.',1;
  SELECT @Registro=Registro,@Dinero=Recibido-Cambio,@SaldoUsado=SaldoAplicado,@Total=TotalAplicado,@Anticipo=Anticipo FROM dbo.ReciboMultiple WITH(UPDLOCK,HOLDLOCK) WHERE Id=@ReciboId;
  IF @Registro IS NULL THROW 53704,N'Recibo inexistente.',1;
  IF EXISTS(SELECT 1 FROM dbo.AnulacionRecibo WHERE ReciboId=@ReciboId) THROW 53702,N'El recibo ya está anulado. Consulte su historial.',1;
@@ -30,8 +33,8 @@ BEGIN
  IF @Anticipo>@Saldo THROW 53702,N'No se puede anular el anticipo: el saldo disponible no cubre la devolución.',1;
  IF @SaldoUsado>0 AND NOT EXISTS(SELECT 1 FROM dbo.SaldoFinanciero WHERE Registro=@Registro) THROW 53702,N'No existe la cuenta de saldo original.',1;
  IF CONVERT(decimal(19,2),@Saldo)+@SaldoUsado>9999999999999999.99 THROW 53702,N'El saldo resultante excede el límite permitido.',1;
- INSERT dbo.AnulacionRecibo(ReciboId,Operacion,SolicitudHash,UsuarioId,Motivo,ReferenciaDevolucion,Receptor,DineroDevuelto,SaldoRestituido,SaldoAnterior,SaldoFinal,TotalRevertido,SaldoRetirado)
- VALUES(@ReciboId,@Operacion,@Hash,@UsuarioId,@Motivo,@ReferenciaDevolucion,@Receptor,@Dinero,@SaldoUsado,@Saldo,@Saldo+@SaldoUsado-@Anticipo,@Total+@Anticipo,@Anticipo);
+ INSERT dbo.AnulacionRecibo(ReciboId,Operacion,SolicitudHash,UsuarioId,Motivo,ReferenciaDevolucion,Receptor,DineroDevuelto,SaldoRestituido,SaldoAnterior,SaldoFinal,TotalRevertido,SaldoRetirado,CorteCajaId)
+ VALUES(@ReciboId,@Operacion,@Hash,@UsuarioId,@Motivo,@ReferenciaDevolucion,@Receptor,@Dinero,@SaldoUsado,@Saldo,@Saldo+@SaldoUsado-@Anticipo,@Total+@Anticipo,@Anticipo,@CorteCajaId);
  SET @Id=SCOPE_IDENTITY();
  IF @SaldoUsado>0 OR @Anticipo>0 UPDATE dbo.SaldoFinanciero SET Disponible=Disponible+@SaldoUsado-@Anticipo WHERE Registro=@Registro;
  DECLARE @RegistroId nvarchar(100)=CONVERT(nvarchar(100),@ReciboId),@Json nvarchar(max)=(SELECT @Id AnulacionId,@Dinero DineroDevuelto,@SaldoUsado SaldoRestituido,@Anticipo SaldoRetirado,@Total DeudaReabierta,@Motivo Motivo,@ReferenciaDevolucion ReferenciaDevolucion,@Receptor Receptor FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);

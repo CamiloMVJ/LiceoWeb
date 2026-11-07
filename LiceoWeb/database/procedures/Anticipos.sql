@@ -29,6 +29,9 @@ BEGIN
    THROW 54702,N'La operación ya se usó con otros datos. Consulta los recibos.',1;
   COMMIT;SELECT @Id;RETURN;
  END;
+ DECLARE @CorteCajaId bigint;
+ SELECT @CorteCajaId=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ IF @CorteCajaId IS NULL THROW 54802,N'La caja está cerrada. Un administrador debe abrir un nuevo corte.',1;
  SELECT @Nombre=NombreEstudiante FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro AND Estado='Activo';
  IF @Nombre IS NULL THROW 54702,N'El anticipo requiere un estudiante activo.',1;
  SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
@@ -39,8 +42,8 @@ BEGIN
  DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
  DECLARE @Numero nvarchar(25)=N'RC-'+CONVERT(nvarchar(20),@Secuencia);
  INSERT dbo.ReciboMultiple(Numero,Operacion,Registro,Pagador,UsuarioId,Metodo,Referencia,Recibido,Cambio,SolicitudHash,
-  NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado,Anticipo)
- VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Importe,0,@Hash,@Nombre,@Saldo,0,@Saldo+@Importe,0,@Importe);
+  NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado,Anticipo,CorteCajaId)
+ VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Importe,0,@Hash,@Nombre,@Saldo,0,@Saldo+@Importe,0,@Importe,@CorteCajaId);
  SET @Id=SCOPE_IDENTITY();
  DECLARE @RegistroId nvarchar(100)=CONVERT(nvarchar(100),@Id),
   @Json nvarchar(max)=(SELECT @Registro Registro,@Numero Numero,@Importe Anticipo,@Saldo SaldoAnterior,@Saldo+@Importe SaldoFinal FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);

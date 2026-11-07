@@ -24,9 +24,10 @@ Credenciales públicas para demostración; no usarlas en producción. Se almacen
 
 ## Qué queda preparado
 
-- Migraciones SQL 001–023, Identity e historial de su migración EF.
-- 53 procedimientos vigentes y la vista ObligacionLegada en orden de dependencia.
+- Migraciones SQL 001–024, Identity e historial de su migración EF.
+- 55 procedimientos vigentes y la vista ObligacionLegada en orden de dependencia.
 - Tres cuentas activas con correo confirmado y rol.
+- Primer corte de caja abierto y controles de apertura/cierre exclusivos de Administración.
 - Corte vacío mediante CorteFinanciero_Ejecutar y auditoría del administrador creado.
 - Año actual, período abierto, Preescolar / Primaria / Secundaria, aulas, materias y tres grupos.
 - 12 expedientes ficticios: cuatro por modalidad; nueve inscritos y tres listos para inscribir.

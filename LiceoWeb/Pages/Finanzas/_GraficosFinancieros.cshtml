@@ -1,0 +1,65 @@
+@model LiceoWeb.Pages.Finanzas.ReporteModel
+@using System.Data
+@using System.Globalization
+@{
+ var r=Model.Datos.Tables["Resumen"]!.Rows[0];
+ var meses=(Model.Filtro.Hasta-Model.Filtro.Desde).TotalDays>62;
+ var diario=Model.Datos.Tables["Diario"]!.AsEnumerable();
+ var grupos=diario.GroupBy(d=>meses?new DateTime(d.Field<DateTime>("Dia").Year,d.Field<DateTime>("Dia").Month,1):d.Field<DateTime>("Dia").Date)
+  .ToDictionary(g=>g.Key,g=>(Entradas:g.Sum(d=>d.Field<decimal>("Entradas")),Devoluciones:g.Sum(d=>d.Field<decimal>("Devoluciones"))));
+ var fechas=new List<DateTime>();
+ for(var d=Model.Filtro.Desde.Date;d<=Model.Filtro.Hasta.Date;d=d.AddDays(1)){
+  var clave=meses?new DateTime(d.Year,d.Month,1):d;
+  if(!fechas.Contains(clave))fechas.Add(clave);
+ }
+ var maximo=Math.Max(1m,grupos.Values.Select(v=>Math.Max(v.Entradas,v.Devoluciones)).DefaultIfEmpty(0).Max());
+ int ancho=Math.Max(680,fechas.Count*48+40);
+ string Num(decimal v)=>v.ToString("0.##",CultureInfo.InvariantCulture);
+ var recibos=r.Field<int?>("Recibos")??0;
+ var entradas=r.Field<decimal>("Cobrado");
+}
+<div class="fin-kpis mb-4">
+@foreach(var item in new[]{
+ ("DineroNeto","Dinero neto","Entradas menos devoluciones"),
+ ("Cobrado","Entradas de dinero","Incluye anticipos, descuenta vuelto"),
+ ("Devuelto","Devoluciones","Por fecha de anulación"),
+ ("Anticipos","Anticipos recibidos","Abonan saldo; no pagan deuda")})
+{
+ <article class="fin-kpi"><span>@item.Item2</span><strong>C$ @(r.Field<decimal>(item.Item1).ToString("N2"))</strong><small>@item.Item3</small></article>
+}
+<article class="fin-kpi"><span>Estudiantes atendidos</span><strong>@r["Estudiantes"]</strong><small>Distintos, con recibos en el rango</small></article>
+<article class="fin-kpi"><span>Promedio por recibo</span><strong>C$ @((recibos==0?0:entradas/recibos).ToString("N2"))</strong><small>@recibos recibos · incluye los pagados con saldo</small></article>
+</div>
+<div class="fin-chart-grid mb-4">
+<section class="liceo-card fin-chart"><h2 class="h4">Evolución @(meses?"mensual":"diaria")</h2><p>Entradas y devoluciones en C$. Todo el rango seleccionado; no solo la página actual.</p>
+<div class="fin-legend"><span><i class="fin-dot fin-in"></i>Entradas</span><span><i class="fin-dot fin-out"></i>Devoluciones</span><span>Máximo C$ @maximo.ToString("N2")</span></div>
+<div class="fin-chart-scroll" tabindex="0" role="region" aria-label="Gráfico de entradas y devoluciones">
+<svg viewBox="0 0 @ancho 260" style="min-width:@(ancho)px" role="img" aria-label="Entradas y devoluciones por fecha; detalles en las barras y en la tabla de datos">
+<line x1="20" y1="215" x2="@(ancho-10)" y2="215" stroke="#cbd5e1" />
+@for(var i=0;i<fechas.Count;i++){
+ var fecha=fechas[i];var v=grupos.GetValueOrDefault(fecha);var x=30+i*48;
+ var h1=v.Entradas/maximo*170;var h2=v.Devoluciones/maximo*170;
+ <g>
+ <rect x="@x" y="@Num(215-h1)" width="15" height="@Num(h1)" rx="3" fill="#1b264f"><title>@fecha.ToString(meses?"MM/yyyy":"dd/MM/yyyy"): entradas C$ @v.Entradas.ToString("N2")</title></rect>
+ <rect x="@(x+17)" y="@Num(215-h2)" width="15" height="@Num(h2)" rx="3" fill="#b94a48"><title>@fecha.ToString(meses?"MM/yyyy":"dd/MM/yyyy"): devoluciones C$ @v.Devoluciones.ToString("N2")</title></rect>
+ <text x="@(x+16)" y="239" text-anchor="middle" fill="#475569" font-size="10">@fecha.ToString(meses?"MM/yy":"dd/MM")</text>
+ </g>
+}
+</svg></div>
+@if(entradas==0 && r.Field<decimal>("Devuelto")==0){<p role="status">Sin entradas ni devoluciones de dinero para estas fechas.</p>}
+<details><summary>Ver datos del gráfico</summary><table class="table"><thead><tr><th>Fecha</th><th>Entradas</th><th>Devoluciones</th></tr></thead><tbody>
+@foreach(var f in fechas){var v=grupos.GetValueOrDefault(f);<tr><td>@f.ToString(meses?"MM/yyyy":"dd/MM/yyyy")</td><td>@v.Entradas.ToString("N2")</td><td>@v.Devoluciones.ToString("N2")</td></tr>}
+</tbody></table></details>
+</section>
+<section class="liceo-card fin-chart"><h2 class="h4">¿Cómo ingresó el dinero?</h2><p>Distribución de entradas. El saldo aplicado a deudas no es dinero nuevo.</p>
+@foreach(DataRow m in Model.Datos.Tables["Metodos"]!.Rows){
+ var monto=m.Field<decimal>("Cobrado");var porcentaje=entradas>0?monto/entradas*100:0;
+ if(monto>0){
+ <div class="fin-method"><div><strong>@m["Metodo"]</strong><span>@porcentaje.ToString("N1") %</span></div><div class="fin-track"><span style="width:@Num(porcentaje)%"></span></div><p>C$ @monto.ToString("N2")</p></div>
+ }
+}
+@if(entradas==0){<p>No hay entradas de dinero para distribuir.</p>}
+<div class="fin-note">Saldo utilizado menos restituido: <strong>C$ @(r.Field<decimal>("SaldoNeto").ToString("N2"))</strong><br />
+Aplicado a deuda menos revertido: <strong>C$ @(r.Field<decimal>("AplicadoNeto").ToString("N2"))</strong></div>
+</section>
+</div>

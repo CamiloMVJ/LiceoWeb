@@ -67,6 +67,7 @@ public class AnticipoModel(SqlConnectionFactory factory, UsuarioActual usuario, 
             }
             catch (SqlException ex) when (ex.Number == 53501) { return Forbid(); }
             catch (SqlException ex) when (ex.Number is >= 54700 and <= 54703) { ModelState.AddModelError("", ex.Message); }
+            catch (SqlException ex) when (ex.Number is 54802 or 54803) { ModelState.AddModelError("", ex.Message); }
             catch (Exception ex)
             {
                 logger.LogError("Anticipo no confirmado: {Tipo}", ex.GetType().Name);

@@ -1,0 +1,58 @@
+@page
+@using System.Data
+@using System.Text.Json
+@model LiceoWeb.Pages.Finanzas.CortesModel
+@{ViewData["Title"]="Cortes de caja"; string Fecha(object f)=>((DateTime)f).AddHours(-6).ToString("dd/MM/yyyy HH:mm");}
+<div class="liceo-page-heading"><h1>Cortes de caja</h1><p>Administración · horas de Nicaragua. Los cierres conservan sus totales y no se pueden reabrir.</p><a asp-page="Reporte">Ver gráficos y movimientos</a></div>
+@if(Model.Mensaje is {} mensaje){<div class="alert alert-success" role="status">@mensaje</div>}
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if(Model.Cargado){
+@if(!Model.Migrado){
+<section class="liceo-card mb-4"><h2 class="h4">Activar el libro financiero nuevo</h2><p>Esta transición se realiza una sola vez. Primero concilia los datos antiguos, si existen. Simular no aplica los cambios.</p>
+<form method="post" asp-page-handler="Transicion">
+<input type="hidden" name="operacion" value="@Model.OperacionTransicion" />
+@if(Model.Simulacion is {} sim){
+ <partial name="~/Pages/Planificacion/_Tabla.cshtml" model="sim" />
+ <label class="d-block mb-3"><input type="checkbox" name="confirmado" value="true" required /> Confirmo los totales revisados y el cierre del libro anterior.</label>
+ <button class="btn btn-liceo-primary" name="aplicar" value="true">Activar libro nuevo y abrir caja</button>
+}else{<button class="btn btn-liceo-primary">Simular transición</button>}
+</form></section>
+}else{
+@if(Model.Abierto is {} abierto){
+<div class="alert alert-info">Caja abierta · Corte #@abierto["Id"] desde @Fecha(abierto["Inicio"]). Los cobros y anticipos se asignan a este corte.</div>
+}else{<div class="alert alert-warning">Caja cerrada: no se pueden registrar pagos, anticipos ni devoluciones hasta abrir un corte.</div>}
+@if(Model.Elegido is {} elegido){
+<section class="liceo-card mb-4"><h2 class="h4">Corte #@elegido["Id"] · @(elegido.IsNull("Fin")?"Abierto":"Cerrado")</h2>
+<p>Fondo de apertura: C$ @(((decimal)elegido["FondoApertura"]).ToString("N2")) · Abierto por: @elegido["AperturaPor"]</p>
+@if(elegido.IsNull("Fin")){
+<p>Efectivo esperado = fondo + entradas en efectivo − devoluciones en efectivo: <strong>C$ @Model.EfectivoEsperado.ToString("N2")</strong></p>
+<partial name="~/Pages/Planificacion/_Tabla.cshtml" model='Model.Datos.Tables["Metodos"]!' />
+}else{
+<p>Abierto: @Fecha(elegido["Inicio"]) · Cerrado: @Fecha(elegido["Fin"])</p>
+<p>Efectivo esperado C$ @(((decimal)elegido["EfectivoEsperado"]).ToString("N2")) · Contado C$ @(((decimal)elegido["EfectivoContado"]).ToString("N2")) · Diferencia <strong>C$ @(((decimal)elegido["Diferencia"]).ToString("N2"))</strong></p>
+<p>Motivo: @elegido["Motivo"]</p>
+@using(var doc=JsonDocument.Parse((string)elegido["ResumenJson"])){
+ <div class="table-responsive"><table class="table"><thead><tr><th>Método</th><th>Entradas</th><th>Devoluciones</th><th>Neto</th></tr></thead><tbody>
+ @foreach(var m in doc.RootElement.EnumerateArray()){<tr><td>@m.GetProperty("Metodo").GetString()</td><td>@m.GetProperty("Entrada").GetDecimal().ToString("N2")</td><td>@m.GetProperty("Devolucion").GetDecimal().ToString("N2")</td><td>@m.GetProperty("Neto").GetDecimal().ToString("N2")</td></tr>}
+ </tbody></table></div>
+}
+}
+</section>
+}
+<form method="post" class="liceo-card mb-4">
+<h2 class="h4">@(Model.Abierto is null?"Abrir nuevo corte":$"Cerrar el corte abierto #{Model.Abierto["Id"]}")</h2>
+<input asp-for="Input.Operacion" type="hidden" /><input asp-for="Input.CorteId" type="hidden" />
+@if(Model.Abierto is not null){
+<label asp-for="Input.Contado" class="form-label">Efectivo contado físicamente (C$)</label><input asp-for="Input.Contado" type="number" min="0" step="0.01" class="form-control mb-3" required />
+<label asp-for="Input.Accion" class="form-label">Después del cierre</label><select asp-for="Input.Accion" class="form-select mb-3"><option value="CerrarAbrir">Cerrar y abrir el siguiente</option><option value="Cerrar">Cerrar sin abrir otro</option></select>
+}else{<input name="Input.Accion" value="Abrir" type="hidden" />}
+<label asp-for="Input.Fondo" class="form-label">Fondo inicial del nuevo corte (C$; cero si solo cierras)</label><input asp-for="Input.Fondo" type="number" min="0" step="0.01" class="form-control mb-3" required />
+<p class="text-muted">El fondo es efectivo físico de apertura, no ingreso ni saldo del estudiante. No se arrastra automáticamente desde el corte anterior.</p>
+<label asp-for="Input.Motivo" class="form-label">Motivo y explicación de diferencias</label><textarea asp-for="Input.Motivo" minlength="10" maxlength="500" class="form-control mb-3" required></textarea>
+<button class="btn btn-liceo-primary">Confirmar operación de caja</button>
+</form>
+<section class="liceo-card"><h2 class="h4">Historial · últimos 50 cortes</h2><div class="table-responsive"><table class="table"><thead><tr><th>Corte</th><th>Apertura</th><th>Cierre</th><th>Administrador</th><th>Consulta</th></tr></thead><tbody>
+@foreach(var c in Model.Cortes){<tr><td>#@c["Id"]</td><td>@Fecha(c["Inicio"])</td><td>@(c.IsNull("Fin")?"Abierto":Fecha(c["Fin"]))</td><td>@c["CierrePor"]</td><td><a asp-page="Cortes" asp-route-id="@c["Id"]">Ver resumen</a></td></tr>}
+</tbody></table></div></section>
+}
+}

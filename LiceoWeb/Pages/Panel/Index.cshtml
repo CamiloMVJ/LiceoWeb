@@ -18,6 +18,7 @@
     {
         <a class="ui-module" asp-page="/Planificacion/Index"><p class="ui-kicker">Organización académica</p><h2>Organización académica</h2><p>Prepara el año y organiza cada grupo hasta llegar a sus calificaciones.</p><span>Organizar el año y sus grupos →</span></a>
         <a class="ui-module" asp-page="/Finanzas/Cargos"><p class="ui-kicker">Administración</p><h2>Cargos y mensualidades</h2><p>Asigna obligaciones a partir de las tarifas vigentes del colegio.</p><span>Gestionar cargos →</span></a>
+        <a class="ui-module" asp-page="/Finanzas/Cortes"><p class="ui-kicker">Administración de caja</p><h2>Cortes de caja</h2><p>Revisa, cierra y abre períodos de cobro desde el sistema.</p><span>Administrar caja →</span></a>
         <a class="ui-module" asp-page="/Finanzas/Reporte"><p class="ui-kicker">Seguimiento financiero</p><h2>Cobros y devoluciones</h2><p>Consulta movimientos y totales por período, separados por método.</p><span>Consultar reporte →</span></a>
     }
     @if (User.IsInRole("Administrador") || User.IsInRole("Profesor"))

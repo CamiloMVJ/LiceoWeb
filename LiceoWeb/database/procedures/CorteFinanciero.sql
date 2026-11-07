@@ -2,7 +2,7 @@ CREATE OR ALTER PROCEDURE dbo.CorteFinanciero_Ejecutar @UsuarioId nvarchar(450),
 AS
 BEGIN
  SET NOCOUNT ON;SET XACT_ABORT ON;
- IF DB_NAME()<>'LiceoWeb_Dev' OR @@TRANCOUNT<>0 THROW 53400,N'Use desarrollo sin transacciones abiertas.',1;
+ IF @@TRANCOUNT<>0 THROW 53400,N'Cierra las transacciones antes de ejecutar la transición.',1;
  IF @Operacion IS NULL OR @Aplicar IS NULL THROW 53400,N'Indique operación y modalidad.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name='Administrador') THROW 53401,N'Se requiere administrador.',1;
  IF @Aplicar=1 AND ISNULL(@Confirmacion,N'')<>N'APLICAR CORTE EN DESARROLLO' THROW 53400,N'Falta confirmación explícita.',1;
@@ -70,6 +70,8 @@ BEGIN
  UPDATE dbo.ControlFinanciero SET Migrado=1,Operacion=@Operacion,Fecha=SYSUTCDATETIME(),UsuarioId=@UsuarioId WHERE Id=1;
  DECLARE @Detalle nvarchar(max)=(SELECT @Cargos Cargos,@TotalDeuda Deuda,@TotalSaldo SaldoInicial FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=N'CorteFinanciero',@Entidad=N'ControlFinanciero',@RegistroId=N'1',@IdOperacion=@Operacion,@DespuesJson=@Detalle;
+ IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
+  INSERT dbo.CorteCaja(UsuarioApertura,FondoApertura) VALUES(@UsuarioId,0);
  COMMIT;
  SELECT N'APLICADO' Estado,@Cargos Cargos,@TotalDeuda Deuda,@TotalSaldo SaldoInicial;
  END TRY

@@ -47,7 +47,7 @@ public class ReporteModel(SqlConnectionFactory factory,UsuarioActual usuario,ILo
             cmd.Parameters.Add("@Pagina",SqlDbType.Int).Value=Filtro.Pagina;
             cmd.Parameters.Add("@Exportar",SqlDbType.Bit).Value=exportar;
             await using var reader=await cmd.ExecuteReaderAsync();var ds=new DataSet();
-            foreach(var name in new[]{"Resumen","Metodos","Movimientos"}){var t=new DataTable(name);t.Load(reader);ds.Tables.Add(t);}Datos=ds;
+            foreach(var name in new[]{"Resumen","Metodos","Movimientos","Diario"}){var t=new DataTable(name);t.Load(reader);ds.Tables.Add(t);}Datos=ds;
             return null;
         }
         catch(SqlException ex) when(ex.Number==53601){return Forbid();}

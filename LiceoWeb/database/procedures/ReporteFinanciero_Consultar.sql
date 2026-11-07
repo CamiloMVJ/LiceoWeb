@@ -24,13 +24,21 @@ BEGIN
  SELECT COUNT_BIG(*) Movimientos,
  ISNULL(SUM(CASE WHEN Tipo IN ('Cobro','Anticipo') THEN Dinero ELSE 0 END),0) Cobrado,
  -ISNULL(SUM(CASE WHEN Tipo=N'Devolución' THEN Dinero ELSE 0 END),0) Devuelto,
- ISNULL(SUM(Dinero),0) DineroNeto,ISNULL(SUM(Saldo),0) SaldoNeto,ISNULL(SUM(Aplicado),0) AplicadoNeto FROM #Movimientos;
+ ISNULL(SUM(Dinero),0) DineroNeto,ISNULL(SUM(Saldo),0) SaldoNeto,ISNULL(SUM(Aplicado),0) AplicadoNeto,
+ ISNULL(SUM(CASE WHEN Tipo='Anticipo' THEN Dinero ELSE 0 END),0) Anticipos,
+ COUNT(DISTINCT CASE WHEN Tipo<>'Devolución' THEN Registro END) Estudiantes,
+ SUM(CASE WHEN Tipo IN ('Cobro','Anticipo') THEN 1 ELSE 0 END) Recibos
+ FROM #Movimientos;
  SELECT Metodo,ISNULL(SUM(CASE WHEN Tipo IN ('Cobro','Anticipo') THEN Dinero ELSE 0 END),0) Cobrado,
  -ISNULL(SUM(CASE WHEN Tipo=N'Devolución' THEN Dinero ELSE 0 END),0) Devuelto,SUM(Dinero) DineroNeto,SUM(Saldo) SaldoNeto FROM #Movimientos GROUP BY Metodo ORDER BY Metodo;
  SELECT M.ReciboId,M.Numero,M.Registro,M.NombreEstudiante,DATEADD(hour,-6,M.FechaUTC) FechaLocal,M.Tipo,M.Metodo,U.UserName Responsable,M.Dinero,M.Saldo,M.Aplicado
  FROM #Movimientos M LEFT JOIN dbo.AspNetUsers U ON U.Id=M.UsuarioId ORDER BY M.FechaUTC DESC,M.ReciboId DESC,M.Tipo
  OFFSET (CASE WHEN @Exportar=1 THEN 0 ELSE (@Pagina-1)*100 END) ROWS
  FETCH NEXT (CASE WHEN @Exportar=1 THEN 50000 ELSE 100 END) ROWS ONLY;
+ SELECT CONVERT(date,DATEADD(hour,-6,FechaUTC)) Dia,
+ SUM(CASE WHEN Tipo IN ('Cobro','Anticipo') THEN Dinero ELSE 0 END) Entradas,
+ -SUM(CASE WHEN Tipo=N'Devolución' THEN Dinero ELSE 0 END) Devoluciones,
+ SUM(Dinero) Neto FROM #Movimientos GROUP BY CONVERT(date,DATEADD(hour,-6,FechaUTC)) ORDER BY Dia;
  END TRY
  BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK;

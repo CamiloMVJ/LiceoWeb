@@ -2,7 +2,7 @@
 @model LiceoWeb.Pages.Finanzas.ReporteModel
 @using System.Data
 @{ ViewData["Title"]="Cobros y devoluciones"; }
-<h1>Cobros y devoluciones</h1>
+<div class="liceo-page-heading"><h1>Cobros y devoluciones</h1><a asp-page="Cortes" class="btn btn-liceo-secondary">Administrar cortes de caja</a></div>
 <p>Movimientos del libro nuevo. Fechas inclusivas en hora de Nicaragua (UTC−6). Importes en córdobas.</p>
 <form method="get" class="row g-3 mb-4">
     <div class="col-md-4"><label asp-for="Filtro.Desde">Desde</label><input asp-for="Filtro.Desde" class="form-control" /></div>
@@ -13,11 +13,8 @@
 @if(Model.Cargado)
 {
     var r=Model.Datos.Tables["Resumen"]!.Rows[0];
-    <div class="row g-3 mb-4">
-    @foreach(var (col,label) in new[]{("Cobrado","Dinero cobrado, descontando vuelto"),("Devuelto","Dinero devuelto por anulaciones"),("DineroNeto","Dinero neto del período"),("SaldoNeto","Saldo a favor utilizado menos restituido"),("AplicadoNeto","Aplicado a deuda menos revertido")})
-    { <div class="col-md-4"><div class="card card-body"><span>@label</span><strong>C$ @(((decimal)r[col]).ToString("N2"))</strong></div></div> }
-    </div>
-    <p>El saldo utilizado no es dinero nuevo. Las devoluciones se registran en su fecha de anulación, aunque el cobro original sea de otro período; por eso los netos pueden ser negativos.</p>
+    <partial name="~/Pages/Finanzas/_GraficosFinancieros.cshtml" model="Model" />
+    <p>Las devoluciones se registran en su fecha de anulación; por eso el neto puede ser negativo.</p>
     <h2 class="h4">Por método</h2>
     <div class="table-responsive"><table class="table"><thead><tr><th>Método</th><th>Cobrado</th><th>Devuelto</th><th>Dinero neto</th><th>Saldo neto</th></tr></thead><tbody>
     @foreach(DataRow m in Model.Datos.Tables["Metodos"]!.Rows){<tr><td>@m["Metodo"]</td><td>@(((decimal)m["Cobrado"]).ToString("N2"))</td><td>@(((decimal)m["Devuelto"]).ToString("N2"))</td><td>@(((decimal)m["DineroNeto"]).ToString("N2"))</td><td>@(((decimal)m["SaldoNeto"]).ToString("N2"))</td></tr>}

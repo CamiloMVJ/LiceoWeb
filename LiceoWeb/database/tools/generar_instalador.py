@@ -28,7 +28,7 @@ def construir():
         FechaUTC datetime2 NOT NULL DEFAULT SYSUTCDATETIME());""")
 
     migraciones = sorted((DB / "migrations").glob("*.sql"))
-    assert [int(p.name[:3]) for p in migraciones] == list(range(24))
+    assert [int(p.name[:3]) for p in migraciones] == list(range(25))
     for p in migraciones[1:]:
         agregar(p.name, leer(p))
         agregar("Confirmación " + p.name,
@@ -66,8 +66,8 @@ def construir():
     esperados = ",\n".join(f"(N'{nombre}',N'{'P' if tipo.upper() == 'PROCEDURE' else 'V'}')"
                            for tipo, nombre, _, _ in modulos.values())
     agregar("Verificación final", f"""
-        IF (SELECT COUNT(*) FROM dbo.InstalacionInicial)<>23
-            THROW 54901,N'La estructura no alcanzó la migración 023.',1;
+        IF (SELECT COUNT(*) FROM dbo.InstalacionInicial)<>24
+            THROW 54901,N'La estructura no alcanzó la migración 024.',1;
         IF EXISTS(SELECT 1 FROM (VALUES {esperados}) M(Nombre,Tipo)
             WHERE OBJECT_ID(N'dbo.'+M.Nombre,M.Tipo) IS NULL)
             THROW 54901,N'Faltan procedimientos o vistas.',1;
@@ -79,16 +79,18 @@ def construir():
             (U.Email=N'profesor@liceo.test' AND R.Name=N'Profesor') OR
             (U.Email=N'cajero@liceo.test' AND R.Name=N'Cajero'))<>3
             THROW 54901,N'Las cuentas demo no quedaron completas.',1;
+        IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
+            THROW 54901,N'No quedó un corte de caja abierto para la demostración.',1;
         INSERT dbo.InstalacionInicial(Etapa,FuenteSha256)
             VALUES(N'DemostracionLista','{hashlib.sha256((DB / "seeds/002_Demostracion.sql").read_bytes()).hexdigest()}');
-        SELECT DB_NAME() BaseInstalada,23 UltimaMigracion,
+        SELECT DB_NAME() BaseInstalada,24 UltimaMigracion,
             (SELECT COUNT(*) FROM sys.procedures WHERE schema_id=SCHEMA_ID('dbo')) Procedimientos,
             (SELECT COUNT(*) FROM dbo.Estudiantes) Estudiantes,
             (SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1) Migrado;
         SELECT N'INSTALACIÓN COMPLETA: inicia LiceoWeb conectado a esta base.' Resultado;
         """)
 
-    encabezado = """-- LICEOWEB · INSTALACIÓN COMPLETA CON DEMOSTRACIÓN · esquema 001–023
+    encabezado = """-- LICEOWEB · INSTALACIÓN COMPLETA CON DEMOSTRACIÓN · esquema 001–024
 -- Ejecutar TODO con F5 en SSMS NORMAL (no necesita modo SQLCMD ni archivos externos).
 -- Editar solo @Base si deseas otro nombre. Debe ser una base NUEVA.
 -- No borra ni actualiza bases existentes. Requiere permiso CREATE DATABASE y SQL Server 2017+.

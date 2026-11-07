@@ -71,6 +71,7 @@ public class AnularReciboModel(SqlConnectionFactory factory, UsuarioActual usuar
             catch (SqlException ex) when (ex.Number == 53701) { return Forbid(); }
             catch (SqlException ex) when (ex.Number == 53704) { return NotFound(); }
             catch (SqlException ex) when (ex.Number is >= 53700 and <= 53703) { ModelState.AddModelError("", ex.Message); }
+            catch (SqlException ex) when (ex.Number is 54802 or 54803) { ModelState.AddModelError("", ex.Message); }
             catch (Exception ex) { logger.LogError("Anulación no confirmada: {Tipo}", ex.GetType().Name); ModelState.AddModelError("", "No se pudo confirmar el resultado. Consulta el recibo y reintenta con este mismo formulario. No repitas la devolución del dinero."); }
         }
         try { await CargarAsync(); }

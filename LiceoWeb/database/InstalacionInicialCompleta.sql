@@ -1,4 +1,4 @@
--- LICEOWEB · INSTALACIÓN COMPLETA CON DEMOSTRACIÓN · esquema 001–023
+-- LICEOWEB · INSTALACIÓN COMPLETA CON DEMOSTRACIÓN · esquema 001–024
 -- Ejecutar TODO con F5 en SSMS NORMAL (no necesita modo SQLCMD ni archivos externos).
 -- Editar solo @Base si deseas otro nombre. Debe ser una base NUEVA.
 -- No borra ni actualiza bases existentes. Requiere permiso CREATE DATABASE y SQL Server 2017+.
@@ -1118,6 +1118,54 @@ END CATCH;');
 -- Confirmación 023_Anticipos.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'Confirmación 023_Anticipos.sql · lote 1',N'INSERT dbo.InstalacionInicial(Etapa,FuenteSha256) VALUES(N''023_Anticipos.sql'',''18646c17685e18d07ef5374b63df5cd771cb9b14a0228861d97dd221fa145031'');');
 
+-- 024_CortesCaja.sql · lote 1
+INSERT @Etapas(Nombre,Texto) VALUES(N'024_CortesCaja.sql · lote 1',N'SET XACT_ABORT ON;
+IF @@TRANCOUNT<>0 THROW 54800,N''Cierra las transacciones antes de instalar 024.'',1;
+IF COL_LENGTH(''dbo.ReciboMultiple'',''Anticipo'') IS NULL THROW 54800,N''Instala 023 antes de los cortes de caja.'',1;
+IF OBJECT_ID(''dbo.CorteCaja'',''U'') IS NOT NULL THROW 54800,N''024 ya está instalada.'',1;
+BEGIN TRY
+ BEGIN TRANSACTION;
+ CREATE TABLE dbo.CorteCaja(
+  Id bigint IDENTITY PRIMARY KEY,Inicio datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),Fin datetime2 NULL,
+  UsuarioApertura nvarchar(450) NULL REFERENCES dbo.AspNetUsers(Id),UsuarioCierre nvarchar(450) NULL REFERENCES dbo.AspNetUsers(Id),
+  FondoApertura decimal(18,2) NOT NULL CHECK(FondoApertura>=0),
+  EfectivoEsperado decimal(18,2) NULL,EfectivoContado decimal(18,2) NULL CHECK(EfectivoContado>=0),
+  Diferencia decimal(18,2) NULL,Motivo nvarchar(500) NULL,ResumenJson nvarchar(max) NULL,
+  Version rowversion,
+  CONSTRAINT CK_CorteCaja_Cierre CHECK(
+   (Fin IS NULL AND UsuarioCierre IS NULL AND EfectivoContado IS NULL AND ResumenJson IS NULL) OR
+   (Fin IS NOT NULL AND Fin>=Inicio AND UsuarioCierre IS NOT NULL AND EfectivoEsperado IS NOT NULL
+    AND EfectivoContado IS NOT NULL AND Diferencia=EfectivoContado-EfectivoEsperado AND ISJSON(ResumenJson)=1)));
+ CREATE UNIQUE INDEX UX_CorteCaja_Abierto ON dbo.CorteCaja(Fin) WHERE Fin IS NULL;
+ ALTER TABLE dbo.ReciboMultiple ADD CorteCajaId bigint NULL REFERENCES dbo.CorteCaja(Id);
+ ALTER TABLE dbo.AnulacionRecibo ADD CorteCajaId bigint NULL REFERENCES dbo.CorteCaja(Id);
+ CREATE TABLE dbo.EventoCorteCaja(
+  Operacion uniqueidentifier PRIMARY KEY,SolicitudHash binary(32) NOT NULL,
+  CorteId bigint NOT NULL REFERENCES dbo.CorteCaja(Id),SiguienteId bigint NULL REFERENCES dbo.CorteCaja(Id),
+  UsuarioId nvarchar(450) NOT NULL REFERENCES dbo.AspNetUsers(Id),Fecha datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
+ -- Al actualizar una instalación activa, el primer corte recoge los movimientos sin corte.
+ EXEC sys.sp_executesql N''
+ IF EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
+ BEGIN
+  DECLARE @Inicio datetime2=(SELECT MIN(Fecha) FROM(
+   SELECT Fecha FROM dbo.ReciboMultiple UNION ALL SELECT Fecha FROM dbo.AnulacionRecibo
+   UNION ALL SELECT SYSUTCDATETIME()) F);
+  INSERT dbo.CorteCaja(Inicio,UsuarioApertura,FondoApertura)
+   SELECT @Inicio,UsuarioId,0 FROM dbo.ControlFinanciero WHERE Id=1;
+  DECLARE @Id bigint=SCOPE_IDENTITY();
+  UPDATE dbo.ReciboMultiple SET CorteCajaId=@Id;
+  UPDATE dbo.AnulacionRecibo SET CorteCajaId=@Id;
+ END;'';
+ COMMIT;
+END TRY
+BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+END CATCH;');
+
+-- Confirmación 024_CortesCaja.sql · lote 1
+INSERT @Etapas(Nombre,Texto) VALUES(N'Confirmación 024_CortesCaja.sql · lote 1',N'INSERT dbo.InstalacionInicial(Etapa,FuenteSha256) VALUES(N''024_CortesCaja.sql'',''788ceba5480c3fc47c18b130c2f7e90e08f9f4bf687eba443ea4613d32297f08'');');
+
 -- PROCEDURE dbo.Buscar_Estudiantes_Mensualidad · Mensualidades_Legado.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Buscar_Estudiantes_Mensualidad · Mensualidades_Legado.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Buscar_Estudiantes_Mensualidad @TextoBusqueda nvarchar(100)
 AS
@@ -1548,6 +1596,9 @@ BEGIN
    THROW 54702,N''La operación ya se usó con otros datos. Consulta los recibos.'',1;
   COMMIT;SELECT @Id;RETURN;
  END;
+ DECLARE @CorteCajaId bigint;
+ SELECT @CorteCajaId=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ IF @CorteCajaId IS NULL THROW 54802,N''La caja está cerrada. Un administrador debe abrir un nuevo corte.'',1;
  SELECT @Nombre=NombreEstudiante FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro AND Estado=''Activo'';
  IF @Nombre IS NULL THROW 54702,N''El anticipo requiere un estudiante activo.'',1;
  SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
@@ -1558,8 +1609,8 @@ BEGIN
  DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
  DECLARE @Numero nvarchar(25)=N''RC-''+CONVERT(nvarchar(20),@Secuencia);
  INSERT dbo.ReciboMultiple(Numero,Operacion,Registro,Pagador,UsuarioId,Metodo,Referencia,Recibido,Cambio,SolicitudHash,
-  NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado,Anticipo)
- VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Importe,0,@Hash,@Nombre,@Saldo,0,@Saldo+@Importe,0,@Importe);
+  NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado,Anticipo,CorteCajaId)
+ VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Importe,0,@Hash,@Nombre,@Saldo,0,@Saldo+@Importe,0,@Importe,@CorteCajaId);
  SET @Id=SCOPE_IDENTITY();
  DECLARE @RegistroId nvarchar(100)=CONVERT(nvarchar(100),@Id),
   @Json nvarchar(max)=(SELECT @Registro Registro,@Numero Numero,@Importe Anticipo,@Saldo SaldoAnterior,@Saldo+@Importe SaldoFinal FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
@@ -2005,6 +2056,9 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.ReciboMultiple WHERE Id=@Id AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId) THROW 53502,N''Esta operación ya se usó con otros datos. Consulte el recibo antes de continuar.'',1;
   COMMIT;SELECT @Id Id,@Numero Numero;RETURN;
  END;
+ DECLARE @CorteCajaId bigint;
+ SELECT @CorteCajaId=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ IF @CorteCajaId IS NULL THROW 54802,N''La caja está cerrada. Un administrador debe abrir un nuevo corte.'',1;
  SELECT @Nombre=NombreEstudiante FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
  IF @Nombre IS NULL THROW 53502,N''Estudiante inexistente.'',1;
  SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
@@ -2013,8 +2067,8 @@ BEGIN
  DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
  SET @Numero=N''RC-''+CONVERT(nvarchar(20),@Secuencia);
  IF EXISTS(SELECT 1 FROM dbo.Pagos WHERE Id_Comprobante=@Numero) THROW 53502,N''Numeración ocupada. Revise la secuencia con administración.'',1;
- INSERT dbo.ReciboMultiple(Numero,Operacion,Registro,Pagador,UsuarioId,Metodo,Referencia,Recibido,Cambio,SolicitudHash,NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado)
- VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Recibido,@Cambio,@Hash,@Nombre,@Saldo,@SaldoAplicado,@Saldo-@SaldoAplicado,@Total);
+ INSERT dbo.ReciboMultiple(Numero,Operacion,Registro,Pagador,UsuarioId,Metodo,Referencia,Recibido,Cambio,SolicitudHash,NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado,CorteCajaId)
+ VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Recibido,@Cambio,@Hash,@Nombre,@Saldo,@SaldoAplicado,@Saldo-@SaldoAplicado,@Total,@CorteCajaId);
  SET @Id=SCOPE_IDENTITY();
  INSERT dbo.AplicacionPago(ReciboId,CargoId,Importe,DescripcionHistorica) SELECT @Id,I.CargoId,I.Importe,C.DescripcionHistorica FROM @Items I JOIN dbo.CargoEstudiante C ON C.Id=I.CargoId;
  IF @SaldoAplicado>0 UPDATE dbo.SaldoFinanciero SET Disponible=Disponible-@SaldoAplicado WHERE Registro=@Registro;
@@ -2151,12 +2205,111 @@ BEGIN
  END CATCH;
 END;');
 
+-- PROCEDURE dbo.CorteCaja_Consultar · CortesCaja.sql · lote 1
+INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.CorteCaja_Consultar · CortesCaja.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.CorteCaja_Consultar @UsuarioId nvarchar(450),@Id bigint=0
+AS
+BEGIN
+ SET NOCOUNT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ DECLARE @Lock int;
+ EXEC @Lock=sys.sp_getapplock @Resource=''Liceo.Finanzas.Configuracion'',@LockMode=''Shared'',@LockOwner=''Transaction'',@LockTimeout=10000;
+ IF @Lock<0 THROW 54803,N''Caja ocupada. Reintenta.'',1;
+ SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1;
+ SELECT C.*,U.UserName AperturaPor,V.UserName CierrePor
+ FROM dbo.CorteCaja C LEFT JOIN dbo.AspNetUsers U ON U.Id=C.UsuarioApertura
+ LEFT JOIN dbo.AspNetUsers V ON V.Id=C.UsuarioCierre WHERE C.Id IN(SELECT TOP(50) Id FROM dbo.CorteCaja ORDER BY Id DESC) OR C.Id=@Id ORDER BY C.Id DESC;
+ IF @Id=0 SELECT @Id=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ SELECT Metodo,SUM(Entrada) Entrada,SUM(Devolucion) Devolucion,SUM(Entrada-Devolucion) Neto
+ FROM (
+ SELECT Metodo,Recibido-Cambio Entrada,CAST(0 AS decimal(18,2)) Devolucion FROM dbo.ReciboMultiple WHERE CorteCajaId=@Id
+ UNION ALL SELECT R.Metodo,0,A.DineroDevuelto FROM dbo.AnulacionRecibo A JOIN dbo.ReciboMultiple R ON R.Id=A.ReciboId WHERE A.CorteCajaId=@Id
+ ) M GROUP BY Metodo;
+ COMMIT;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;');
+
+-- PROCEDURE dbo.CorteCaja_Operar · CortesCaja.sql · lote 1
+INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.CorteCaja_Operar · CortesCaja.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.CorteCaja_Operar
+ @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Accion nvarchar(20),@CorteId bigint=0,
+ @Fondo decimal(28,8)=0,@Contado decimal(28,8)=NULL,@Motivo nvarchar(500)=NULL
+AS
+BEGIN
+ SET NOCOUNT ON; SET XACT_ABORT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ IF @@TRANCOUNT<>0 THROW 54800,N''No usar transacción externa.'',1;
+ IF @Operacion IS NULL OR @Operacion=''00000000-0000-0000-0000-000000000000''
+ OR @Accion IS NULL OR @Accion NOT IN (''Abrir'',''Cerrar'',''CerrarAbrir'')
+ OR @Fondo IS NULL OR @Fondo<0 OR @Fondo>9999999999999999.99 OR ROUND(@Fondo,2)<>@Fondo
+ OR (@Accion<>''Abrir'' AND (@CorteId<=0 OR @Contado IS NULL OR @Contado<0 OR @Contado>9999999999999999.99 OR ROUND(@Contado,2)<>@Contado))
+ OR (@Accion=''Cerrar'' AND @Fondo<>0)
+ OR LEN(ISNULL(TRIM(@Motivo),N''''))<10
+ THROW 54802,N''Revisa corte, efectivo contado, fondo y motivo de al menos 10 caracteres.'',1;
+ DECLARE @Solicitud nvarchar(max)=(SELECT @UsuarioId Usuario,@Accion Accion,@CorteId CorteId,@Fondo Fondo,@Contado Contado,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ DECLARE @Hash binary(32)=HASHBYTES(''SHA2_256'',@Solicitud),@Lock int,@Id bigint,@Siguiente bigint,@Ahora datetime2=SYSUTCDATETIME();
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ EXEC @Lock=sys.sp_getapplock @Resource=''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
+ IF @Lock<0 THROW 54803,N''Caja ocupada. Reintenta la misma operación.'',1;
+ SET @Ahora=SYSUTCDATETIME();
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 54802,N''Activa primero el libro financiero nuevo.'',1;
+ IF EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion)
+ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId)
+   THROW 54802,N''La operación ya fue usada con otros datos.'',1;
+  COMMIT;RETURN;
+ END;
+ IF @Accion=''Abrir''
+ BEGIN
+  IF EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL) THROW 54802,N''Ya existe un corte abierto.'',1;
+  INSERT dbo.CorteCaja(Inicio,UsuarioApertura,FondoApertura) VALUES(@Ahora,@UsuarioId,@Fondo);
+  SET @Id=SCOPE_IDENTITY();
+ END
+ ELSE
+ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WITH(UPDLOCK,HOLDLOCK) WHERE Id=@CorteId AND Fin IS NULL)
+   THROW 54802,N''El corte ya no está abierto. Recarga antes de confirmar.'',1;
+  DECLARE @Entrada decimal(38,2),@Devuelto decimal(38,2),@Esperado decimal(38,2),@Resumen nvarchar(max);
+  SELECT @Entrada=ISNULL(SUM(Recibido-Cambio),0) FROM dbo.ReciboMultiple WHERE CorteCajaId=@CorteId AND Metodo=''Efectivo'';
+  SELECT @Devuelto=ISNULL(SUM(A.DineroDevuelto),0) FROM dbo.AnulacionRecibo A JOIN dbo.ReciboMultiple R ON R.Id=A.ReciboId WHERE A.CorteCajaId=@CorteId AND R.Metodo=''Efectivo'';
+  SELECT @Esperado=FondoApertura+@Entrada-@Devuelto FROM dbo.CorteCaja WHERE Id=@CorteId;
+  IF ABS(@Esperado)>9999999999999999.99 OR ABS(@Contado-@Esperado)>9999999999999999.99
+   THROW 54802,N''El total excede el límite permitido para cerrar.'',1;
+  SET @Resumen=(SELECT Metodo,SUM(Entrada) Entrada,SUM(Devolucion) Devolucion,SUM(Entrada-Devolucion) Neto FROM(
+   SELECT Metodo,Recibido-Cambio Entrada,CAST(0 AS decimal(18,2)) Devolucion FROM dbo.ReciboMultiple WHERE CorteCajaId=@CorteId
+   UNION ALL SELECT R.Metodo,0,A.DineroDevuelto FROM dbo.AnulacionRecibo A JOIN dbo.ReciboMultiple R ON R.Id=A.ReciboId WHERE A.CorteCajaId=@CorteId
+  ) M GROUP BY Metodo FOR JSON PATH);
+  UPDATE dbo.CorteCaja SET Fin=@Ahora,UsuarioCierre=@UsuarioId,EfectivoEsperado=@Esperado,EfectivoContado=@Contado,
+   Diferencia=@Contado-@Esperado,Motivo=@Motivo,ResumenJson=@Resumen WHERE Id=@CorteId;
+  SET @Id=@CorteId;
+  IF @Accion=''CerrarAbrir''
+  BEGIN
+   INSERT dbo.CorteCaja(Inicio,UsuarioApertura,FondoApertura) VALUES(@Ahora,@UsuarioId,@Fondo);
+   SET @Siguiente=SCOPE_IDENTITY();
+  END;
+ END;
+ INSERT dbo.EventoCorteCaja(Operacion,SolicitudHash,CorteId,SiguienteId,UsuarioId) VALUES(@Operacion,@Hash,@Id,@Siguiente,@UsuarioId);
+ DECLARE @Registro nvarchar(100)=CONVERT(nvarchar(100),@Id),@Despues nvarchar(max)=(SELECT @Id CorteId,@Siguiente SiguienteId,@Accion Accion,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ EXEC dbo.Registrar_Auditoria @UsuarioId,''GestionarCorteCaja'',''CorteCaja'',@Registro,@Operacion,NULL,@Despues;
+ COMMIT;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;');
+
 -- PROCEDURE dbo.CorteFinanciero_Ejecutar · CorteFinanciero.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.CorteFinanciero_Ejecutar · CorteFinanciero.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.CorteFinanciero_Ejecutar @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Aplicar bit=0,@Confirmacion nvarchar(60)=NULL
 AS
 BEGIN
  SET NOCOUNT ON;SET XACT_ABORT ON;
- IF DB_NAME()<>''__LICEO_BASE__'' OR @@TRANCOUNT<>0 THROW 53400,N''Use desarrollo sin transacciones abiertas.'',1;
+ IF @@TRANCOUNT<>0 THROW 53400,N''Cierra las transacciones antes de ejecutar la transición.'',1;
  IF @Operacion IS NULL OR @Aplicar IS NULL THROW 53400,N''Indique operación y modalidad.'',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 53401,N''Se requiere administrador.'',1;
  IF @Aplicar=1 AND ISNULL(@Confirmacion,N'''')<>N''APLICAR CORTE EN DESARROLLO'' THROW 53400,N''Falta confirmación explícita.'',1;
@@ -2224,6 +2377,8 @@ BEGIN
  UPDATE dbo.ControlFinanciero SET Migrado=1,Operacion=@Operacion,Fecha=SYSUTCDATETIME(),UsuarioId=@UsuarioId WHERE Id=1;
  DECLARE @Detalle nvarchar(max)=(SELECT @Cargos Cargos,@TotalDeuda Deuda,@TotalSaldo SaldoInicial FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=N''CorteFinanciero'',@Entidad=N''ControlFinanciero'',@RegistroId=N''1'',@IdOperacion=@Operacion,@DespuesJson=@Detalle;
+ IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
+  INSERT dbo.CorteCaja(UsuarioApertura,FondoApertura) VALUES(@UsuarioId,0);
  COMMIT;
  SELECT N''APLICADO'' Estado,@Cargos Cargos,@TotalDeuda Deuda,@TotalSaldo SaldoInicial;
  END TRY
@@ -2809,6 +2964,9 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.AnulacionRecibo WHERE Id=@Id AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId) THROW 53702,N''La operación ya se usó con otros datos.'',1;
   COMMIT;SELECT @Id Id;RETURN;
  END;
+ DECLARE @CorteCajaId bigint;
+ SELECT @CorteCajaId=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ IF @CorteCajaId IS NULL THROW 54802,N''La caja está cerrada. Un administrador debe abrir un nuevo corte.'',1;
  SELECT @Registro=Registro,@Dinero=Recibido-Cambio,@SaldoUsado=SaldoAplicado,@Total=TotalAplicado,@Anticipo=Anticipo FROM dbo.ReciboMultiple WITH(UPDLOCK,HOLDLOCK) WHERE Id=@ReciboId;
  IF @Registro IS NULL THROW 53704,N''Recibo inexistente.'',1;
  IF EXISTS(SELECT 1 FROM dbo.AnulacionRecibo WHERE ReciboId=@ReciboId) THROW 53702,N''El recibo ya está anulado. Consulte su historial.'',1;
@@ -2818,8 +2976,8 @@ BEGIN
  IF @Anticipo>@Saldo THROW 53702,N''No se puede anular el anticipo: el saldo disponible no cubre la devolución.'',1;
  IF @SaldoUsado>0 AND NOT EXISTS(SELECT 1 FROM dbo.SaldoFinanciero WHERE Registro=@Registro) THROW 53702,N''No existe la cuenta de saldo original.'',1;
  IF CONVERT(decimal(19,2),@Saldo)+@SaldoUsado>9999999999999999.99 THROW 53702,N''El saldo resultante excede el límite permitido.'',1;
- INSERT dbo.AnulacionRecibo(ReciboId,Operacion,SolicitudHash,UsuarioId,Motivo,ReferenciaDevolucion,Receptor,DineroDevuelto,SaldoRestituido,SaldoAnterior,SaldoFinal,TotalRevertido,SaldoRetirado)
- VALUES(@ReciboId,@Operacion,@Hash,@UsuarioId,@Motivo,@ReferenciaDevolucion,@Receptor,@Dinero,@SaldoUsado,@Saldo,@Saldo+@SaldoUsado-@Anticipo,@Total+@Anticipo,@Anticipo);
+ INSERT dbo.AnulacionRecibo(ReciboId,Operacion,SolicitudHash,UsuarioId,Motivo,ReferenciaDevolucion,Receptor,DineroDevuelto,SaldoRestituido,SaldoAnterior,SaldoFinal,TotalRevertido,SaldoRetirado,CorteCajaId)
+ VALUES(@ReciboId,@Operacion,@Hash,@UsuarioId,@Motivo,@ReferenciaDevolucion,@Receptor,@Dinero,@SaldoUsado,@Saldo,@Saldo+@SaldoUsado-@Anticipo,@Total+@Anticipo,@Anticipo,@CorteCajaId);
  SET @Id=SCOPE_IDENTITY();
  IF @SaldoUsado>0 OR @Anticipo>0 UPDATE dbo.SaldoFinanciero SET Disponible=Disponible+@SaldoUsado-@Anticipo WHERE Registro=@Registro;
  DECLARE @RegistroId nvarchar(100)=CONVERT(nvarchar(100),@ReciboId),@Json nvarchar(max)=(SELECT @Id AnulacionId,@Dinero DineroDevuelto,@SaldoUsado SaldoRestituido,@Anticipo SaldoRetirado,@Total DeudaReabierta,@Motivo Motivo,@ReferenciaDevolucion ReferenciaDevolucion,@Receptor Receptor FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
@@ -2991,13 +3149,21 @@ BEGIN
  SELECT COUNT_BIG(*) Movimientos,
  ISNULL(SUM(CASE WHEN Tipo IN (''Cobro'',''Anticipo'') THEN Dinero ELSE 0 END),0) Cobrado,
  -ISNULL(SUM(CASE WHEN Tipo=N''Devolución'' THEN Dinero ELSE 0 END),0) Devuelto,
- ISNULL(SUM(Dinero),0) DineroNeto,ISNULL(SUM(Saldo),0) SaldoNeto,ISNULL(SUM(Aplicado),0) AplicadoNeto FROM #Movimientos;
+ ISNULL(SUM(Dinero),0) DineroNeto,ISNULL(SUM(Saldo),0) SaldoNeto,ISNULL(SUM(Aplicado),0) AplicadoNeto,
+ ISNULL(SUM(CASE WHEN Tipo=''Anticipo'' THEN Dinero ELSE 0 END),0) Anticipos,
+ COUNT(DISTINCT CASE WHEN Tipo<>''Devolución'' THEN Registro END) Estudiantes,
+ SUM(CASE WHEN Tipo IN (''Cobro'',''Anticipo'') THEN 1 ELSE 0 END) Recibos
+ FROM #Movimientos;
  SELECT Metodo,ISNULL(SUM(CASE WHEN Tipo IN (''Cobro'',''Anticipo'') THEN Dinero ELSE 0 END),0) Cobrado,
  -ISNULL(SUM(CASE WHEN Tipo=N''Devolución'' THEN Dinero ELSE 0 END),0) Devuelto,SUM(Dinero) DineroNeto,SUM(Saldo) SaldoNeto FROM #Movimientos GROUP BY Metodo ORDER BY Metodo;
  SELECT M.ReciboId,M.Numero,M.Registro,M.NombreEstudiante,DATEADD(hour,-6,M.FechaUTC) FechaLocal,M.Tipo,M.Metodo,U.UserName Responsable,M.Dinero,M.Saldo,M.Aplicado
  FROM #Movimientos M LEFT JOIN dbo.AspNetUsers U ON U.Id=M.UsuarioId ORDER BY M.FechaUTC DESC,M.ReciboId DESC,M.Tipo
  OFFSET (CASE WHEN @Exportar=1 THEN 0 ELSE (@Pagina-1)*100 END) ROWS
  FETCH NEXT (CASE WHEN @Exportar=1 THEN 50000 ELSE 100 END) ROWS ONLY;
+ SELECT CONVERT(date,DATEADD(hour,-6,FechaUTC)) Dia,
+ SUM(CASE WHEN Tipo IN (''Cobro'',''Anticipo'') THEN Dinero ELSE 0 END) Entradas,
+ -SUM(CASE WHEN Tipo=N''Devolución'' THEN Dinero ELSE 0 END) Devoluciones,
+ SUM(Dinero) Neto FROM #Movimientos GROUP BY CONVERT(date,DATEADD(hour,-6,FechaUTC)) ORDER BY Dia;
  END TRY
  BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK;
@@ -3713,8 +3879,8 @@ IF (SELECT COUNT(*) FROM dbo.Calificacion C JOIN dbo.Evaluacion E ON E.Id=C.Eval
 SELECT N''DEMOSTRACIÓN COMPLETADA: cuentas, pagos y estudiantes conservados.'' Resultado;');
 
 -- Verificación final · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELECT COUNT(*) FROM dbo.InstalacionInicial)<>23
-            THROW 54901,N''La estructura no alcanzó la migración 023.'',1;
+INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELECT COUNT(*) FROM dbo.InstalacionInicial)<>24
+            THROW 54901,N''La estructura no alcanzó la migración 024.'',1;
         IF EXISTS(SELECT 1 FROM (VALUES (N''Anticipo_Registrar'',N''P''),
 (N''ReciboMultiple_Anular'',N''P''),
 (N''ObligacionLegada'',N''V''),
@@ -3736,6 +3902,8 @@ INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELEC
 (N''Saldo_Consultar'',N''P''),
 (N''Saldo_Revisar'',N''P''),
 (N''CorteFinanciero_Ejecutar'',N''P''),
+(N''CorteCaja_Consultar'',N''P''),
+(N''CorteCaja_Operar'',N''P''),
 (N''Evaluacion_ConsultarEdicion'',N''P''),
 (N''Evaluacion_Editar'',N''P''),
 (N''Expediente_Obtener'',N''P''),
@@ -3779,9 +3947,11 @@ INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELEC
             (U.Email=N''profesor@liceo.test'' AND R.Name=N''Profesor'') OR
             (U.Email=N''cajero@liceo.test'' AND R.Name=N''Cajero''))<>3
             THROW 54901,N''Las cuentas demo no quedaron completas.'',1;
+        IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
+            THROW 54901,N''No quedó un corte de caja abierto para la demostración.'',1;
         INSERT dbo.InstalacionInicial(Etapa,FuenteSha256)
             VALUES(N''DemostracionLista'',''5fb9ddad7179a1dc3aa4c116c5aa4d0aa36b53e9a2ab4a129c8633a5de3f4151'');
-        SELECT DB_NAME() BaseInstalada,23 UltimaMigracion,
+        SELECT DB_NAME() BaseInstalada,24 UltimaMigracion,
             (SELECT COUNT(*) FROM sys.procedures WHERE schema_id=SCHEMA_ID(''dbo'')) Procedimientos,
             (SELECT COUNT(*) FROM dbo.Estudiantes) Estudiantes,
             (SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1) Migrado;
