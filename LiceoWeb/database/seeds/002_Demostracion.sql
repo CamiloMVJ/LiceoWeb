@@ -148,41 +148,13 @@ BEGIN
  SET @n+=1;
 END;
 
--- Dos evaluaciones numéricas suman 100 %, con resultados iniciales pendientes
--- para mostrar la captura y publicación desde la cuenta del profesor.
-DECLARE @Tipo int,@Evaluacion int,@Clase int,@Fecha date=CONVERT(date,SYSUTCDATETIME()),@Version varchar(18);
-INSERT dbo.TipoEvaluacion(Nombre) VALUES(N'Trabajo práctico demo'); SET @Tipo=SCOPE_IDENTITY();
-DECLARE Clases CURSOR LOCAL FAST_FORWARD FOR SELECT AsignacionId FROM @Clases;
-OPEN Clases; FETCH NEXT FROM Clases INTO @Clase;
-WHILE @@FETCH_STATUS=0
-BEGIN
- SET @i=1;
- WHILE @i<=2
- BEGIN
-  SET @Json=(SELECT N'Evaluacion' Accion,@Clase AsignacionId,@Tipo TipoId,CONCAT(N'Evaluación demo ',@i) Nombre,
-   @Fecha Fecha,N'Cuantitativa' Modo,100 Maximo,50 Peso FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
-  EXEC dbo.Notas_Guardar @Json,@Profesor,@ResultadoId=@Evaluacion OUTPUT;
-  SELECT @Version=CONVERT(varchar(18),Version,1) FROM dbo.Evaluacion WHERE Id=@Evaluacion;
-  SELECT @Registro=A.Registro FROM @Alumnos A JOIN dbo.AsignacionDocente D ON D.GrupoId=A.GrupoId WHERE D.Id=@Clase AND A.I=1;
-  SET @Json=(SELECT N'Nota' Accion,@Clase AsignacionId,@Evaluacion EvaluacionId,@Registro Registro,
-   @Version VersionEvaluacion,CAST(85 AS decimal(7,2)) Nota,N'Resultado de demostración' Observacion FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
-  EXEC dbo.Notas_Guardar @Json,@Profesor;
-  SET @i+=1;
- END;
- FETCH NEXT FROM Clases INTO @Clase;
-END;
-CLOSE Clases; DEALLOCATE Clases;
 
 IF (SELECT COUNT(*) FROM dbo.Estudiantes)<>12 OR (SELECT COUNT(*) FROM dbo.GrupoEstudiante)<>9
  OR (SELECT COUNT(*) FROM dbo.AspNetUsers)<>3 OR NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
- THROW 54902,N'La demostración no terminó correctamente.',1;
+ THROW 54902,N'La demostración base no terminó correctamente.',1;
 IF (SELECT COUNT(*) FROM dbo.CargoEstudiante)<>24
  OR (SELECT COUNT(*) FROM dbo.ReciboMultiple)<>21
  OR (SELECT COUNT(*) FROM dbo.HorarioClaseVigente)<>20
- OR (SELECT COUNT(*) FROM dbo.Calificacion)<>12
  OR (SELECT SUM(Disponible) FROM dbo.SaldoFinanciero)<>450
  OR NOT EXISTS(SELECT 1 FROM dbo.ConfiguracionMatricula C JOIN dbo.Arancel A ON A.Id=C.ArancelId WHERE C.Id=1 AND A.Codigo=N'MAT')
- THROW 54902,N'Los cargos, recibos, horarios, notas o saldos demo no coinciden con lo esperado.',1;
-SELECT N'Demostración lista' Resultado,@Anio AnioAcademico,
- (SELECT COUNT(*) FROM dbo.Estudiantes) Estudiantes,(SELECT COUNT(*) FROM dbo.ReciboMultiple) Recibos,
- (SELECT SUM(Disponible) FROM dbo.SaldoFinanciero) SaldoFavor;
+ THROW 54902,N'Los cargos, recibos, horarios o saldos demo no coinciden con lo esperado.',1;

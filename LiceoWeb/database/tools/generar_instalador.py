@@ -61,6 +61,7 @@ def construir():
         SELECT CONVERT(nvarchar(450),NEWID()),Nombre,UPPER(Nombre),CONVERT(nvarchar(36),NEWID())
         FROM (VALUES(N'Administrador'),(N'Cajero'),(N'Profesor')) R(Nombre);""")
     agregar("Demostración", leer(DB / "seeds/002_Demostracion.sql"))
+    agregar("Calificaciones demo", leer(DB / "seeds/003_CalificacionesDemostracion.sql"))
 
     esperados = ",\n".join(f"(N'{nombre}',N'{'P' if tipo.upper() == 'PROCEDURE' else 'V'}')"
                            for tipo, nombre, _, _ in modulos.values())

@@ -57,3 +57,7 @@ Las migraciones y procedimientos siguen siendo las fuentes del esquema. Regenera
 IdentityInicial.sql es una fuente auxiliar generada por EF desde CreateIdentitySchema, no otro archivo que deba ejecutar el usuario. El script final contiene todos los lotes sin archivos externos. No incluye el archivo obsoleto Procedimientos.sql de Registro_Pagos; las tres rutinas mensuales reemplazadas provienen de Mensualidades_Legado.sql.
 
 Las pruebas estáticas revisan estructura, dependencias y contraseñas; no sustituyen ejecutar SQL Server. Si una etapa falla, se detiene toda la instalación y se muestra su nombre y el error original. No continuar creando objetos aislados sobre una instalación parcial.
+
+## Recuperar el error 52408 de la primera versión del instalador demo
+
+Si el instalador anterior terminó en Demostración, lote 3, con el error 52408, no es necesario borrar la base ni volver a cobrar o crear los estudiantes. Actualiza la rama y ejecuta completo **database/seeds/003_CalificacionesDemostracion.sql** sobre esa misma base. El archivo comprueba que estén las cuentas y clases demo, crea solo evaluaciones faltantes y no reemplaza notas ya guardadas. Al finalizar muestra DEMOSTRACIÓN COMPLETADA. Para nuevas bases, el instalador completo ya incluye esta corrección.

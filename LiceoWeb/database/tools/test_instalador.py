@@ -24,3 +24,10 @@ assert "No continúes con la aplicación sobre esta base parcial" in texto
 print("PASS: instalador reproducible, sin SQLCMD, con 23 etapas y 54 módulos.")
 print("PASS: dependencias antes de demo, corte real y verificación final.")
 print("PASS: base existente protegida y detención completa ante un error.")
+notas = (DB / "seeds/003_CalificacionesDemostracion.sql").read_text()
+assert "sys.fn_varbintohexstr(CONVERT(varbinary(8),@VersionBinaria))" in notas
+assert "IF NOT EXISTS(SELECT 1 FROM dbo.Calificacion" in notas
+assert "JSON_VALUE(@Json,'$.VersionEvaluacion')" in notas
+assert not re.search(r"\b(DELETE|TRUNCATE|DROP)\b", notas, re.I)
+assert next(i for i,(n,_) in enumerate(etapas) if n.startswith("Calificaciones demo")) > datos
+print("PASS: recuperación sin borrados, notas no sobrescritas y versión binaria normalizada.")
