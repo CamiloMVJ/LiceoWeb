@@ -26,3 +26,11 @@ El instalador completo incluye 025; la demostración comienza con un corte abier
 - Cajero y Profesor no pueden abrir la pantalla ni ejecutar sus acciones directas. El Cajero conserva cobros en una caja abierta.
 
 Estas pruebas de SQL Server y sesiones reales deben ejecutarse en una copia; la compilación y la validación de entrada no prueban la persistencia.
+
+## Detalle interactivo de las barras
+
+Pasar el cursor por una columna muestra la fecha o mes, entradas, devoluciones y neto del período. En móvil, tocar fija el detalle; tocar de nuevo o fuera lo cierra. Con teclado, Tab entra al gráfico, las flechas recorren las fechas, Home/End van al principio/final, Enter o espacio fijan el detalle y Escape lo cierra. El detalle permanece visible si se mueve el cursor sobre él y se ajusta a los bordes de la pantalla.
+
+La tabla alternativa continúa disponible. Sin JavaScript, las columnas conservan su descripción SVG y la tabla; la consulta, los cálculos, el CSV y la base de datos mantienen su comportamiento. No requiere otra migración.
+
+Validación: compilación C#/Razor con cero errores y advertencias, y 11 pruebas de lógica de interacción mediante `node tests/GraficosFinancieros/test.cjs`. La geometría se simula en esas pruebas. La prueba opcional de navegador es `node tests/GraficosFinancieros/browser.cjs` y requiere Playwright y Chromium instalados; no pudo ejecutarse en el entorno de edición por las restricciones de arranque del navegador. Revisar visualmente con datos reales tras actualizar la aplicación.

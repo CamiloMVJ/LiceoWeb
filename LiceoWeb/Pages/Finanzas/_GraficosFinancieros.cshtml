@@ -15,6 +15,7 @@
  var maximo=Math.Max(1m,grupos.Values.Select(v=>Math.Max(v.Entradas,v.Devoluciones)).DefaultIfEmpty(0).Max());
  int ancho=Math.Max(680,fechas.Count*48+40);
  string Num(decimal v)=>v.ToString("0.##",CultureInfo.InvariantCulture);
+ var tooltipId="fin-detalle-"+Guid.NewGuid().ToString("N");
  var recibos=r.Field<int?>("Recibos")??0;
  var entradas=r.Field<decimal>("Cobrado");
 }
@@ -31,21 +32,34 @@
 <article class="fin-kpi"><span>Promedio por recibo</span><strong>C$ @((recibos==0?0:entradas/recibos).ToString("N2"))</strong><small>@recibos recibos · incluye los pagados con saldo</small></article>
 </div>
 <div class="fin-chart-grid mb-4">
-<section class="liceo-card fin-chart"><h2 class="h4">Evolución @(meses?"mensual":"diaria")</h2><p>Entradas y devoluciones en C$. Todo el rango seleccionado; no solo la página actual.</p>
+<section class="liceo-card fin-chart" data-fin-chart><h2 class="h4">Evolución @(meses?"mensual":"diaria")</h2><p>Entradas y devoluciones en C$. Todo el rango seleccionado; no solo la página actual.</p>
 <div class="fin-legend"><span><i class="fin-dot fin-in"></i>Entradas</span><span><i class="fin-dot fin-out"></i>Devoluciones</span><span>Máximo C$ @maximo.ToString("N2")</span></div>
+<p class="fin-chart-help">Pasa el cursor o toca una columna para ver su detalle. Con el teclado, usa Tab para entrar y las flechas para recorrer las fechas; Escape cierra el detalle.</p>
 <div class="fin-chart-scroll" tabindex="0" role="region" aria-label="Gráfico de entradas y devoluciones">
-<svg viewBox="0 0 @ancho 260" style="min-width:@(ancho)px" role="img" aria-label="Entradas y devoluciones por fecha; detalles en las barras y en la tabla de datos">
+<svg viewBox="0 0 @ancho 260" style="min-width:@(ancho)px" role="group" aria-label="Entradas y devoluciones por fecha; cada columna permite consultar sus importes">
 <line x1="20" y1="215" x2="@(ancho-10)" y2="215" stroke="#cbd5e1" />
 @for(var i=0;i<fechas.Count;i++){
  var fecha=fechas[i];var v=grupos.GetValueOrDefault(fecha);var x=30+i*48;
  var h1=v.Entradas/maximo*170;var h2=v.Devoluciones/maximo*170;
- <g>
- <rect x="@x" y="@Num(215-h1)" width="15" height="@Num(h1)" rx="3" fill="#1b264f"><title>@fecha.ToString(meses?"MM/yyyy":"dd/MM/yyyy"): entradas C$ @v.Entradas.ToString("N2")</title></rect>
- <rect x="@(x+17)" y="@Num(215-h2)" width="15" height="@Num(h2)" rx="3" fill="#b94a48"><title>@fecha.ToString(meses?"MM/yyyy":"dd/MM/yyyy"): devoluciones C$ @v.Devoluciones.ToString("N2")</title></rect>
+ <g class="fin-period" data-fin-period tabindex="0" role="button" aria-expanded="false" aria-controls="@tooltipId"
+    aria-label="@fecha.ToString(meses?"MM/yyyy":"dd/MM/yyyy"): entradas C$ @v.Entradas.ToString("N2"), devoluciones C$ @v.Devoluciones.ToString("N2"), neto C$ @((v.Entradas-v.Devoluciones).ToString("N2"))"
+    data-date='@fecha.ToString(meses?"MMMM yyyy":"dddd dd/MM/yyyy",CultureInfo.GetCultureInfo("es-NI"))'
+    data-entradas="C$ @v.Entradas.ToString("N2")" data-devoluciones="C$ @v.Devoluciones.ToString("N2")" data-neto="C$ @((v.Entradas-v.Devoluciones).ToString("N2"))">
+ <title>@fecha.ToString(meses?"MM/yyyy":"dd/MM/yyyy"): entradas C$ @v.Entradas.ToString("N2"), devoluciones C$ @v.Devoluciones.ToString("N2"), neto C$ @((v.Entradas-v.Devoluciones).ToString("N2"))</title>
+ <rect class="fin-period-hit" x="@(x-4)" y="35" width="40" height="181" rx="4" fill="transparent" />
+ <rect class="fin-period-bar" x="@x" y="@Num(215-h1)" width="15" height="@Num(h1)" rx="3" fill="#1b264f" />
+ <rect class="fin-period-bar" x="@(x+17)" y="@Num(215-h2)" width="15" height="@Num(h2)" rx="3" fill="#b94a48" />
  <text x="@(x+16)" y="239" text-anchor="middle" fill="#475569" font-size="10">@fecha.ToString(meses?"MM/yy":"dd/MM")</text>
  </g>
 }
 </svg></div>
+<div id="@tooltipId" class="fin-tooltip" data-fin-tooltip role="tooltip" hidden>
+ <p class="fin-tooltip-date" data-fin-date></p>
+ <dl><div><dt><i class="fin-dot fin-in" aria-hidden="true"></i>Entradas</dt><dd data-fin-entradas></dd></div>
+ <div><dt><i class="fin-dot fin-out" aria-hidden="true"></i>Devoluciones</dt><dd data-fin-devoluciones></dd></div>
+ <div class="fin-tooltip-net"><dt>Neto del período</dt><dd data-fin-neto></dd></div></dl>
+ <small>Entradas menos devoluciones · córdobas</small>
+</div>
 @if(entradas==0 && r.Field<decimal>("Devuelto")==0){<p role="status">Sin entradas ni devoluciones de dinero para estas fechas.</p>}
 <details><summary>Ver datos del gráfico</summary><table class="table"><thead><tr><th>Fecha</th><th>Entradas</th><th>Devoluciones</th></tr></thead><tbody>
 @foreach(var f in fechas){var v=grupos.GetValueOrDefault(f);<tr><td>@f.ToString(meses?"MM/yyyy":"dd/MM/yyyy")</td><td>@v.Entradas.ToString("N2")</td><td>@v.Devoluciones.ToString("N2")</td></tr>}
