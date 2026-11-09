@@ -13,11 +13,10 @@ public sealed class LibroAnteriorFilter(IEstadoLibroFinanciero estado) : IAsyncR
         if (context.ActionDescriptor is not PageActionDescriptor page || !string.IsNullOrEmpty(context.RouteData.Values["area"]?.ToString()) || !EsRutaAnterior(page.ViewEnginePath))
         { await next(); return; }
         var libro = await estado.ObtenerAsync();
-        if (libro == EstadoLibro.Anterior) { await next(); return; }
         context.HttpContext.Response.Headers.CacheControl = "no-store";
-        if (libro == EstadoLibro.NoDisponible)
+        if (libro != EstadoLibro.Nuevo)
         {
-            context.Result = new ContentResult { StatusCode = 503, ContentType = "text/plain; charset=utf-8", Content = "No se pudo verificar el estado financiero. No se ejecutó la operación. Reintenta cuando se restablezca la conexión." }; return;
+            context.Result = new ContentResult { StatusCode = 503, ContentType = "text/plain; charset=utf-8", Content = "Actualiza la base con la migración 025 para usar las operaciones financieras actuales. No se ejecutó la operación antigua." }; return;
         }
         if (HttpMethods.IsGet(context.HttpContext.Request.Method) || HttpMethods.IsHead(context.HttpContext.Request.Method))
             context.Result = new RedirectToPageResult("/Finanzas/LibroAnterior");

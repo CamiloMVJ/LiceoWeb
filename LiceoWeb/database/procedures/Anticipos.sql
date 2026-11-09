@@ -37,7 +37,7 @@ BEGIN
  SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
  IF @Saldo+@Importe>9999999999999999.99 THROW 54702,N'El saldo resultante excede el límite permitido.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.SaldoFinanciero WHERE Registro=@Registro)
-  INSERT dbo.SaldoFinanciero(Registro,RevisionSaldoId,SaldoInicial,Disponible) VALUES(@Registro,NULL,0,0);
+  INSERT dbo.SaldoFinanciero(Registro,SaldoInicial,Disponible) VALUES(@Registro,0,0);
  UPDATE dbo.SaldoFinanciero SET Disponible=Disponible+@Importe WHERE Registro=@Registro;
  DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
  DECLARE @Numero nvarchar(25)=N'RC-'+CONVERT(nvarchar(20),@Secuencia);

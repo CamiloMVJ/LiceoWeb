@@ -22,4 +22,7 @@ Probar("Motivo requerido",x=>x.Motivo="",false);
 Probar("Identificador para reintentos",x=>x.Operacion=Guid.Empty,false);
 var auth=(AuthorizeAttribute)typeof(CortesModel).GetCustomAttributes(typeof(AuthorizeAttribute),true).Single();
 if(auth.Policy!="SoloAdministrador")throw new Exception("El acceso a cortes debe ser administrativo");
-Console.WriteLine("PASS política SoloAdministrador para todas las acciones de cortes y transición");
+Console.WriteLine("PASS política SoloAdministrador para todas las acciones de caja");
+
+if(typeof(CortesModel).GetMethod("OnPostTransicionAsync") is not null)throw new Exception("La transición de escritorio debe estar retirada");
+Console.WriteLine("PASS transición de escritorio retirada");

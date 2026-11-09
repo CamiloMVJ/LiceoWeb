@@ -1,3 +1,5 @@
+> Actualización 025: se retiró el traslado del escritorio y sus conciliaciones. Las referencias a ese flujo en el historial de este documento ya no se aplican. Consultar [RetiroConciliaciones.md](RetiroConciliaciones.md).
+
 # Generación de cargos desde tarifas
 
 Nueva pantalla `/Finanzas/Cargos`, exclusiva de Administración. El cajero conserva acceso al cobro y al estado de cuenta, pero no puede crear deuda. No hay generación masiva ni automática al matricular en esta etapa.

@@ -1,4 +1,4 @@
--- LICEOWEB · INSTALACIÓN COMPLETA CON DEMOSTRACIÓN · esquema 001–024
+-- LICEOWEB · INSTALACIÓN COMPLETA CON DEMOSTRACIÓN · esquema 001–025
 -- Ejecutar TODO con F5 en SSMS NORMAL (no necesita modo SQLCMD ni archivos externos).
 -- Editar solo @Base si deseas otro nombre. Debe ser una base NUEVA.
 -- No borra ni actualiza bases existentes. Requiere permiso CREATE DATABASE y SQL Server 2017+.
@@ -1166,6 +1166,497 @@ END CATCH;');
 -- Confirmación 024_CortesCaja.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'Confirmación 024_CortesCaja.sql · lote 1',N'INSERT dbo.InstalacionInicial(Etapa,FuenteSha256) VALUES(N''024_CortesCaja.sql'',''788ceba5480c3fc47c18b130c2f7e90e08f9f4bf687eba443ea4613d32297f08'');');
 
+-- 025_RetirarConciliacionesLegadas.sql · lote 1
+INSERT @Etapas(Nombre,Texto) VALUES(N'025_RetirarConciliacionesLegadas.sql · lote 1',N'-- 025 · Retirar conciliaciones del sistema de escritorio.
+-- Ejecutar TODO una vez con la aplicación detenida, después de 024.
+-- No importa registros de escritorio. Conserva cargos, recibos, estudiantes,
+-- saldos disponibles, cuentas y cortes de caja existentes.
+-- Elimina las tablas de preparación/revisión y los procedimientos de traslado.
+-- RevisionSaldoId se conserva nullable SIN FK como compatibilidad de scripts demo
+-- distribuidos; ya no se utiliza para consultar, aprobar ni importar saldos.
+-- Los archivos 001–024 son historia de instalación, no deben volverse a ejecutar.
+SET NOCOUNT ON; SET XACT_ABORT ON;
+IF @@TRANCOUNT<>0 THROW 54920,N''Cierra transacciones antes de instalar 025.'',1;
+IF OBJECT_ID(''dbo.CorteCaja'',''U'') IS NULL OR COL_LENGTH(''dbo.ReciboMultiple'',''Anticipo'') IS NULL
+ THROW 54920,N''Instala primero la migración 024.'',1;
+BEGIN TRY
+ BEGIN TRANSACTION;
+ DECLARE @Lock int;
+ EXEC @Lock=sys.sp_getapplock @Resource=N''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
+ IF @Lock<0 THROW 54920,N''Finanzas ocupada. Detén la aplicación y reintenta.'',1;
+ EXEC @Lock=sys.sp_getapplock @Resource=N''Liceo.Planificacion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
+ IF @Lock<0 THROW 54920,N''Planificación ocupada. Reintenta.'',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1)
+ THROW 54920,N''Falta el control financiero de la instalación.'',1;
+ DECLARE @Cargos bigint=(SELECT COUNT_BIG(*) FROM dbo.CargoEstudiante),
+ @Recibos bigint=(SELECT COUNT_BIG(*) FROM dbo.ReciboMultiple),
+ @Saldo decimal(38,2)=(SELECT ISNULL(SUM(Disponible),0) FROM dbo.SaldoFinanciero),
+ @Cortes bigint=(SELECT COUNT_BIG(*) FROM dbo.CorteCaja);
+ -- En instalación nueva los procedimientos se crean después, en orden de dependencia.
+ -- En una actualización se reemplazan aquí, dentro de la misma transacción del retiro.
+ IF OBJECT_ID(''dbo.Cargos_Autorizar'',''P'') IS NOT NULL
+ BEGIN
+ -- Dependencia vigente: Aranceles.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Aranceles_Guardar @UsuarioId nvarchar(450),@Datos nvarchar(max)
+AS
+BEGIN
+ SET NOCOUNT ON;SET XACT_ABORT ON;
+ IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''''Administrador'''') THROW 52801,N''''Solo administración puede modificar estos datos.'''',1;
+ IF ISJSON(@Datos)<>1 THROW 52800,N''''Datos inválidos.'''',1;
+ DECLARE @Accion nvarchar(20)=JSON_VALUE(@Datos,''''$.Accion''''),@Id int=TRY_CONVERT(int,JSON_VALUE(@Datos,''''$.Id'''')),
+ @Codigo nvarchar(30)=NULLIF(TRIM(JSON_VALUE(@Datos,''''$.Codigo'''')),''''''''),@Nombre nvarchar(150)=NULLIF(TRIM(JSON_VALUE(@Datos,''''$.Nombre'''')),''''''''),
+ @Arancel int=TRY_CONVERT(int,JSON_VALUE(@Datos,''''$.ArancelId'''')),@Modalidad int=TRY_CONVERT(int,JSON_VALUE(@Datos,''''$.ModalidadId'''')),@Anio int=TRY_CONVERT(int,JSON_VALUE(@Datos,''''$.AnioId'''')),
+ @Importe decimal(18,2)=TRY_CONVERT(decimal(18,2),JSON_VALUE(@Datos,''''$.Importe'''')),@Activo bit=CASE JSON_VALUE(@Datos,''''$.Activo'''') WHEN ''''true'''' THEN 1 WHEN ''''false'''' THEN 0 END,
+ @Motivo nvarchar(500)=NULLIF(TRIM(JSON_VALUE(@Datos,''''$.Motivo'''')),''''''''),
+ @Version binary(8)=TRY_CONVERT(binary(8),JSON_VALUE(@Datos,''''$.Version''''),1),@Lock int,@Operacion uniqueidentifier=NEWID(),@Antes nvarchar(max),@Despues nvarchar(max);
+ IF @Accion IS NULL OR @Accion NOT IN (''''Arancel'''',''''Tarifa'''') OR @Motivo IS NULL OR @Id IS NULL OR @Id<0 THROW 52800,N''''Operación o motivo inválido.'''',1;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ EXEC @Lock=sys.sp_getapplock @Resource=N''''Liceo.Finanzas.Configuracion'''',@LockMode=''''Exclusive'''',@LockOwner=''''Transaction'''',@LockTimeout=10000;
+ IF @Lock<0 THROW 52802,N''''Hay otra operación en curso. Reintenta.'''',1;
+ IF @Accion=''''Arancel''''
+ BEGIN
+  IF @Codigo IS NULL OR @Nombre IS NULL OR @Activo IS NULL THROW 52800,N''''Completa código, nombre y estado.'''',1;
+  IF @Id=0
+  BEGIN
+   INSERT dbo.Arancel(Codigo,Nombre,Activo) VALUES(@Codigo,@Nombre,@Activo);SET @Id=CONVERT(int,SCOPE_IDENTITY());
+  END
+  ELSE
+  BEGIN
+   IF NOT EXISTS(SELECT 1 FROM dbo.Arancel WITH(UPDLOCK,HOLDLOCK) WHERE Id=@Id AND Version=@Version) THROW 52803,N''''El arancel cambió. Recarga antes de editar.'''',1;
+   SET @Antes=(SELECT Codigo,Nombre,Activo FROM dbo.Arancel WHERE Id=@Id FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+   IF EXISTS(SELECT 1 FROM dbo.TarifaArancel WHERE ArancelId=@Id)
+    IF EXISTS(SELECT 1 FROM dbo.Arancel WHERE Id=@Id AND (Codigo<>@Codigo OR Nombre<>@Nombre)) THROW 52804,N''''El arancel está referenciado. Solo puede cambiar su estado.'''',1;
+   UPDATE dbo.Arancel SET Codigo=@Codigo,Nombre=@Nombre,Activo=@Activo WHERE Id=@Id;
+  END;
+  SET @Despues=(SELECT Codigo,Nombre,Activo,@Motivo Motivo FROM dbo.Arancel WHERE Id=@Id FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ END;
+ IF @Accion=''''Tarifa''''
+ BEGIN
+  IF @Importe IS NULL OR @Importe<0 OR @Activo IS NULL THROW 52800,N''''Importe o estado inválido.'''',1;
+  IF TRY_CONVERT(decimal(38,10),JSON_VALUE(@Datos,''''$.Importe''''))<>@Importe THROW 52800,N''''El importe admite hasta dos decimales.'''',1;
+  IF @Id=0
+  BEGIN
+   IF NOT EXISTS(SELECT 1 FROM dbo.Arancel WHERE Id=@Arancel AND Activo=1) OR NOT EXISTS(SELECT 1 FROM dbo.ModalidadAcademica WHERE Id=@Modalidad AND Activo=1) OR NOT EXISTS(SELECT 1 FROM dbo.AnioLectivo WHERE Id=@Anio AND Activo=1) THROW 52804,N''''Selecciona arancel, modalidad y año activos.'''',1;
+   INSERT dbo.TarifaArancel(ArancelId,ModalidadId,AnioId,Importe,Activo) VALUES(@Arancel,@Modalidad,@Anio,@Importe,@Activo);SET @Id=CONVERT(int,SCOPE_IDENTITY());
+   INSERT dbo.HistorialTarifa(TarifaId,ImporteNuevo,ActivoNuevo,Motivo,UsuarioId) VALUES(@Id,@Importe,@Activo,@Motivo,@UsuarioId);
+  END
+  ELSE
+  BEGIN
+   IF NOT EXISTS(SELECT 1 FROM dbo.TarifaArancel WITH(UPDLOCK,HOLDLOCK) WHERE Id=@Id AND Version=@Version) THROW 52803,N''''La tarifa cambió. Recarga antes de editar.'''',1;
+   IF NOT EXISTS(SELECT 1 FROM dbo.TarifaArancel WHERE Id=@Id AND ArancelId=@Arancel AND ModalidadId=@Modalidad AND AnioId=@Anio) THROW 52804,N''''No se cambia el arancel, modalidad ni año de una tarifa. Crea otra combinación.'''',1;
+   SET @Antes=(SELECT Importe,Activo FROM dbo.TarifaArancel WHERE Id=@Id FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+   INSERT dbo.HistorialTarifa(TarifaId,ImporteAnterior,ImporteNuevo,ActivoAnterior,ActivoNuevo,Motivo,UsuarioId) SELECT Id,Importe,@Importe,Activo,@Activo,@Motivo,@UsuarioId FROM dbo.TarifaArancel WHERE Id=@Id;
+   UPDATE dbo.TarifaArancel SET Importe=@Importe,Activo=@Activo WHERE Id=@Id;
+  END;
+  SET @Despues=(SELECT Importe,Activo,@Motivo Motivo FROM dbo.TarifaArancel WHERE Id=@Id FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ END;
+ DECLARE @AccionAudit nvarchar(50)=N''''Finanzas_''''+@Accion,@RegistroAudit nvarchar(100)=CONVERT(nvarchar(100),@Id);
+ EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=@AccionAudit,@Entidad=N''''CatalogoFinanciero'''',@RegistroId=@RegistroAudit,@IdOperacion=@Operacion,@AntesJson=@Antes,@DespuesJson=@Despues;
+ COMMIT;
+ END TRY
+ BEGIN CATCH
+  IF XACT_STATE()<>0 ROLLBACK;
+  THROW;
+ END CATCH;
+END;'';
+ -- Dependencia vigente: Aranceles_Consultar.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Aranceles_Consultar @UsuarioId nvarchar(450)
+AS
+BEGIN
+ SET NOCOUNT ON;
+ IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''''Administrador'''') THROW 52801,N''''Acceso exclusivo de administración.'''',1;
+ SELECT A.Id,A.Codigo,A.Nombre,A.Activo,CONVERT(varchar(18),CONVERT(binary(8),A.[Version]),1) [Version] FROM dbo.Arancel A ORDER BY A.Nombre;
+ SELECT T.Id,T.ArancelId,T.ModalidadId,T.AnioId,A.Nombre Arancel,M.Nombre Modalidad,Y.Anio,T.Importe,T.Activo,CONVERT(varchar(18),CONVERT(binary(8),T.[Version]),1) [Version]
+ FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId ORDER BY Y.Anio DESC,A.Nombre,M.Nombre;
+ SELECT Id,CONVERT(nvarchar(10),Anio) Etiqueta,Activo FROM dbo.AnioLectivo ORDER BY Anio DESC;
+ SELECT Id,Nombre Etiqueta,Activo FROM dbo.ModalidadAcademica ORDER BY Nombre;
+ SELECT TOP(200) H.Id,H.TarifaId,A.Nombre Arancel,H.ImporteAnterior,H.ImporteNuevo,H.ActivoAnterior,H.ActivoNuevo,H.Motivo,U.UserName Responsable,H.Fecha
+ FROM dbo.HistorialTarifa H JOIN dbo.TarifaArancel T ON T.Id=H.TarifaId JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AspNetUsers U ON U.Id=H.UsuarioId ORDER BY H.Id DESC;
+END;'';
+ -- Dependencia vigente: GeneracionCargos.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Cargos_Autorizar @UsuarioId nvarchar(450)
+AS
+BEGIN
+ SET NOCOUNT ON;
+ IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''''Administrador'''') THROW 53601,N''''Solo administración puede generar cargos.'''',1;
+END;'';
+ -- Dependencia vigente: GeneracionCargos.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Cargos_Configurar @UsuarioId nvarchar(450),@ArancelId int,@Periodicidad nvarchar(10)
+AS
+BEGIN
+ SET NOCOUNT ON;SET XACT_ABORT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ IF @Periodicidad IS NULL OR @Periodicidad NOT IN (''''Anual'''',''''Mensual'''',''''Eventual'''') THROW 53602,N''''Periodicidad inválida.'''',1;
+ IF @@TRANCOUNT<>0 THROW 53600,N''''No usar transacción externa.'''',1;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ DECLARE @Lock int;
+ EXEC @Lock=sys.sp_getapplock @Resource=''''Liceo.Finanzas.Configuracion'''',@LockMode=''''Exclusive'''',@LockOwner=''''Transaction'''',@LockTimeout=10000;
+ IF @Lock<0 THROW 53603,N''''Finanzas está ocupado.'''',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.Arancel WHERE Id=@ArancelId AND Activo=1) THROW 53602,N''''Arancel inexistente o inactivo.'''',1;
+ IF EXISTS(SELECT 1 FROM dbo.ConfiguracionCargo WHERE ArancelId=@ArancelId AND Periodicidad<>@Periodicidad) THROW 53602,N''''La periodicidad ya fue definida. Su cambio requiere revisar cargos e historial.'''',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ConfiguracionCargo WHERE ArancelId=@ArancelId)
+ BEGIN
+  INSERT dbo.ConfiguracionCargo VALUES(@ArancelId,@Periodicidad);
+  DECLARE @Id nvarchar(100)=CONVERT(nvarchar(100),@ArancelId),@Op uniqueidentifier=NEWID(),@Json nvarchar(max)=(SELECT @Periodicidad Periodicidad FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+  EXEC dbo.Registrar_Auditoria @UsuarioId,''''ConfigurarCargo'''',''''Arancel'''',@Id,@Op,NULL,@Json;
+ END;
+ COMMIT;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;'';
+ -- Dependencia vigente: GeneracionCargos.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Cargos_Generar
+ @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Registro nvarchar(10),@TarifaId int,@VersionTarifa binary(8),@Mes int=NULL,@Evento nvarchar(30)=NULL,@Vencimiento date=NULL,@PermitirTransaccion bit=0
+AS
+BEGIN
+ SET NOCOUNT ON;SET XACT_ABORT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ IF @@TRANCOUNT<>0 AND ISNULL(@PermitirTransaccion,0)=0 THROW 53600,N''''No usar transacción externa.'''',1;
+ IF @Operacion IS NULL OR @Operacion=''''00000000-0000-0000-0000-000000000000'''' OR @VersionTarifa IS NULL THROW 53602,N''''Falta operación o versión de tarifa.'''',1;
+ SET @Evento=NULLIF(UPPER(LTRIM(RTRIM(@Evento))),'''''''');
+ DECLARE @Solicitud nvarchar(max)=(SELECT @UsuarioId UsuarioId,@Registro Registro,@TarifaId TarifaId,CONVERT(varchar(18),@VersionTarifa,1) VersionTarifa,@Mes Mes,@Evento Evento,@Vencimiento Vencimiento FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ DECLARE @Hash binary(32)=HASHBYTES(''''SHA2_256'''',@Solicitud),@CargoId bigint,@Lock int,@Anio int,@ArancelId int,@AnioId int,@Importe decimal(18,2),@Nombre nvarchar(150),@Periodicidad nvarchar(10),@Referencia nvarchar(80),@Descripcion nvarchar(200);
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ EXEC @Lock=sys.sp_getapplock @Resource=''''Liceo.Finanzas.Configuracion'''',@LockMode=''''Exclusive'''',@LockOwner=''''Transaction'''',@LockTimeout=10000;
+ IF @Lock<0 THROW 53603,N''''Finanzas está ocupado. Reintente la misma operación.'''',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N''''Actualiza la base con la migración 025 para habilitar las operaciones financieras.'''',1;
+ SELECT @CargoId=CargoId FROM dbo.GeneracionCargo WHERE Operacion=@Operacion;
+ IF @CargoId IS NOT NULL
+ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM dbo.GeneracionCargo WHERE Operacion=@Operacion AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId) THROW 53602,N''''La operación ya se usó con otros datos. Consulte la cuenta.'''',1;
+  COMMIT;IF @PermitirTransaccion=0 SELECT @CargoId CargoId;RETURN;
+ END;
+ -- El precio procede siempre de la tarifa y la modalidad debe coincidir con el expediente.
+ SELECT @ArancelId=A.Id,@AnioId=Y.Id,@Anio=Y.Anio,@Importe=T.Importe,@Nombre=A.Nombre,@Periodicidad=F.Periodicidad
+ FROM dbo.TarifaArancel T WITH(UPDLOCK,HOLDLOCK) JOIN dbo.Arancel A ON A.Id=T.ArancelId
+ JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId
+ JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.Estudiantes E ON E.Registro=@Registro AND E.Modalidad=M.Nombre
+ WHERE T.Id=@TarifaId AND T.Version=@VersionTarifa AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND E.Estado=''''Activo'''';
+ IF @Importe IS NULL OR @Importe<=0 THROW 53602,N''''Revise estudiante activo, modalidad, periodicidad y tarifa vigente. Si cambió la tarifa, vuelva a consultar.'''',1;
+ IF @Periodicidad=''''Mensual'''' AND (@Mes IS NULL OR @Mes NOT BETWEEN 1 AND 12 OR @Evento IS NOT NULL) THROW 53602,N''''El cargo mensual requiere mes de 1 a 12 y ningún evento.'''',1;
+ IF @Periodicidad=''''Anual'''' AND (@Mes IS NOT NULL OR @Evento IS NOT NULL) THROW 53602,N''''El cargo anual no lleva mes ni evento.'''',1;
+ IF @Periodicidad=''''Eventual'''' AND (@Mes IS NOT NULL OR @Evento IS NULL OR @Evento COLLATE Latin1_General_100_BIN2 LIKE ''''%[^A-Z0-9_-]%'''') THROW 53602,N''''El evento requiere código de letras, números, guion o guion bajo; no lleva mes.'''',1;
+ IF @Vencimiento IS NOT NULL AND YEAR(@Vencimiento)<>@Anio THROW 53602,N''''El vencimiento debe pertenecer al año de la tarifa.'''',1;
+ SET @Referencia=CASE @Periodicidad WHEN ''''Anual'''' THEN ''''ANUAL'''' WHEN ''''Mensual'''' THEN ''''MES:''''+RIGHT(''''0''''+CONVERT(varchar(2),@Mes),2) ELSE ''''EVENTO:''''+@Evento END;
+ IF EXISTS(SELECT 1 FROM dbo.CargoEstudiante C WITH(UPDLOCK,HOLDLOCK) JOIN dbo.TarifaArancel T ON T.Id=C.TarifaId WHERE C.Registro=@Registro AND T.ArancelId=@ArancelId AND T.AnioId=@AnioId AND C.Referencia=@Referencia) THROW 53602,N''''Ya existe ese cargo, incluso si fue anulado. Consulte la cuenta.'''',1;
+ SET @Descripcion=LEFT(@Nombre,150)+N'''' · ''''+CONVERT(nvarchar(4),@Anio)+N'''' · ''''+@Referencia;
+ INSERT dbo.CargoEstudiante(Registro,TarifaId,Referencia,DescripcionHistorica,Importe,Vencimiento) VALUES(@Registro,@TarifaId,@Referencia,@Descripcion,@Importe,@Vencimiento);
+ SET @CargoId=SCOPE_IDENTITY();
+ INSERT dbo.GeneracionCargo(Operacion,CargoId,SolicitudHash,UsuarioId) VALUES(@Operacion,@CargoId,@Hash,@UsuarioId);
+ DECLARE @Id nvarchar(100)=CONVERT(nvarchar(100),@CargoId),@Json nvarchar(max)=(SELECT @Registro Registro,@TarifaId TarifaId,@Referencia Referencia,@Descripcion Descripcion,@Importe Importe,@Vencimiento Vencimiento FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ EXEC dbo.Registrar_Auditoria @UsuarioId,''''GenerarCargo'''',''''CargoEstudiante'''',@Id,@Operacion,NULL,@Json;
+ COMMIT;IF @PermitirTransaccion=0 SELECT @CargoId CargoId;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;'';
+ -- Dependencia vigente: GeneracionCargos.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Cargos_Pantalla @UsuarioId nvarchar(450),@Registro nvarchar(10)=NULL,@Global bit=0
+AS
+BEGIN
+ SET NOCOUNT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ SELECT CONVERT(bit,ISNULL((SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1),0)) Migrado;
+ SELECT A.Id,A.Nombre,F.Periodicidad FROM dbo.Arancel A LEFT JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id WHERE A.Activo=1 ORDER BY A.Nombre;
+ SELECT Registro,NombreEstudiante,Modalidad,Estado FROM dbo.Estudiantes WHERE Registro=@Registro;
+ SELECT T.Id,A.Nombre,Y.Anio,M.Nombre Modalidad,T.Importe,F.Periodicidad,CONVERT(binary(8),T.Version) VersionTarifa
+ FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id
+ JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId
+ WHERE T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND T.Importe>0
+ AND (@Global=1 OR EXISTS(SELECT 1 FROM dbo.Estudiantes E WHERE E.Registro=@Registro AND E.Modalidad=M.Nombre AND E.Estado=''''Activo''''))
+ ORDER BY Y.Anio DESC,M.Nombre,A.Nombre;
+ SELECT C.ArancelId,A.Nombre FROM dbo.ConfiguracionMatricula C JOIN dbo.Arancel A ON A.Id=C.ArancelId WHERE C.Id=1;
+END;'';
+ -- Dependencia vigente: Cargos_GenerarModalidad.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Cargos_GenerarModalidad
+ @UsuarioId nvarchar(450), @TarifaId int, @VersionTarifa binary(8),
+ @Mes int=NULL, @Evento nvarchar(30)=NULL, @Vencimiento date=NULL,
+ @Aplicar bit=0, @Huella binary(32)=NULL
+AS
+BEGIN
+ SET NOCOUNT ON; SET XACT_ABORT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ IF @@TRANCOUNT<>0 THROW 53600,N''''No usar transacción externa.'''',1;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ DECLARE @Lock int;
+ EXEC @Lock=sys.sp_getapplock @Resource=''''Liceo.Finanzas.Configuracion'''',@LockMode=''''Exclusive'''',@LockOwner=''''Transaction'''',@LockTimeout=10000;
+ IF @Lock<0 THROW 53603,N''''Finanzas está ocupado. Reintenta.'''',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N''''Actualiza la base con la migración 025 antes de generar cargos.'''',1;
+ DECLARE @Arancel int,@AnioId int,@Anio int,@Modalidad nvarchar(80),@Periodicidad nvarchar(10),@Importe decimal(18,2),@Referencia nvarchar(80);
+ SELECT @Arancel=A.Id,@AnioId=Y.Id,@Anio=Y.Anio,@Modalidad=M.Nombre,@Periodicidad=F.Periodicidad,@Importe=T.Importe
+ FROM dbo.TarifaArancel T WITH(UPDLOCK,HOLDLOCK)
+ JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId
+ JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id
+ WHERE T.Id=@TarifaId AND T.Version=@VersionTarifa AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND T.Importe>0;
+ IF @Arancel IS NULL THROW 53602,N''''La tarifa cambió o ya no está disponible. Vuelve a seleccionarla.'''',1;
+ SET @Evento=NULLIF(UPPER(LTRIM(RTRIM(@Evento))),N'''''''');
+ IF (@Periodicidad=''''Mensual'''' AND (@Mes IS NULL OR @Mes NOT BETWEEN 1 AND 12 OR @Evento IS NOT NULL))
+ OR (@Periodicidad=''''Anual'''' AND (@Mes IS NOT NULL OR @Evento IS NOT NULL))
+ OR (@Periodicidad=''''Eventual'''' AND (@Mes IS NOT NULL OR @Evento IS NULL OR @Evento COLLATE Latin1_General_100_BIN2 LIKE ''''%[^A-Z0-9_-]%''''))
+ THROW 53602,N''''Indica el mes para una tarifa mensual o el código para una eventual. Las anuales no llevan esos datos.'''',1;
+ IF @Vencimiento IS NOT NULL AND YEAR(@Vencimiento)<>@Anio THROW 53602,N''''El vencimiento debe pertenecer al año de la tarifa.'''',1;
+ SET @Referencia=CASE @Periodicidad WHEN ''''Anual'''' THEN ''''ANUAL'''' WHEN ''''Mensual'''' THEN ''''MES:''''+RIGHT(''''0''''+CONVERT(varchar(2),@Mes),2) ELSE ''''EVENTO:''''+@Evento END;
+
+ DECLARE @Alumnos TABLE(Registro nvarchar(10) PRIMARY KEY, Motivo nvarchar(60) NULL);
+ INSERT @Alumnos(Registro,Motivo)
+ SELECT E.Registro,CASE
+ WHEN EXISTS(SELECT 1 FROM dbo.CargoEstudiante C JOIN dbo.TarifaArancel T ON T.Id=C.TarifaId
+  WHERE C.Registro=E.Registro AND T.ArancelId=@Arancel AND T.AnioId=@AnioId AND C.Referencia=@Referencia) THEN N''''Cargo ya registrado (incluye anulados)''''
+ END
+ FROM dbo.Estudiantes E WITH(HOLDLOCK) WHERE E.Estado=''''Activo'''' AND E.Modalidad=@Modalidad;
+
+ DECLARE @Lista nvarchar(max)=(SELECT Registro,Motivo FROM @Alumnos ORDER BY Registro FOR JSON PATH,INCLUDE_NULL_VALUES);
+ DECLARE @Solicitud nvarchar(max)=(SELECT @UsuarioId UsuarioId,@TarifaId TarifaId,
+ CONVERT(varchar(18),@VersionTarifa,1) VersionTarifa,@Referencia Referencia,@Vencimiento Vencimiento,JSON_QUERY(@Lista) Alumnos
+ FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ DECLARE @Actual binary(32)=HASHBYTES(''''SHA2_256'''',@Solicitud),@Cantidad int=(SELECT COUNT(*) FROM @Alumnos WHERE Motivo IS NULL);
+ IF @Aplicar=1
+ BEGIN
+  IF @Huella IS NULL OR @Huella<>@Actual THROW 53602,N''''La lista de estudiantes o los cargos cambiaron. Revisa una nueva vista previa antes de confirmar.'''',1;
+  IF @Cantidad=0 THROW 53602,N''''No hay estudiantes pendientes de este cargo.'''',1;
+  DECLARE @Registro nvarchar(10),@Operacion uniqueidentifier;
+  WHILE EXISTS(SELECT 1 FROM @Alumnos WHERE Motivo IS NULL)
+  BEGIN
+   SELECT @Registro=MIN(Registro) FROM @Alumnos WHERE Motivo IS NULL;
+   SET @Operacion=NEWID();
+   EXEC dbo.Cargos_Generar @UsuarioId,@Operacion,@Registro,@TarifaId,@VersionTarifa,@Mes,@Evento,@Vencimiento,@PermitirTransaccion=1;
+   DELETE FROM @Alumnos WHERE Registro=@Registro;
+  END;
+  COMMIT;
+  SELECT @Cantidad Generados;
+  RETURN;
+ END;
+ COMMIT;
+ SELECT @Cantidad Pendientes,(SELECT COUNT(*) FROM @Alumnos WHERE Motivo IS NOT NULL) Omitidos,
+  @Importe Importe,@Importe*@Cantidad Total,@Actual Huella;
+ SELECT A.Registro,E.NombreEstudiante,A.Motivo FROM @Alumnos A
+ JOIN dbo.Estudiantes E ON E.Registro=A.Registro ORDER BY E.NombreEstudiante,A.Registro;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;'';
+ -- Dependencia vigente: Anticipos.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.Anticipo_Registrar
+ @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Registro nvarchar(10),@Pagador nvarchar(200),
+ @Metodo nvarchar(20),@Referencia nvarchar(100)=NULL,@Importe decimal(28,8)
+AS
+BEGIN
+ SET NOCOUNT ON;SET XACT_ABORT ON;
+ EXEC dbo.Finanzas_Autorizar @UsuarioId;
+ IF @@TRANCOUNT<>0 THROW 54700,N''''No usar transacción externa.'''',1;
+ SET @Pagador=NULLIF(TRIM(@Pagador),N'''''''');
+ SET @Referencia=NULLIF(TRIM(@Referencia),N'''''''');
+ IF @Operacion IS NULL OR @Operacion=''''00000000-0000-0000-0000-000000000000''''
+ OR @Pagador IS NULL OR @Metodo IS NULL OR @Metodo NOT IN (''''Efectivo'''',''''Transferencia'''')
+ OR (@Metodo=''''Transferencia'''' AND @Referencia IS NULL)
+ OR @Importe IS NULL OR @Importe<=0 OR @Importe>9999999999999999.99 OR ROUND(@Importe,2)<>@Importe
+ THROW 54702,N''''Revisa pagador, método, importe positivo y referencia de transferencia.'''',1;
+ DECLARE @Solicitud nvarchar(max)=(SELECT N''''Anticipo'''' Tipo,@UsuarioId UsuarioId,@Registro Registro,@Pagador Pagador,
+ @Metodo Metodo,@Referencia Referencia,@Importe Importe FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ DECLARE @Hash binary(32)=HASHBYTES(''''SHA2_256'''',@Solicitud),@Id bigint,@Nombre nvarchar(100),@Saldo decimal(18,2)=0,@Lock int;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ EXEC @Lock=sys.sp_getapplock @Resource=''''Liceo.Finanzas.Configuracion'''',@LockMode=''''Exclusive'''',@LockOwner=''''Transaction'''',@LockTimeout=10000;
+ IF @Lock<0 THROW 54703,N''''Finanzas está ocupado. Reintenta desde el mismo formulario.'''',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
+ THROW 54702,N''''El libro nuevo requiere el corte financiero aprobado.'''',1;
+ SELECT @Id=Id FROM dbo.ReciboMultiple WHERE Operacion=@Operacion;
+ IF @Id IS NOT NULL
+ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM dbo.ReciboMultiple WHERE Id=@Id AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId AND Anticipo>0)
+   THROW 54702,N''''La operación ya se usó con otros datos. Consulta los recibos.'''',1;
+  COMMIT;SELECT @Id;RETURN;
+ END;
+ DECLARE @CorteCajaId bigint;
+ SELECT @CorteCajaId=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ IF @CorteCajaId IS NULL THROW 54802,N''''La caja está cerrada. Un administrador debe abrir un nuevo corte.'''',1;
+ SELECT @Nombre=NombreEstudiante FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro AND Estado=''''Activo'''';
+ IF @Nombre IS NULL THROW 54702,N''''El anticipo requiere un estudiante activo.'''',1;
+ SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
+ IF @Saldo+@Importe>9999999999999999.99 THROW 54702,N''''El saldo resultante excede el límite permitido.'''',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.SaldoFinanciero WHERE Registro=@Registro)
+  INSERT dbo.SaldoFinanciero(Registro,SaldoInicial,Disponible) VALUES(@Registro,0,0);
+ UPDATE dbo.SaldoFinanciero SET Disponible=Disponible+@Importe WHERE Registro=@Registro;
+ DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
+ DECLARE @Numero nvarchar(25)=N''''RC-''''+CONVERT(nvarchar(20),@Secuencia);
+ INSERT dbo.ReciboMultiple(Numero,Operacion,Registro,Pagador,UsuarioId,Metodo,Referencia,Recibido,Cambio,SolicitudHash,
+  NombreEstudiante,SaldoAnterior,SaldoAplicado,SaldoFinal,TotalAplicado,Anticipo,CorteCajaId)
+ VALUES(@Numero,@Operacion,@Registro,@Pagador,@UsuarioId,@Metodo,@Referencia,@Importe,0,@Hash,@Nombre,@Saldo,0,@Saldo+@Importe,0,@Importe,@CorteCajaId);
+ SET @Id=SCOPE_IDENTITY();
+ DECLARE @RegistroId nvarchar(100)=CONVERT(nvarchar(100),@Id),
+  @Json nvarchar(max)=(SELECT @Registro Registro,@Numero Numero,@Importe Anticipo,@Saldo SaldoAnterior,@Saldo+@Importe SaldoFinal FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+ EXEC dbo.Registrar_Auditoria @UsuarioId,''''RegistrarAnticipo'''',''''ReciboMultiple'''',@RegistroId,@Operacion,NULL,@Json;
+ COMMIT;SELECT @Id;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;'';
+ -- Dependencia vigente: CortesCaja.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.CorteCaja_Consultar @UsuarioId nvarchar(450),@Id bigint=0
+AS
+BEGIN
+ SET NOCOUNT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ DECLARE @Lock int;
+ EXEC @Lock=sys.sp_getapplock @Resource=''''Liceo.Finanzas.Configuracion'''',@LockMode=''''Shared'''',@LockOwner=''''Transaction'''',@LockTimeout=10000;
+ IF @Lock<0 THROW 54803,N''''Caja ocupada. Reintenta.'''',1;
+ SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1;
+ SELECT C.*,U.UserName AperturaPor,V.UserName CierrePor
+ FROM dbo.CorteCaja C LEFT JOIN dbo.AspNetUsers U ON U.Id=C.UsuarioApertura
+ LEFT JOIN dbo.AspNetUsers V ON V.Id=C.UsuarioCierre WHERE C.Id IN(SELECT TOP(50) Id FROM dbo.CorteCaja ORDER BY Id DESC) OR C.Id=@Id ORDER BY C.Id DESC;
+ IF @Id=0 SELECT @Id=Id FROM dbo.CorteCaja WHERE Fin IS NULL;
+ SELECT Metodo,SUM(Entrada) Entrada,SUM(Devolucion) Devolucion,SUM(Entrada-Devolucion) Neto
+ FROM (
+ SELECT Metodo,Recibido-Cambio Entrada,CAST(0 AS decimal(18,2)) Devolucion FROM dbo.ReciboMultiple WHERE CorteCajaId=@Id
+ UNION ALL SELECT R.Metodo,0,A.DineroDevuelto FROM dbo.AnulacionRecibo A JOIN dbo.ReciboMultiple R ON R.Id=A.ReciboId WHERE A.CorteCajaId=@Id
+ ) M GROUP BY Metodo;
+ COMMIT;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;'';
+ -- Dependencia vigente: CortesCaja.sql
+ EXEC sys.sp_executesql N''CREATE OR ALTER PROCEDURE dbo.CorteCaja_Operar
+ @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Accion nvarchar(20),@CorteId bigint=0,
+ @Fondo decimal(28,8)=0,@Contado decimal(28,8)=NULL,@Motivo nvarchar(500)=NULL
+AS
+BEGIN
+ SET NOCOUNT ON; SET XACT_ABORT ON;
+ EXEC dbo.Cargos_Autorizar @UsuarioId;
+ IF @@TRANCOUNT<>0 THROW 54800,N''''No usar transacción externa.'''',1;
+ IF @Operacion IS NULL OR @Operacion=''''00000000-0000-0000-0000-000000000000''''
+ OR @Accion IS NULL OR @Accion NOT IN (''''Abrir'''',''''Cerrar'''',''''CerrarAbrir'''')
+ OR @Fondo IS NULL OR @Fondo<0 OR @Fondo>9999999999999999.99 OR ROUND(@Fondo,2)<>@Fondo
+ OR (@Accion<>''''Abrir'''' AND (@CorteId<=0 OR @Contado IS NULL OR @Contado<0 OR @Contado>9999999999999999.99 OR ROUND(@Contado,2)<>@Contado))
+ OR (@Accion=''''Cerrar'''' AND @Fondo<>0)
+ OR LEN(ISNULL(TRIM(@Motivo),N''''''''))<10
+ THROW 54802,N''''Revisa corte, efectivo contado, fondo y motivo de al menos 10 caracteres.'''',1;
+ DECLARE @Solicitud nvarchar(max)=(SELECT @UsuarioId Usuario,@Accion Accion,@CorteId CorteId,@Fondo Fondo,@Contado Contado,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ DECLARE @Hash binary(32)=HASHBYTES(''''SHA2_256'''',@Solicitud),@Lock int,@Id bigint,@Siguiente bigint,@Ahora datetime2=SYSUTCDATETIME();
+ BEGIN TRY
+ BEGIN TRANSACTION;
+ EXEC @Lock=sys.sp_getapplock @Resource=''''Liceo.Finanzas.Configuracion'''',@LockMode=''''Exclusive'''',@LockOwner=''''Transaction'''',@LockTimeout=10000;
+ IF @Lock<0 THROW 54803,N''''Caja ocupada. Reintenta la misma operación.'''',1;
+ SET @Ahora=SYSUTCDATETIME();
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 54802,N''''Actualiza la base con la migración 025.'''',1;
+ IF EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion)
+ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId)
+   THROW 54802,N''''La operación ya fue usada con otros datos.'''',1;
+  COMMIT;RETURN;
+ END;
+ IF @Accion=''''Abrir''''
+ BEGIN
+  IF EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL) THROW 54802,N''''Ya existe un corte abierto.'''',1;
+  INSERT dbo.CorteCaja(Inicio,UsuarioApertura,FondoApertura) VALUES(@Ahora,@UsuarioId,@Fondo);
+  SET @Id=SCOPE_IDENTITY();
+ END
+ ELSE
+ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WITH(UPDLOCK,HOLDLOCK) WHERE Id=@CorteId AND Fin IS NULL)
+   THROW 54802,N''''El corte ya no está abierto. Recarga antes de confirmar.'''',1;
+  DECLARE @Entrada decimal(38,2),@Devuelto decimal(38,2),@Esperado decimal(38,2),@Resumen nvarchar(max);
+  SELECT @Entrada=ISNULL(SUM(Recibido-Cambio),0) FROM dbo.ReciboMultiple WHERE CorteCajaId=@CorteId AND Metodo=''''Efectivo'''';
+  SELECT @Devuelto=ISNULL(SUM(A.DineroDevuelto),0) FROM dbo.AnulacionRecibo A JOIN dbo.ReciboMultiple R ON R.Id=A.ReciboId WHERE A.CorteCajaId=@CorteId AND R.Metodo=''''Efectivo'''';
+  SELECT @Esperado=FondoApertura+@Entrada-@Devuelto FROM dbo.CorteCaja WHERE Id=@CorteId;
+  IF ABS(@Esperado)>9999999999999999.99 OR ABS(@Contado-@Esperado)>9999999999999999.99
+   THROW 54802,N''''El total excede el límite permitido para cerrar.'''',1;
+  SET @Resumen=(SELECT Metodo,SUM(Entrada) Entrada,SUM(Devolucion) Devolucion,SUM(Entrada-Devolucion) Neto FROM(
+   SELECT Metodo,Recibido-Cambio Entrada,CAST(0 AS decimal(18,2)) Devolucion FROM dbo.ReciboMultiple WHERE CorteCajaId=@CorteId
+   UNION ALL SELECT R.Metodo,0,A.DineroDevuelto FROM dbo.AnulacionRecibo A JOIN dbo.ReciboMultiple R ON R.Id=A.ReciboId WHERE A.CorteCajaId=@CorteId
+  ) M GROUP BY Metodo FOR JSON PATH);
+  UPDATE dbo.CorteCaja SET Fin=@Ahora,UsuarioCierre=@UsuarioId,EfectivoEsperado=@Esperado,EfectivoContado=@Contado,
+   Diferencia=@Contado-@Esperado,Motivo=@Motivo,ResumenJson=@Resumen WHERE Id=@CorteId;
+  SET @Id=@CorteId;
+  IF @Accion=''''CerrarAbrir''''
+  BEGIN
+   INSERT dbo.CorteCaja(Inicio,UsuarioApertura,FondoApertura) VALUES(@Ahora,@UsuarioId,@Fondo);
+   SET @Siguiente=SCOPE_IDENTITY();
+  END;
+ END;
+ INSERT dbo.EventoCorteCaja(Operacion,SolicitudHash,CorteId,SiguienteId,UsuarioId) VALUES(@Operacion,@Hash,@Id,@Siguiente,@UsuarioId);
+ DECLARE @Registro nvarchar(100)=CONVERT(nvarchar(100),@Id),@Despues nvarchar(max)=(SELECT @Id CorteId,@Siguiente SiguienteId,@Accion Accion,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
+ EXEC dbo.Registrar_Auditoria @UsuarioId,''''GestionarCorteCaja'''',''''CorteCaja'''',@Registro,@Operacion,NULL,@Despues;
+ COMMIT;
+ END TRY
+ BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+ END CATCH;
+END;'';
+ END;
+ DROP PROCEDURE IF EXISTS dbo.Conciliacion_Revisar;
+ DROP PROCEDURE IF EXISTS dbo.Conciliacion_Consultar;
+ DROP PROCEDURE IF EXISTS dbo.Conciliacion_Pantalla;
+ DROP PROCEDURE IF EXISTS dbo.Conciliacion_Recapturar;
+ DROP PROCEDURE IF EXISTS dbo.Saldo_Instantanea;
+ DROP PROCEDURE IF EXISTS dbo.Saldo_Consultar;
+ DROP PROCEDURE IF EXISTS dbo.Saldo_Revisar;
+ DROP PROCEDURE IF EXISTS dbo.CorteFinanciero_Ejecutar;
+ DROP VIEW IF EXISTS dbo.ObligacionLegada;
+ -- Quitar solo la FK de conciliación. Los valores y balances financieros permanecen.
+ DECLARE @Sql nvarchar(max)=N'''';
+ SELECT @Sql+=N''ALTER TABLE dbo.SaldoFinanciero DROP CONSTRAINT ''+QUOTENAME(name)+N'';''
+ FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID(''dbo.SaldoFinanciero'')
+  AND referenced_object_id=OBJECT_ID(''dbo.RevisionSaldo'');
+ IF @Sql<>N'''' EXEC sys.sp_executesql @Sql;
+ DROP TABLE IF EXISTS dbo.ObligacionMigrada;
+ DROP TABLE IF EXISTS dbo.RevisionObligacion;
+ DROP TABLE IF EXISTS dbo.HistorialCaptura;
+ DROP TABLE IF EXISTS dbo.PreparacionObligacion;
+ DROP TABLE IF EXISTS dbo.MapaConceptoLegado;
+ DROP TABLE IF EXISTS dbo.RevisionSaldo;
+ -- Activar el esquema web directamente; no leer ni trasladar datos de las tablas antiguas.
+ -- Migrado se conserva como indicador interno de compatibilidad con los módulos vigentes.
+ UPDATE dbo.ControlFinanciero SET Migrado=1,Fecha=COALESCE(Fecha,SYSUTCDATETIME()) WHERE Id=1 AND Migrado=0;
+ IF @Cargos<>(SELECT COUNT_BIG(*) FROM dbo.CargoEstudiante)
+ OR @Recibos<>(SELECT COUNT_BIG(*) FROM dbo.ReciboMultiple)
+ OR @Saldo<>(SELECT ISNULL(SUM(Disponible),0) FROM dbo.SaldoFinanciero)
+ OR @Cortes<>(SELECT COUNT_BIG(*) FROM dbo.CorteCaja)
+ THROW 54920,N''Cambió un total financiero durante el retiro. Se revierte la actualización.'',1;
+ COMMIT;
+ SELECT N''025 APLICADA: conciliaciones retiradas; operaciones financieras conservadas.'' Resultado;
+END TRY
+BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK;
+ THROW;
+END CATCH;');
+
+-- Confirmación 025_RetirarConciliacionesLegadas.sql · lote 1
+INSERT @Etapas(Nombre,Texto) VALUES(N'Confirmación 025_RetirarConciliacionesLegadas.sql · lote 1',N'INSERT dbo.InstalacionInicial(Etapa,FuenteSha256) VALUES(N''025_RetirarConciliacionesLegadas.sql'',''6889bdf4240275f5aaa7383220e6696e0d23afc181253faea5684cce547c63a6'');');
+
+-- PROCEDURE dbo.Aranceles_Consultar · Aranceles_Consultar.sql · lote 1
+INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Aranceles_Consultar · Aranceles_Consultar.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Aranceles_Consultar @UsuarioId nvarchar(450)
+AS
+BEGIN
+ SET NOCOUNT ON;
+ IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 52801,N''Acceso exclusivo de administración.'',1;
+ SELECT A.Id,A.Codigo,A.Nombre,A.Activo,CONVERT(varchar(18),CONVERT(binary(8),A.[Version]),1) [Version] FROM dbo.Arancel A ORDER BY A.Nombre;
+ SELECT T.Id,T.ArancelId,T.ModalidadId,T.AnioId,A.Nombre Arancel,M.Nombre Modalidad,Y.Anio,T.Importe,T.Activo,CONVERT(varchar(18),CONVERT(binary(8),T.[Version]),1) [Version]
+ FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId ORDER BY Y.Anio DESC,A.Nombre,M.Nombre;
+ SELECT Id,CONVERT(nvarchar(10),Anio) Etiqueta,Activo FROM dbo.AnioLectivo ORDER BY Anio DESC;
+ SELECT Id,Nombre Etiqueta,Activo FROM dbo.ModalidadAcademica ORDER BY Nombre;
+ SELECT TOP(200) H.Id,H.TarifaId,A.Nombre Arancel,H.ImporteAnterior,H.ImporteNuevo,H.ActivoAnterior,H.ActivoNuevo,H.Motivo,U.UserName Responsable,H.Fecha
+ FROM dbo.HistorialTarifa H JOIN dbo.TarifaArancel T ON T.Id=H.TarifaId JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AspNetUsers U ON U.Id=H.UsuarioId ORDER BY H.Id DESC;
+END;');
+
 -- PROCEDURE dbo.Buscar_Estudiantes_Mensualidad · Mensualidades_Legado.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Buscar_Estudiantes_Mensualidad · Mensualidades_Legado.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Buscar_Estudiantes_Mensualidad @TextoBusqueda nvarchar(100)
 AS
@@ -1309,15 +1800,6 @@ BEGIN
  FROM dbo.AsignacionDocente A JOIN dbo.GrupoEstudiante G ON G.GrupoId=A.GrupoId JOIN dbo.Estudiantes S ON S.Registro=G.Registro LEFT JOIN dbo.Evaluacion E ON E.AsignacionId=A.Id
  LEFT JOIN dbo.Calificacion C ON C.EvaluacionId=E.Id AND C.Registro=G.Registro WHERE A.Id=@AsignacionId GROUP BY G.Registro,S.NombreEstudiante ORDER BY S.NombreEstudiante,G.Registro;
 END;');
-
--- VIEW dbo.ObligacionLegada · Aranceles.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'VIEW dbo.ObligacionLegada · Aranceles.sql · lote 1',N'CREATE OR ALTER VIEW dbo.ObligacionLegada
-AS
- SELECT N''Matriculas'' Origen,Id OrigenId,Registro_Estudiante Registro,Anio,Modalidad,Costo_Matricula Importe,CAST(N''Cancelado'' AS nvarchar(10)) Estado,Id_Comprobante Comprobante FROM dbo.Matriculas
- UNION ALL SELECT N''Mensualidades'',Id,Registro_Estudiante,Anio,Modalidad,Costo_Mensualidad,Estado,Id_Comprobante FROM dbo.Mensualidades
- UNION ALL SELECT N''Mantenimientos'',Id,Registro_Estudiante,Anio,Modalidad,Costo_Mantenimiento,Estado,Id_Comprobante FROM dbo.Mantenimientos
- UNION ALL SELECT N''EvBoTaS'',Id,Registro_Estudiante,Anio,Modalidad,Costo_EvBoTa,Estado,Id_Comprobante FROM dbo.EvBoTaS
- UNION ALL SELECT N''Promociones'',Id,Registro_Estudiante,Anio,Modalidad,Costo_Promocion,Estado,Id_Comprobante FROM dbo.Promociones;');
 
 -- PROCEDURE dbo.Obtener_ComprobanteHistorico · Obtener_ComprobanteHistorico.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Obtener_ComprobanteHistorico · Obtener_ComprobanteHistorico.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Obtener_ComprobanteHistorico
@@ -1515,22 +1997,6 @@ BEGIN
         @IdOperacion, @AntesJson, @DespuesJson);
 END;');
 
--- PROCEDURE dbo.Saldo_Instantanea · ConciliacionSaldos.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Saldo_Instantanea · ConciliacionSaldos.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Saldo_Instantanea @UsuarioId nvarchar(450),@Registro nvarchar(10),@Json nvarchar(max) OUTPUT,@Saldo decimal(18,2) OUTPUT,@Filas int OUTPUT
-AS
-BEGIN
- SET NOCOUNT ON;
- IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 53201,N''Se requiere administrador.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.Estudiantes WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro) THROW 53200,N''Estudiante inexistente.'',1;
- SELECT @Saldo=ISNULL(SUM(Abono_Disponible),0),@Filas=COUNT(*) FROM dbo.Abonos WITH(HOLDLOCK) WHERE Registro_Estudiante=@Registro;
- SET @Json=(SELECT @Registro Registro,@Saldo Saldo,@Filas FilasSaldo,
- JSON_QUERY((SELECT P.Id_Comprobante,P.Fecha_Pago,P.Concepto,P.Monto,P.Metodo_Pago,P.Referencia_Transaccion,
- H.DineroRecibido,H.CambioDevuelto,H.SaldoAnterior,H.SaldoUtilizado,H.DeudaCancelada,H.SaldoFinal
- FROM dbo.Pagos P WITH(HOLDLOCK) LEFT JOIN dbo.Historial_Comprobantes H WITH(HOLDLOCK) ON H.Id_Comprobante=P.Id_Comprobante
- WHERE P.Registro_Estudiante=@Registro ORDER BY P.Id_Comprobante FOR JSON PATH,INCLUDE_NULL_VALUES)) Pagos
- FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
-END;');
-
 -- PROCEDURE dbo.TipoEvaluacion_Consultar · TipoEvaluacion_Consultar.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.TipoEvaluacion_Consultar · TipoEvaluacion_Consultar.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.TipoEvaluacion_Consultar
  @UsuarioId nvarchar(450),@Id int=0,@Pagina int=1
@@ -1604,7 +2070,7 @@ BEGIN
  SELECT @Saldo=Disponible FROM dbo.SaldoFinanciero WITH(UPDLOCK,HOLDLOCK) WHERE Registro=@Registro;
  IF @Saldo+@Importe>9999999999999999.99 THROW 54702,N''El saldo resultante excede el límite permitido.'',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.SaldoFinanciero WHERE Registro=@Registro)
-  INSERT dbo.SaldoFinanciero(Registro,RevisionSaldoId,SaldoInicial,Disponible) VALUES(@Registro,NULL,0,0);
+  INSERT dbo.SaldoFinanciero(Registro,SaldoInicial,Disponible) VALUES(@Registro,0,0);
  UPDATE dbo.SaldoFinanciero SET Disponible=Disponible+@Importe WHERE Registro=@Registro;
  DECLARE @Secuencia bigint=NEXT VALUE FOR dbo.Secuencia_Comprobantes;
  DECLARE @Numero nvarchar(25)=N''RC-''+CONVERT(nvarchar(20),@Secuencia);
@@ -1623,31 +2089,6 @@ BEGIN
  END CATCH;
 END;');
 
--- PROCEDURE dbo.Aranceles_Consultar · Aranceles_Consultar.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Aranceles_Consultar · Aranceles_Consultar.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Aranceles_Consultar @UsuarioId nvarchar(450)
-AS
-BEGIN
- SET NOCOUNT ON;
- IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 52801,N''Acceso exclusivo de administración.'',1;
- SELECT A.Id,A.Codigo,A.Nombre,A.Activo,CONVERT(varchar(18),CONVERT(binary(8),A.[Version]),1) [Version] FROM dbo.Arancel A ORDER BY A.Nombre;
- SELECT T.Id,T.ArancelId,T.ModalidadId,T.AnioId,A.Nombre Arancel,M.Nombre Modalidad,Y.Anio,T.Importe,T.Activo,CONVERT(varchar(18),CONVERT(binary(8),T.[Version]),1) [Version]
- FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId ORDER BY Y.Anio DESC,A.Nombre,M.Nombre;
- SELECT Id,CONVERT(nvarchar(10),Anio) Etiqueta,Activo FROM dbo.AnioLectivo ORDER BY Anio DESC;
- SELECT Id,Nombre Etiqueta,Activo FROM dbo.ModalidadAcademica ORDER BY Nombre;
- SELECT M.Origen,M.ArancelId,A.Nombre Arancel FROM dbo.MapaConceptoLegado M JOIN dbo.Arancel A ON A.Id=M.ArancelId ORDER BY M.Origen;
- SELECT TOP(200) H.Id,H.TarifaId,A.Nombre Arancel,H.ImporteAnterior,H.ImporteNuevo,H.ActivoAnterior,H.ActivoNuevo,H.Motivo,U.UserName Responsable,H.Fecha
- FROM dbo.HistorialTarifa H JOIN dbo.TarifaArancel T ON T.Id=H.TarifaId JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AspNetUsers U ON U.Id=H.UsuarioId ORDER BY H.Id DESC;
- -- Compara con la fuente actual; no sobrescribe evidencia previa ni aprueba conciliaciones.
- SELECT TOP(200) P.Origen,P.OrigenId,P.Registro,P.Anio,P.Importe,P.Estado,P.Comprobante,P.CargoId,
- CASE WHEN O.OrigenId IS NULL THEN N''ORIGEN_AUSENTE''
- WHEN EXISTS(SELECT P.Registro,P.Anio,P.Modalidad,P.Importe,P.Estado,P.Comprobante EXCEPT SELECT O.Registro,O.Anio,O.Modalidad,O.Importe,O.Estado,O.Comprobante) THEN N''ORIGEN_CAMBIO''
- ELSE N''CAPTURADO_SIN_CONCILIAR'' END Revision
- FROM dbo.PreparacionObligacion P LEFT JOIN dbo.ObligacionLegada O ON O.Origen=P.Origen AND O.OrigenId=P.OrigenId ORDER BY P.Origen,P.OrigenId;
- SELECT (SELECT COUNT_BIG(*) FROM dbo.ObligacionLegada) OrigenesActuales,(SELECT COUNT_BIG(*) FROM dbo.PreparacionObligacion) FilasPreparadas,
- (SELECT COUNT_BIG(*) FROM dbo.ObligacionLegada O WHERE NOT EXISTS(SELECT 1 FROM dbo.PreparacionObligacion P WHERE P.Origen=O.Origen AND P.OrigenId=O.OrigenId)) SinPreparar,
- (SELECT COUNT_BIG(*) FROM dbo.PreparacionObligacion P LEFT JOIN dbo.ObligacionLegada O ON O.Origen=P.Origen AND O.OrigenId=P.OrigenId WHERE O.OrigenId IS NULL OR EXISTS(SELECT P.Registro,P.Anio,P.Modalidad,P.Importe,P.Estado,P.Comprobante EXCEPT SELECT O.Registro,O.Anio,O.Modalidad,O.Importe,O.Estado,O.Comprobante)) FuentesCambiadas;
-END;');
-
 -- PROCEDURE dbo.Aranceles_Guardar · Aranceles.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Aranceles_Guardar · Aranceles.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Aranceles_Guardar @UsuarioId nvarchar(450),@Datos nvarchar(max)
 AS
@@ -1659,15 +2100,13 @@ BEGIN
  @Codigo nvarchar(30)=NULLIF(TRIM(JSON_VALUE(@Datos,''$.Codigo'')),''''),@Nombre nvarchar(150)=NULLIF(TRIM(JSON_VALUE(@Datos,''$.Nombre'')),''''),
  @Arancel int=TRY_CONVERT(int,JSON_VALUE(@Datos,''$.ArancelId'')),@Modalidad int=TRY_CONVERT(int,JSON_VALUE(@Datos,''$.ModalidadId'')),@Anio int=TRY_CONVERT(int,JSON_VALUE(@Datos,''$.AnioId'')),
  @Importe decimal(18,2)=TRY_CONVERT(decimal(18,2),JSON_VALUE(@Datos,''$.Importe'')),@Activo bit=CASE JSON_VALUE(@Datos,''$.Activo'') WHEN ''true'' THEN 1 WHEN ''false'' THEN 0 END,
- @Origen nvarchar(30)=JSON_VALUE(@Datos,''$.Origen''),@Motivo nvarchar(500)=NULLIF(TRIM(JSON_VALUE(@Datos,''$.Motivo'')),''''),
+ @Motivo nvarchar(500)=NULLIF(TRIM(JSON_VALUE(@Datos,''$.Motivo'')),''''),
  @Version binary(8)=TRY_CONVERT(binary(8),JSON_VALUE(@Datos,''$.Version''),1),@Lock int,@Operacion uniqueidentifier=NEWID(),@Antes nvarchar(max),@Despues nvarchar(max);
- IF @Accion IS NULL OR @Accion NOT IN (''Arancel'',''Tarifa'',''Mapeo'',''Preparar'') OR @Motivo IS NULL OR @Id IS NULL OR @Id<0 THROW 52800,N''Operación o motivo inválido.'',1;
+ IF @Accion IS NULL OR @Accion NOT IN (''Arancel'',''Tarifa'') OR @Motivo IS NULL OR @Id IS NULL OR @Id<0 THROW 52800,N''Operación o motivo inválido.'',1;
  BEGIN TRY
  BEGIN TRANSACTION;
  EXEC @Lock=sys.sp_getapplock @Resource=N''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
  IF @Lock<0 THROW 52802,N''Hay otra operación en curso. Reintenta.'',1;
- IF @Accion IN (''Mapeo'',''Preparar'') AND NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=0)
-  THROW 52804,N''La preparación de obligaciones requiere que el libro anterior siga abierto.'',1;
  IF @Accion=''Arancel''
  BEGIN
   IF @Codigo IS NULL OR @Nombre IS NULL OR @Activo IS NULL THROW 52800,N''Completa código, nombre y estado.'',1;
@@ -1679,7 +2118,7 @@ BEGIN
   BEGIN
    IF NOT EXISTS(SELECT 1 FROM dbo.Arancel WITH(UPDLOCK,HOLDLOCK) WHERE Id=@Id AND Version=@Version) THROW 52803,N''El arancel cambió. Recarga antes de editar.'',1;
    SET @Antes=(SELECT Codigo,Nombre,Activo FROM dbo.Arancel WHERE Id=@Id FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
-   IF EXISTS(SELECT 1 FROM dbo.TarifaArancel WHERE ArancelId=@Id) OR EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE ArancelId=@Id)
+   IF EXISTS(SELECT 1 FROM dbo.TarifaArancel WHERE ArancelId=@Id)
     IF EXISTS(SELECT 1 FROM dbo.Arancel WHERE Id=@Id AND (Codigo<>@Codigo OR Nombre<>@Nombre)) THROW 52804,N''El arancel está referenciado. Solo puede cambiar su estado.'',1;
    UPDATE dbo.Arancel SET Codigo=@Codigo,Nombre=@Nombre,Activo=@Activo WHERE Id=@Id;
   END;
@@ -1705,26 +2144,7 @@ BEGIN
   END;
   SET @Despues=(SELECT Importe,Activo,@Motivo Motivo FROM dbo.TarifaArancel WHERE Id=@Id FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
  END;
- IF @Accion=''Mapeo''
- BEGIN
-  IF @Origen IS NULL OR @Origen NOT IN (''Matriculas'',''Mensualidades'',''Mantenimientos'',''EvBoTaS'',''Promociones'') OR NOT EXISTS(SELECT 1 FROM dbo.Arancel WHERE Id=@Arancel AND Activo=1) THROW 52804,N''Origen o arancel inválido.'',1;
-  IF EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE Origen=@Origen AND ArancelId<>@Arancel) THROW 52804,N''El origen ya está vinculado. La corrección del mapeo requiere revisión de sus dependencias.'',1;
-  IF NOT EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE Origen=@Origen)
-   INSERT dbo.MapaConceptoLegado(Origen,ArancelId,UsuarioId) VALUES(@Origen,@Arancel,@UsuarioId);
-  SET @Despues=(SELECT @Origen Origen,@Arancel ArancelId,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
- END;
- IF @Accion=''Preparar''
- BEGIN
-  IF (SELECT COUNT(*) FROM dbo.MapaConceptoLegado)<>5 THROW 52804,N''Vincula los cinco conceptos antes de preparar.'',1;
-  -- HOLDLOCK conserva una lectura consistente durante esta captura; no es el corte financiero.
-  INSERT dbo.PreparacionObligacion(Origen,OrigenId,Registro,Anio,Modalidad,Importe,Estado,Comprobante,ArancelId,UsuarioId)
-  SELECT O.Origen,O.OrigenId,O.Registro,O.Anio,O.Modalidad,O.Importe,O.Estado,O.Comprobante,M.ArancelId,@UsuarioId
-  FROM dbo.ObligacionLegada O WITH(HOLDLOCK) JOIN dbo.MapaConceptoLegado M ON M.Origen=O.Origen
-  WHERE NOT EXISTS(SELECT 1 FROM dbo.PreparacionObligacion P WITH(UPDLOCK,HOLDLOCK) WHERE P.Origen=O.Origen AND P.OrigenId=O.OrigenId);
-  DECLARE @Cantidad int=@@ROWCOUNT;
-  SET @Despues=(SELECT @Cantidad NuevasFilas,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
- END;
- DECLARE @AccionAudit nvarchar(50)=N''Finanzas_''+@Accion,@RegistroAudit nvarchar(100)=CASE WHEN @Accion=''Mapeo'' THEN @Origen ELSE CONVERT(nvarchar(100),@Id) END;
+ DECLARE @AccionAudit nvarchar(50)=N''Finanzas_''+@Accion,@RegistroAudit nvarchar(100)=CONVERT(nvarchar(100),@Id);
  EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=@AccionAudit,@Entidad=N''CatalogoFinanciero'',@RegistroId=@RegistroAudit,@IdOperacion=@Operacion,@AntesJson=@Antes,@DespuesJson=@Despues;
  COMMIT;
  END TRY
@@ -1749,7 +2169,6 @@ BEGIN
  IF @Lock<0 THROW 53603,N''Finanzas está ocupado.'',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.Arancel WHERE Id=@ArancelId AND Activo=1) THROW 53602,N''Arancel inexistente o inactivo.'',1;
  IF EXISTS(SELECT 1 FROM dbo.ConfiguracionCargo WHERE ArancelId=@ArancelId AND Periodicidad<>@Periodicidad) THROW 53602,N''La periodicidad ya fue definida. Su cambio requiere revisar cargos e historial.'',1;
- IF EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE ArancelId=@ArancelId AND CASE WHEN Origen=''Mensualidades'' THEN ''Mensual'' ELSE ''Anual'' END<>@Periodicidad) THROW 53602,N''La periodicidad contradice el mapeo histórico. Revise la conciliación.'',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.ConfiguracionCargo WHERE ArancelId=@ArancelId)
  BEGIN
   INSERT dbo.ConfiguracionCargo VALUES(@ArancelId,@Periodicidad);
@@ -1808,7 +2227,7 @@ BEGIN
  BEGIN TRANSACTION;
  EXEC @Lock=sys.sp_getapplock @Resource=''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
  IF @Lock<0 THROW 53603,N''Finanzas está ocupado. Reintente la misma operación.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N''Aplique y valide el corte financiero antes de generar cargos.'',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N''Actualiza la base con la migración 025 para habilitar las operaciones financieras.'',1;
  SELECT @CargoId=CargoId FROM dbo.GeneracionCargo WHERE Operacion=@Operacion;
  IF @CargoId IS NOT NULL
  BEGIN
@@ -1822,18 +2241,12 @@ BEGIN
  JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.Estudiantes E ON E.Registro=@Registro AND E.Modalidad=M.Nombre
  WHERE T.Id=@TarifaId AND T.Version=@VersionTarifa AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND E.Estado=''Activo'';
  IF @Importe IS NULL OR @Importe<=0 THROW 53602,N''Revise estudiante activo, modalidad, periodicidad y tarifa vigente. Si cambió la tarifa, vuelva a consultar.'',1;
- IF EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE ArancelId=@ArancelId AND CASE WHEN Origen=''Mensualidades'' THEN ''Mensual'' ELSE ''Anual'' END<>@Periodicidad) THROW 53602,N''La periodicidad contradice los conceptos históricos.'',1;
  IF @Periodicidad=''Mensual'' AND (@Mes IS NULL OR @Mes NOT BETWEEN 1 AND 12 OR @Evento IS NOT NULL) THROW 53602,N''El cargo mensual requiere mes de 1 a 12 y ningún evento.'',1;
  IF @Periodicidad=''Anual'' AND (@Mes IS NOT NULL OR @Evento IS NOT NULL) THROW 53602,N''El cargo anual no lleva mes ni evento.'',1;
  IF @Periodicidad=''Eventual'' AND (@Mes IS NOT NULL OR @Evento IS NULL OR @Evento COLLATE Latin1_General_100_BIN2 LIKE ''%[^A-Z0-9_-]%'') THROW 53602,N''El evento requiere código de letras, números, guion o guion bajo; no lleva mes.'',1;
  IF @Vencimiento IS NOT NULL AND YEAR(@Vencimiento)<>@Anio THROW 53602,N''El vencimiento debe pertenecer al año de la tarifa.'',1;
  SET @Referencia=CASE @Periodicidad WHEN ''Anual'' THEN ''ANUAL'' WHEN ''Mensual'' THEN ''MES:''+RIGHT(''0''+CONVERT(varchar(2),@Mes),2) ELSE ''EVENTO:''+@Evento END;
  IF EXISTS(SELECT 1 FROM dbo.CargoEstudiante C WITH(UPDLOCK,HOLDLOCK) JOIN dbo.TarifaArancel T ON T.Id=C.TarifaId WHERE C.Registro=@Registro AND T.ArancelId=@ArancelId AND T.AnioId=@AnioId AND C.Referencia=@Referencia) THROW 53602,N''Ya existe ese cargo, incluso si fue anulado. Consulte la cuenta.'',1;
- -- Incluye obligaciones antiguas pagadas (CargoId nulo): no volver a facturarlas.
- IF EXISTS(SELECT 1 FROM dbo.ObligacionMigrada O JOIN dbo.RevisionObligacion R ON R.Id=O.RevisionId JOIN dbo.TarifaArancel T ON T.Id=R.TarifaId
- LEFT JOIN dbo.Mensualidades M ON O.Origen=''Mensualidades'' AND M.Id=O.OrigenId
- WHERE R.Registro=@Registro AND T.ArancelId=@ArancelId AND T.AnioId=@AnioId AND (O.Origen<>''Mensualidades'' OR @Periodicidad<>''Mensual'' OR M.Numero_Mes=@Mes OR M.Id IS NULL))
- THROW 53602,N''Existe una obligación histórica para este concepto y período; consulte la cuenta y la conciliación.'',1;
  SET @Descripcion=LEFT(@Nombre,150)+N'' · ''+CONVERT(nvarchar(4),@Anio)+N'' · ''+@Referencia;
  INSERT dbo.CargoEstudiante(Registro,TarifaId,Referencia,DescripcionHistorica,Importe,Vencimiento) VALUES(@Registro,@TarifaId,@Referencia,@Descripcion,@Importe,@Vencimiento);
  SET @CargoId=SCOPE_IDENTITY();
@@ -2083,128 +2496,6 @@ BEGIN
  END CATCH;
 END;');
 
--- PROCEDURE dbo.Conciliacion_Consultar · Conciliacion.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Conciliacion_Consultar · Conciliacion.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Conciliacion_Consultar @UsuarioId nvarchar(450),@DespuesDeRevision bigint=0
-AS
-BEGIN
- SET NOCOUNT ON;
- IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 53001,N''Se requiere administrador.'',1;
- SELECT TOP(200) R.Id,R.Origen,R.OrigenId,R.Registro,R.TarifaId,R.Decision,R.Motivo,R.UsuarioId,R.Fecha,R.Generacion,
- CASE WHEN R.Generacion<>(SELECT P.Generacion FROM dbo.PreparacionObligacion P WHERE P.Origen=R.Origen AND P.OrigenId=R.OrigenId) THEN N''CAPTURA_REEMPLAZADA''
- WHEN O.OrigenId IS NULL THEN N''ORIGEN_AUSENTE''
- WHEN EXISTS(SELECT R.Registro,R.Anio,R.Modalidad,R.Importe,R.Estado,R.Comprobante EXCEPT SELECT O.Registro,O.Anio,O.Modalidad,O.Importe,O.Estado,O.Comprobante) THEN N''ORIGEN_CAMBIO''
- ELSE N''COINCIDE_CON_ORIGEN'' END EstadoFuente,
- CONVERT(bit,CASE WHEN R.Generacion<>(SELECT P.Generacion FROM dbo.PreparacionObligacion P WHERE P.Origen=R.Origen AND P.OrigenId=R.OrigenId) THEN 0 WHEN EXISTS(SELECT 1 FROM dbo.RevisionObligacion X WHERE X.Origen=R.Origen AND X.OrigenId=R.OrigenId AND X.Id>R.Id) THEN 0 ELSE 1 END) UltimaRevision
- FROM dbo.RevisionObligacion R LEFT JOIN dbo.ObligacionLegada O ON O.Origen=R.Origen AND O.OrigenId=R.OrigenId
- WHERE R.Id>@DespuesDeRevision ORDER BY R.Id;
-END;');
-
--- PROCEDURE dbo.Conciliacion_Pantalla · Conciliacion.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Conciliacion_Pantalla · Conciliacion.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Conciliacion_Pantalla
- @UsuarioId nvarchar(450),@Pagina int=1,@Registro nvarchar(10)=N'''',@Origen nvarchar(30)=N'''',@OrigenId int=0
-AS
-BEGIN
- SET NOCOUNT ON;
- IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 53001,N''Se requiere administrador.'',1;
- IF @Pagina NOT BETWEEN 1 AND 100000 THROW 53000,N''Página inválida.'',1;
- SELECT P.Origen,P.OrigenId,P.Registro,P.Anio,P.Modalidad,P.Importe,P.Estado,P.Comprobante,
- ISNULL(R.Id,0) RevisionAnterior,CASE WHEN R.Generacion=P.Generacion THEN R.Decision ELSE N''REQUIERE_NUEVA_REVISION'' END Decision,
- CASE WHEN O.OrigenId IS NULL THEN N''ORIGEN_AUSENTE''
- WHEN EXISTS(SELECT P.Registro,P.Anio,P.Modalidad,P.Importe,P.Estado,P.Comprobante EXCEPT SELECT O.Registro,O.Anio,O.Modalidad,O.Importe,O.Estado,O.Comprobante) THEN N''ORIGEN_CAMBIO''
- ELSE N''COINCIDE_CON_ORIGEN'' END EstadoFuente
- FROM dbo.PreparacionObligacion P
- OUTER APPLY(SELECT TOP(1) Id,Decision,Generacion FROM dbo.RevisionObligacion R WHERE R.Origen=P.Origen AND R.OrigenId=P.OrigenId ORDER BY Id DESC) R
- LEFT JOIN dbo.ObligacionLegada O ON O.Origen=P.Origen AND O.OrigenId=P.OrigenId
- WHERE @Registro=N'''' OR P.Registro=@Registro
- ORDER BY P.Origen,P.OrigenId OFFSET ((@Pagina-1)*50) ROWS FETCH NEXT 51 ROWS ONLY;
- SELECT P.*,ISNULL(R.Id,0) RevisionAnterior,CASE WHEN R.Generacion=P.Generacion THEN R.Decision ELSE N''REQUIERE_NUEVA_REVISION'' END Decision
- FROM dbo.PreparacionObligacion P OUTER APPLY(SELECT TOP(1) Id,Decision,Generacion FROM dbo.RevisionObligacion R WHERE R.Origen=P.Origen AND R.OrigenId=P.OrigenId ORDER BY Id DESC) R
- WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId;
- SELECT T.Id,CONCAT(A.Nombre,N'' / '',Y.Anio,N'' / '',M.Nombre,N'' / precio actual '',T.Importe) Etiqueta
- FROM dbo.TarifaArancel T JOIN dbo.Arancel A ON A.Id=T.ArancelId JOIN dbo.AnioLectivo Y ON Y.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId
- JOIN dbo.PreparacionObligacion P ON P.ArancelId=T.ArancelId AND P.Anio=Y.Anio AND P.Modalidad=M.Nombre
- WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 ORDER BY T.Id;
- SELECT TOP(200) R.Id,R.Generacion,R.TarifaId,R.Decision,R.Motivo,U.UserName Responsable,R.Fecha
- FROM dbo.RevisionObligacion R JOIN dbo.AspNetUsers U ON U.Id=R.UsuarioId
- WHERE R.Origen=@Origen AND R.OrigenId=@OrigenId ORDER BY R.Id DESC;
- SELECT TOP(200) H.Id,H.GeneracionAnterior,H.GeneracionNueva,H.Motivo,U.UserName Responsable,H.Fecha,H.AntesJson,H.DespuesJson
- FROM dbo.HistorialCaptura H JOIN dbo.AspNetUsers U ON U.Id=H.UsuarioId WHERE H.Origen=@Origen AND H.OrigenId=@OrigenId ORDER BY H.Id DESC;
-END;');
-
--- PROCEDURE dbo.Conciliacion_Recapturar · Conciliacion.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Conciliacion_Recapturar · Conciliacion.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Conciliacion_Recapturar
- @UsuarioId nvarchar(450),@Origen nvarchar(30),@OrigenId int,@GeneracionEsperada int,@RevisionAnterior bigint,@Motivo nvarchar(500)
-AS
-BEGIN
- SET NOCOUNT ON;SET XACT_ABORT ON;
- IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 53001,N''Se requiere administrador.'',1;
- IF NULLIF(LTRIM(RTRIM(@Motivo)),'''') IS NULL THROW 53000,N''Indica el motivo.'',1;
- BEGIN TRY
- BEGIN TRANSACTION;
- DECLARE @Lock int,@Antes nvarchar(max),@Despues nvarchar(max),@Operacion uniqueidentifier=NEWID(),@Clave nvarchar(100)=CONCAT(@Origen,'':'',@OrigenId);
- EXEC @Lock=sys.sp_getapplock @Resource=N''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
- IF @Lock<0 THROW 53002,N''Hay otra operación en curso.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.PreparacionObligacion WITH(UPDLOCK,HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId AND Generacion=@GeneracionEsperada AND CargoId IS NULL) THROW 53003,N''Captura modificada o vinculada a un cargo. Recarga.'',1;
- IF ISNULL((SELECT MAX(Id) FROM dbo.RevisionObligacion WHERE Origen=@Origen AND OrigenId=@OrigenId),0)<>@RevisionAnterior OR @RevisionAnterior IS NULL THROW 53003,N''La revisión cambió. Recarga.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.ObligacionLegada WITH(HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId) THROW 53004,N''El origen no existe; requiere investigación, no recaptura.'',1;
- IF EXISTS(SELECT 1 FROM dbo.PreparacionObligacion P JOIN dbo.ObligacionLegada O WITH(HOLDLOCK) ON O.Origen=P.Origen AND O.OrigenId=P.OrigenId WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId AND P.Registro<>O.Registro) THROW 53004,N''El estudiante de origen cambió. Requiere investigación.'',1;
- IF NOT EXISTS(SELECT Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.PreparacionObligacion WHERE Origen=@Origen AND OrigenId=@OrigenId EXCEPT SELECT Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.ObligacionLegada WITH(HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId) THROW 53004,N''No hay diferencias para recapturar.'',1;
- SET @Antes=(SELECT * FROM dbo.PreparacionObligacion WHERE Origen=@Origen AND OrigenId=@OrigenId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
- UPDATE P SET Anio=O.Anio,Modalidad=O.Modalidad,Importe=O.Importe,Estado=O.Estado,Comprobante=O.Comprobante,Generacion=P.Generacion+1,Capturado=SYSUTCDATETIME(),UsuarioId=@UsuarioId
- FROM dbo.PreparacionObligacion P JOIN dbo.ObligacionLegada O ON O.Origen=P.Origen AND O.OrigenId=P.OrigenId WHERE P.Origen=@Origen AND P.OrigenId=@OrigenId;
- SET @Despues=(SELECT * FROM dbo.PreparacionObligacion WHERE Origen=@Origen AND OrigenId=@OrigenId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES);
- INSERT dbo.HistorialCaptura(Origen,OrigenId,GeneracionAnterior,GeneracionNueva,AntesJson,DespuesJson,Motivo,UsuarioId) VALUES(@Origen,@OrigenId,@GeneracionEsperada,@GeneracionEsperada+1,@Antes,@Despues,@Motivo,@UsuarioId);
- EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=N''RecapturarObligacion'',@Entidad=N''Conciliacion'',@RegistroId=@Clave,@IdOperacion=@Operacion,@AntesJson=@Antes,@DespuesJson=@Despues;
- COMMIT;
- END TRY
- BEGIN CATCH
- IF XACT_STATE()<>0 ROLLBACK;
- THROW;
- END CATCH;
-END;');
-
--- PROCEDURE dbo.Conciliacion_Revisar · Conciliacion.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Conciliacion_Revisar · Conciliacion.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Conciliacion_Revisar
- @UsuarioId nvarchar(450),@Origen nvarchar(30),@OrigenId int,@TarifaId int,
- @Decision nvarchar(20),@Motivo nvarchar(500),@RevisionAnterior bigint=0,@GeneracionEsperada int=NULL
-AS
-BEGIN
- SET NOCOUNT ON;SET XACT_ABORT ON;
- IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 53001,N''Se requiere administrador.'',1;
- IF @Decision IS NULL OR @Decision NOT IN (''Deuda'',''SinDeuda'',''Rechazada'') OR NULLIF(LTRIM(RTRIM(@Motivo)),'''') IS NULL THROW 53000,N''Decisión o motivo inválido.'',1;
- BEGIN TRY
- BEGIN TRANSACTION;
- DECLARE @Lock int;
- EXEC @Lock=sys.sp_getapplock @Resource=N''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
- IF @Lock<0 THROW 53002,N''Hay otra operación en curso.'',1;
- DECLARE @Registro nvarchar(10),@Anio int,@Modalidad nvarchar(20),@Importe decimal(18,2),@Estado nvarchar(10),@Comprobante nvarchar(25),@Arancel int,@Cargo bigint;
- SELECT @Registro=Registro,@Anio=Anio,@Modalidad=Modalidad,@Importe=Importe,@Estado=Estado,@Comprobante=Comprobante,@Arancel=ArancelId,@Cargo=CargoId
- FROM dbo.PreparacionObligacion WITH(UPDLOCK,HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId;
- IF NOT EXISTS(SELECT 1 FROM dbo.PreparacionObligacion WHERE Origen=@Origen AND OrigenId=@OrigenId AND Generacion=@GeneracionEsperada) THROW 53003,N''La captura cambió. Recarga la página.'',1;
- IF @Registro IS NULL OR @Cargo IS NOT NULL THROW 53000,N''Obligación no disponible para revisión.'',1;
- IF ISNULL((SELECT MAX(Id) FROM dbo.RevisionObligacion WHERE Origen=@Origen AND OrigenId=@OrigenId),0)<>@RevisionAnterior OR @RevisionAnterior IS NULL THROW 53003,N''Otra persona revisó esta obligación. Recarga antes de continuar.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.ObligacionLegada WITH(HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId) THROW 53004,N''La obligación de origen ya no existe.'',1;
- IF EXISTS(SELECT @Registro,@Anio,@Modalidad,@Importe,@Estado,@Comprobante EXCEPT SELECT Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.ObligacionLegada WITH(HOLDLOCK) WHERE Origen=@Origen AND OrigenId=@OrigenId) THROW 53004,N''El origen cambió desde la captura. No se aprobó.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.TarifaArancel T WITH(HOLDLOCK) JOIN dbo.AnioLectivo A ON A.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.Arancel C ON C.Id=T.ArancelId WHERE T.Id=@TarifaId AND T.ArancelId=@Arancel AND A.Anio=@Anio AND M.Nombre=@Modalidad AND T.Activo=1 AND C.Activo=1 AND A.Activo=1 AND M.Activo=1) THROW 53005,N''La tarifa debe corresponder al arancel, año y modalidad originales.'',1;
- -- El precio actual no reemplaza el importe histórico ni las becas.
- IF @Decision<>''Rechazada'' AND @Importe<0 THROW 53005,N''No se aprueban importes negativos.'',1;
- IF @Decision=''Deuda'' AND (@Estado NOT IN (''Pendiente'',''Vencido'') OR @Importe<=0 OR @Comprobante IS NOT NULL OR @Origen=''Matriculas'') THROW 53005,N''Solo puede aprobarse como deuda una obligación pendiente positiva sin comprobante.'',1;
- IF @Decision=''SinDeuda'' AND NOT (@Estado=''Cancelado'' OR @Importe=0) THROW 53005,N''Una obligación pendiente positiva no puede marcarse sin deuda.'',1;
- IF @Decision<>''Rechazada'' AND @Comprobante IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.Pagos WITH(HOLDLOCK) WHERE Id_Comprobante=@Comprobante AND Registro_Estudiante=@Registro) THROW 53005,N''El comprobante no corresponde al estudiante.'',1;
- INSERT dbo.RevisionObligacion(Origen,OrigenId,TarifaId,Decision,Motivo,UsuarioId,Registro,Anio,Modalidad,Importe,Estado,Comprobante,Generacion)
- VALUES(@Origen,@OrigenId,@TarifaId,@Decision,@Motivo,@UsuarioId,@Registro,@Anio,@Modalidad,@Importe,@Estado,@Comprobante,@GeneracionEsperada);
- DECLARE @Id bigint=CONVERT(bigint,SCOPE_IDENTITY()),@Operacion uniqueidentifier=NEWID(),@Clave nvarchar(100)=CONCAT(@Origen,'':'',@OrigenId),@Json nvarchar(max);
- SET @Json=(SELECT @Id RevisionId,@TarifaId TarifaId,@Decision Decision,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
- EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=N''RevisarObligacion'',@Entidad=N''Conciliacion'',@RegistroId=@Clave,@IdOperacion=@Operacion,@DespuesJson=@Json;
- COMMIT;
- SELECT @Id RevisionId;
- END TRY
- BEGIN CATCH
-  IF XACT_STATE()<>0 ROLLBACK;
-  THROW;
- END CATCH;
-END;');
-
 -- PROCEDURE dbo.CorteCaja_Consultar · CortesCaja.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.CorteCaja_Consultar · CortesCaja.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.CorteCaja_Consultar @UsuarioId nvarchar(450),@Id bigint=0
 AS
@@ -2257,7 +2548,7 @@ BEGIN
  EXEC @Lock=sys.sp_getapplock @Resource=''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
  IF @Lock<0 THROW 54803,N''Caja ocupada. Reintenta la misma operación.'',1;
  SET @Ahora=SYSUTCDATETIME();
- IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 54802,N''Activa primero el libro financiero nuevo.'',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 54802,N''Actualiza la base con la migración 025.'',1;
  IF EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion)
  BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId)
@@ -2301,90 +2592,6 @@ BEGIN
  BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK;
  THROW;
- END CATCH;
-END;');
-
--- PROCEDURE dbo.CorteFinanciero_Ejecutar · CorteFinanciero.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.CorteFinanciero_Ejecutar · CorteFinanciero.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.CorteFinanciero_Ejecutar @UsuarioId nvarchar(450),@Operacion uniqueidentifier,@Aplicar bit=0,@Confirmacion nvarchar(60)=NULL
-AS
-BEGIN
- SET NOCOUNT ON;SET XACT_ABORT ON;
- IF @@TRANCOUNT<>0 THROW 53400,N''Cierra las transacciones antes de ejecutar la transición.'',1;
- IF @Operacion IS NULL OR @Aplicar IS NULL THROW 53400,N''Indique operación y modalidad.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles U JOIN dbo.AspNetRoles R ON R.Id=U.RoleId WHERE U.UserId=@UsuarioId AND R.Name=''Administrador'') THROW 53401,N''Se requiere administrador.'',1;
- IF @Aplicar=1 AND ISNULL(@Confirmacion,N'''')<>N''APLICAR CORTE EN DESARROLLO'' THROW 53400,N''Falta confirmación explícita.'',1;
- BEGIN TRY
- BEGIN TRANSACTION;
- DECLARE @Lock int,@Tabla sysname,@Sql nvarchar(max),@N bigint;
- EXEC @Lock=sys.sp_getapplock @Resource=N''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
- IF @Lock<0 THROW 53402,N''Hay otra operación financiera en curso.'',1;
- IF EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
- BEGIN
-  IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Operacion=@Operacion) THROW 53403,N''El corte ya fue aplicado con otra operación.'',1;
-  COMMIT;SELECT N''YA_APLICADO'' Estado;RETURN;
- END;
- IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1) THROW 53400,N''Falta control de corte.'',1;
- -- Bloquear primero fuentes: los procedimientos heredados no conocen el applock.
- DECLARE Bloqueos CURSOR LOCAL FAST_FORWARD FOR SELECT T FROM (VALUES
- (''Estudiantes''),(''Pagos''),(''Abonos''),(''Matriculas''),(''Mensualidades''),(''Mantenimientos''),(''EvBoTaS''),(''Promociones''),(''Arreglos_Pago''),(''Historial_Comprobantes''),
- (''Costo_Matricula''),(''Costo_Mensualidad''),(''Costo_Mantenimiento''),(''Costo_EvBoTa''),(''Costo_Promocion''),
- (''PreparacionObligacion''),(''RevisionObligacion''),(''RevisionSaldo''),(''MapaConceptoLegado''),(''HistorialCaptura''),
- (''Arancel''),(''TarifaArancel''),(''AnioLectivo''),(''ModalidadAcademica''),(''CargoEstudiante''),(''ReciboMultiple''),(''AplicacionPago''),(''SaldoFinanciero''),(''ObligacionMigrada'')) V(T);
- OPEN Bloqueos;FETCH NEXT FROM Bloqueos INTO @Tabla;
- WHILE @@FETCH_STATUS=0
- BEGIN
-  SET @Sql=N''SELECT @N=COUNT_BIG(*) FROM dbo.''+QUOTENAME(@Tabla)+N'' WITH(TABLOCKX,HOLDLOCK);'';EXEC sys.sp_executesql @Sql,N''@N bigint OUTPUT'',@N OUTPUT;
-  FETCH NEXT FROM Bloqueos INTO @Tabla;
- END;
- CLOSE Bloqueos;DEALLOCATE Bloqueos;
- -- Verificar que las barreras realmente existen y están habilitadas.
- IF EXISTS(SELECT 1 FROM (VALUES(''Pagos''),(''Abonos''),(''Matriculas''),(''Mensualidades''),(''Mantenimientos''),(''EvBoTaS''),(''Promociones''),(''Arreglos_Pago''),(''Historial_Comprobantes''),(''Costo_Matricula''),(''Costo_Mensualidad''),(''Costo_Mantenimiento''),(''Costo_EvBoTa''),(''Costo_Promocion''),(''PreparacionObligacion''),(''RevisionObligacion''),(''RevisionSaldo''),(''MapaConceptoLegado''),(''HistorialCaptura'')) V(T)
- WHERE NOT EXISTS(SELECT 1 FROM sys.triggers WHERE name=N''TR_Corte_''+V.T AND parent_id=OBJECT_ID(N''dbo.''+V.T) AND is_disabled=0)) THROW 53404,N''Faltan barreras de escritura; reinstale correctamente la infraestructura.'',1;
- IF EXISTS(SELECT 1 FROM dbo.CargoEstudiante) OR EXISTS(SELECT 1 FROM dbo.ReciboMultiple) OR EXISTS(SELECT 1 FROM dbo.SaldoFinanciero) OR EXISTS(SELECT 1 FROM dbo.ObligacionMigrada) THROW 53404,N''El destino financiero no está vacío. Requiere investigación.'',1;
- IF EXISTS(SELECT Origen,OrigenId,Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.ObligacionLegada EXCEPT SELECT Origen,OrigenId,Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.PreparacionObligacion)
- OR EXISTS(SELECT Origen,OrigenId,Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.PreparacionObligacion EXCEPT SELECT Origen,OrigenId,Registro,Anio,Modalidad,Importe,Estado,Comprobante FROM dbo.ObligacionLegada) THROW 53404,N''Hay obligaciones sin capturar, cambiadas o eliminadas.'',1;
- SELECT P.*,R.Id RevisionId,R.TarifaId,R.Decision,R.Generacion GeneracionRevisada INTO #Obligaciones
- FROM dbo.PreparacionObligacion P OUTER APPLY(SELECT TOP(1) * FROM dbo.RevisionObligacion X WHERE X.Origen=P.Origen AND X.OrigenId=P.OrigenId ORDER BY Id DESC) R;
- IF EXISTS(SELECT 1 FROM #Obligaciones WHERE RevisionId IS NULL OR Generacion<>GeneracionRevisada OR Decision=''Rechazada'' OR CargoId IS NOT NULL OR Importe<0) THROW 53404,N''Faltan revisiones vigentes y aprobadas de obligaciones.'',1;
- IF EXISTS(SELECT 1 FROM #Obligaciones P WHERE NOT EXISTS(SELECT 1 FROM dbo.TarifaArancel T JOIN dbo.AnioLectivo A ON A.Id=T.AnioId JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId WHERE T.Id=P.TarifaId AND T.ArancelId=P.ArancelId AND A.Anio=P.Anio AND M.Nombre=P.Modalidad)) THROW 53404,N''Las tarifas ya no coinciden con las obligaciones.'',1;
- IF EXISTS(SELECT 1 FROM #Obligaciones WHERE (Decision=''Deuda'' AND (Estado NOT IN (''Pendiente'',''Vencido'') OR Importe<=0 OR Comprobante IS NOT NULL OR Origen=''Matriculas'')) OR (Decision=''SinDeuda'' AND Estado<>''Cancelado'' AND Importe<>0)) THROW 53404,N''Decisión incompatible con estado o importe.'',1;
- IF EXISTS(SELECT 1 FROM #Obligaciones O WHERE Comprobante IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.Pagos P WHERE P.Id_Comprobante=O.Comprobante AND P.Registro_Estudiante=O.Registro)) THROW 53404,N''Hay comprobantes incompatibles con la obligación.'',1;
- -- Todos los estudiantes con actividad financiera requieren saldo revisado, incluso cero.
- DECLARE @Registro nvarchar(10),@Json nvarchar(max),@Saldo decimal(18,2),@Filas int,@Revision bigint;
- DECLARE Saldos CURSOR LOCAL FAST_FORWARD FOR SELECT Registro_Estudiante FROM dbo.Pagos UNION SELECT Registro_Estudiante FROM dbo.Abonos UNION SELECT Registro FROM dbo.PreparacionObligacion;
- OPEN Saldos;FETCH NEXT FROM Saldos INTO @Registro;
- WHILE @@FETCH_STATUS=0
- BEGIN
-  EXEC dbo.Saldo_Instantanea @UsuarioId,@Registro,@Json OUTPUT,@Saldo OUTPUT,@Filas OUTPUT;
-  SET @Revision=NULL;
-  SELECT @Revision=Id FROM dbo.RevisionSaldo WHERE Id=(SELECT MAX(Id) FROM dbo.RevisionSaldo WHERE Registro=@Registro) AND Decision=''Aprobado'' AND Huella=HASHBYTES(''SHA2_256'',@Json) AND SaldoObservado=@Saldo AND FilasSaldo=@Filas;
-  IF @Revision IS NULL OR @Saldo<0 OR @Filas>1 THROW 53404,N''Falta aprobación vigente de un saldo. Consulte Conciliación de saldos.'',1;
-  INSERT dbo.SaldoFinanciero(Registro,RevisionSaldoId,SaldoInicial,Disponible) VALUES(@Registro,@Revision,@Saldo,@Saldo);
-  FETCH NEXT FROM Saldos INTO @Registro;
- END;
- CLOSE Saldos;DEALLOCATE Saldos;
- INSERT dbo.CargoEstudiante(Registro,TarifaId,Referencia,DescripcionHistorica,Importe,Vencimiento)
- SELECT O.Registro,O.TarifaId,CONCAT(N''LEGADO:'',O.Origen,'':'',O.OrigenId),CONCAT(A.Nombre,N'' / '',O.Anio,N'' / '',O.Origen,N'' #'',O.OrigenId),O.Importe,NULL FROM #Obligaciones O JOIN dbo.Arancel A ON A.Id=O.ArancelId WHERE O.Decision=''Deuda'';
- INSERT dbo.ObligacionMigrada(Origen,OrigenId,RevisionId,CargoId)
- SELECT O.Origen,O.OrigenId,O.RevisionId,C.Id FROM #Obligaciones O LEFT JOIN dbo.CargoEstudiante C ON C.Registro=O.Registro AND C.TarifaId=O.TarifaId AND C.Referencia=CONCAT(N''LEGADO:'',O.Origen,'':'',O.OrigenId);
- UPDATE P SET CargoId=M.CargoId FROM dbo.PreparacionObligacion P JOIN dbo.ObligacionMigrada M ON M.Origen=P.Origen AND M.OrigenId=P.OrigenId;
- IF ISNULL((SELECT SUM(Importe) FROM dbo.CargoEstudiante),0)<>ISNULL((SELECT SUM(Importe) FROM #Obligaciones WHERE Decision=''Deuda''),0) THROW 53404,N''No coinciden los totales de deuda.'',1;
- DECLARE @Cargos bigint=(SELECT COUNT_BIG(*) FROM dbo.CargoEstudiante),@TotalDeuda decimal(38,2)=ISNULL((SELECT SUM(Importe) FROM dbo.CargoEstudiante),0),@TotalSaldo decimal(38,2)=ISNULL((SELECT SUM(SaldoInicial) FROM dbo.SaldoFinanciero),0);
- IF @Aplicar=0
- BEGIN
-  ROLLBACK;SELECT N''SIMULACION_REVERTIDA'' Estado,@Cargos Cargos,@TotalDeuda Deuda,@TotalSaldo SaldoInicial;RETURN;
- END;
- UPDATE dbo.ControlFinanciero SET Migrado=1,Operacion=@Operacion,Fecha=SYSUTCDATETIME(),UsuarioId=@UsuarioId WHERE Id=1;
- DECLARE @Detalle nvarchar(max)=(SELECT @Cargos Cargos,@TotalDeuda Deuda,@TotalSaldo SaldoInicial FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
- EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=N''CorteFinanciero'',@Entidad=N''ControlFinanciero'',@RegistroId=N''1'',@IdOperacion=@Operacion,@DespuesJson=@Detalle;
- IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
-  INSERT dbo.CorteCaja(UsuarioApertura,FondoApertura) VALUES(@UsuarioId,0);
- COMMIT;
- SELECT N''APLICADO'' Estado,@Cargos Cargos,@TotalDeuda Deuda,@TotalSaldo SaldoInicial;
- END TRY
- BEGIN CATCH
-  IF XACT_STATE()<>0 ROLLBACK;
-  THROW;
  END CATCH;
 END;');
 
@@ -3171,59 +3378,6 @@ BEGIN
  END CATCH;
 END;');
 
--- PROCEDURE dbo.Saldo_Consultar · ConciliacionSaldos.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Saldo_Consultar · ConciliacionSaldos.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Saldo_Consultar @UsuarioId nvarchar(450),@Registro nvarchar(10)
-AS
-BEGIN
- SET NOCOUNT ON;SET XACT_ABORT ON;
- BEGIN TRY
- BEGIN TRANSACTION;
- DECLARE @Json nvarchar(max),@Saldo decimal(18,2),@Filas int;
- EXEC dbo.Saldo_Instantanea @UsuarioId,@Registro,@Json OUTPUT,@Saldo OUTPUT,@Filas OUTPUT;
- SELECT @Registro Registro,@Saldo SaldoFavor,@Filas FilasSaldo,CONVERT(varchar(66),HASHBYTES(''SHA2_256'',@Json),1) Huella,
- ISNULL((SELECT MAX(Id) FROM dbo.RevisionSaldo WHERE Registro=@Registro),0) RevisionAnterior;
- SELECT P.Id_Comprobante,P.Fecha_Pago,P.Concepto,P.Monto MontoHeredado,H.DineroRecibido,H.CambioDevuelto,H.SaldoAnterior,H.SaldoFinal,
- CASE WHEN H.Id_Comprobante IS NULL THEN N''SIN_HISTORIAL'' WHEN H.SaldoAnterior+H.DineroRecibido<>H.DeudaCancelada+H.CambioDevuelto+H.SaldoFinal OR P.Monto<>H.DineroRecibido-H.CambioDevuelto THEN N''BALANCE_INCONSISTENTE'' ELSE N''BALANCE_CON_HISTORIAL'' END Revision
- FROM dbo.Pagos P LEFT JOIN dbo.Historial_Comprobantes H ON H.Id_Comprobante=P.Id_Comprobante WHERE P.Registro_Estudiante=@Registro ORDER BY P.Fecha_Pago,P.Id_Comprobante;
- SELECT TOP(200) R.Id,R.SaldoObservado,R.Decision,R.Referencia,R.Motivo,U.UserName Responsable,R.Fecha,
- CASE WHEN R.Huella=HASHBYTES(''SHA2_256'',@Json) THEN N''COINCIDE_CON_FUENTE'' ELSE N''FUENTE_CAMBIO'' END EstadoFuente
- FROM dbo.RevisionSaldo R JOIN dbo.AspNetUsers U ON U.Id=R.UsuarioId WHERE R.Registro=@Registro ORDER BY R.Id DESC;
- COMMIT;
- END TRY
- BEGIN CATCH
- IF XACT_STATE()<>0 ROLLBACK;
- THROW;
- END CATCH;
-END;');
-
--- PROCEDURE dbo.Saldo_Revisar · ConciliacionSaldos.sql · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.Saldo_Revisar · ConciliacionSaldos.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.Saldo_Revisar @UsuarioId nvarchar(450),@Registro nvarchar(10),@Huella varchar(66),@RevisionAnterior bigint,@Decision nvarchar(20),@Referencia nvarchar(200),@Motivo nvarchar(500)
-AS
-BEGIN
- SET NOCOUNT ON;SET XACT_ABORT ON;
- IF @Decision IS NULL OR @Decision NOT IN (''Aprobado'',''Rechazado'') OR NULLIF(TRIM(@Motivo),'''') IS NULL OR NULLIF(TRIM(@Referencia),'''') IS NULL THROW 53200,N''Decisión, referencia y motivo obligatorios.'',1;
- BEGIN TRY
- BEGIN TRANSACTION;
- DECLARE @Lock int,@Json nvarchar(max),@Saldo decimal(18,2),@Filas int,@Hash binary(32),@Operacion uniqueidentifier=NEWID();
- EXEC @Lock=sys.sp_getapplock @Resource=N''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
- IF @Lock<0 THROW 53202,N''Hay otra operación en curso.'',1;
- EXEC dbo.Saldo_Instantanea @UsuarioId,@Registro,@Json OUTPUT,@Saldo OUTPUT,@Filas OUTPUT;
- SET @Hash=HASHBYTES(''SHA2_256'',@Json);
- IF @Huella IS NULL OR TRY_CONVERT(binary(32),@Huella,1) IS NULL OR @Hash<>TRY_CONVERT(binary(32),@Huella,1) THROW 53203,N''Los saldos o pagos cambiaron. Consulta nuevamente.'',1;
- IF @RevisionAnterior IS NULL OR ISNULL((SELECT MAX(Id) FROM dbo.RevisionSaldo WHERE Registro=@Registro),0)<>@RevisionAnterior THROW 53203,N''Otra persona revisó este saldo. Consulta nuevamente.'',1;
- IF @Decision=''Aprobado'' AND (@Filas>1 OR @Saldo<0) THROW 53204,N''No se aprueban saldos negativos ni duplicados.'',1;
- IF @Decision=''Aprobado'' AND EXISTS(SELECT 1 FROM dbo.Pagos P JOIN dbo.Historial_Comprobantes H ON H.Id_Comprobante=P.Id_Comprobante WHERE P.Registro_Estudiante=@Registro AND (H.SaldoAnterior+H.DineroRecibido<>H.DeudaCancelada+H.CambioDevuelto+H.SaldoFinal OR P.Monto<>H.DineroRecibido-H.CambioDevuelto)) THROW 53204,N''Hay comprobantes con balance inconsistente.'',1;
- INSERT dbo.RevisionSaldo(Registro,SaldoObservado,FilasSaldo,Huella,Instantanea,Decision,Referencia,Motivo,UsuarioId) VALUES(@Registro,@Saldo,@Filas,@Hash,@Json,@Decision,TRIM(@Referencia),TRIM(@Motivo),@UsuarioId);
- DECLARE @Despues nvarchar(max)=(SELECT @Saldo SaldoObservado,@Decision Decision,@Referencia Referencia,@Motivo Motivo FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
- EXEC dbo.Registrar_Auditoria @UsuarioId=@UsuarioId,@Accion=N''RevisarSaldo'',@Entidad=N''ConciliacionSaldo'',@RegistroId=@Registro,@IdOperacion=@Operacion,@DespuesJson=@Despues;
- COMMIT;
- END TRY
- BEGIN CATCH
- IF XACT_STATE()<>0 ROLLBACK;
- THROW;
- END CATCH;
-END;');
-
 -- PROCEDURE dbo.TipoEvaluacion_Guardar · TipoEvaluacion_Guardar.sql · lote 1
 INSERT @Etapas(Nombre,Texto) VALUES(N'PROCEDURE dbo.TipoEvaluacion_Guardar · TipoEvaluacion_Guardar.sql · lote 1',N'CREATE OR ALTER PROCEDURE dbo.TipoEvaluacion_Guardar
  @UsuarioId nvarchar(450),@Id int,@Nombre nvarchar(max),@Activo bit,
@@ -3299,7 +3453,7 @@ BEGIN
  DECLARE @Lock int;
  EXEC @Lock=sys.sp_getapplock @Resource=''Liceo.Finanzas.Configuracion'',@LockMode=''Exclusive'',@LockOwner=''Transaction'',@LockTimeout=10000;
  IF @Lock<0 THROW 53603,N''Finanzas está ocupado. Reintenta.'',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N''El corte financiero debe estar aplicado antes de generar cargos.'',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N''Actualiza la base con la migración 025 antes de generar cargos.'',1;
  DECLARE @Arancel int,@AnioId int,@Anio int,@Modalidad nvarchar(80),@Periodicidad nvarchar(10),@Importe decimal(18,2),@Referencia nvarchar(80);
  SELECT @Arancel=A.Id,@AnioId=Y.Id,@Anio=Y.Anio,@Modalidad=M.Nombre,@Periodicidad=F.Periodicidad,@Importe=T.Importe
  FROM dbo.TarifaArancel T WITH(UPDLOCK,HOLDLOCK)
@@ -3307,8 +3461,6 @@ BEGIN
  JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id
  WHERE T.Id=@TarifaId AND T.Version=@VersionTarifa AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND T.Importe>0;
  IF @Arancel IS NULL THROW 53602,N''La tarifa cambió o ya no está disponible. Vuelve a seleccionarla.'',1;
- IF EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE ArancelId=@Arancel AND CASE WHEN Origen=''Mensualidades'' THEN ''Mensual'' ELSE ''Anual'' END<>@Periodicidad)
- THROW 53602,N''La periodicidad contradice los conceptos históricos.'',1;
  SET @Evento=NULLIF(UPPER(LTRIM(RTRIM(@Evento))),N'''');
  IF (@Periodicidad=''Mensual'' AND (@Mes IS NULL OR @Mes NOT BETWEEN 1 AND 12 OR @Evento IS NOT NULL))
  OR (@Periodicidad=''Anual'' AND (@Mes IS NOT NULL OR @Evento IS NOT NULL))
@@ -3322,10 +3474,6 @@ BEGIN
  SELECT E.Registro,CASE
  WHEN EXISTS(SELECT 1 FROM dbo.CargoEstudiante C JOIN dbo.TarifaArancel T ON T.Id=C.TarifaId
   WHERE C.Registro=E.Registro AND T.ArancelId=@Arancel AND T.AnioId=@AnioId AND C.Referencia=@Referencia) THEN N''Cargo ya registrado (incluye anulados)''
- WHEN EXISTS(SELECT 1 FROM dbo.ObligacionMigrada O JOIN dbo.RevisionObligacion R ON R.Id=O.RevisionId
-  JOIN dbo.TarifaArancel T ON T.Id=R.TarifaId LEFT JOIN dbo.Mensualidades M ON O.Origen=''Mensualidades'' AND M.Id=O.OrigenId
-  WHERE R.Registro=E.Registro AND T.ArancelId=@Arancel AND T.AnioId=@AnioId AND (O.Origen<>''Mensualidades'' OR @Periodicidad<>''Mensual'' OR M.Numero_Mes=@Mes OR M.Id IS NULL))
-  THEN N''Obligación histórica''
  END
  FROM dbo.Estudiantes E WITH(HOLDLOCK) WHERE E.Estado=''Activo'' AND E.Modalidad=@Modalidad;
 
@@ -3665,13 +3813,10 @@ EXEC dbo.Registrar_Auditoria N''demo-administrador'',N''InicializarDemo'',N''Ide
 COMMIT;');
 
 -- Demostración · lote 2
-INSERT @Etapas(Nombre,Texto) VALUES(N'Demostración · lote 2',N'-- Esto activa el libro nuevo sin migrar ni reinterpretar pagos de otra instalación.
-DECLARE @Corte uniqueidentifier=NEWID();
-EXEC dbo.CorteFinanciero_Ejecutar
- @UsuarioId=N''demo-administrador'',@Operacion=@Corte,@Aplicar=1,
- @Confirmacion=N''APLICAR CORTE EN DESARROLLO'';
-IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
- THROW 54902,N''No se activó el libro nuevo. No se continuará con los datos demo.'',1;');
+INSERT @Etapas(Nombre,Texto) VALUES(N'Demostración · lote 2',N'IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
+ THROW 54902,N''Instala la migración 025 antes de crear la demostración.'',1;
+IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
+ INSERT dbo.CorteCaja(UsuarioApertura,FondoApertura) VALUES(N''demo-administrador'',0);');
 
 -- Demostración · lote 3
 INSERT @Etapas(Nombre,Texto) VALUES(N'Demostración · lote 3',N'DECLARE @Admin nvarchar(450)=N''demo-administrador'',@Profesor nvarchar(450)=N''demo-profesor'',
@@ -3879,11 +4024,10 @@ IF (SELECT COUNT(*) FROM dbo.Calificacion C JOIN dbo.Evaluacion E ON E.Id=C.Eval
 SELECT N''DEMOSTRACIÓN COMPLETADA: cuentas, pagos y estudiantes conservados.'' Resultado;');
 
 -- Verificación final · lote 1
-INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELECT COUNT(*) FROM dbo.InstalacionInicial)<>24
-            THROW 54901,N''La estructura no alcanzó la migración 024.'',1;
+INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELECT COUNT(*) FROM dbo.InstalacionInicial)<>25
+            THROW 54901,N''La estructura no alcanzó la migración 025.'',1;
         IF EXISTS(SELECT 1 FROM (VALUES (N''Anticipo_Registrar'',N''P''),
 (N''ReciboMultiple_Anular'',N''P''),
-(N''ObligacionLegada'',N''V''),
 (N''Aranceles_Guardar'',N''P''),
 (N''Aranceles_Consultar'',N''P''),
 (N''Cargos_ConfigurarMatricula'',N''P''),
@@ -3894,14 +4038,6 @@ INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELEC
 (N''CobroMultiple_Registrar'',N''P''),
 (N''CuentaEstudiante_Consultar'',N''P''),
 (N''ReciboMultiple_Consultar'',N''P''),
-(N''Conciliacion_Revisar'',N''P''),
-(N''Conciliacion_Consultar'',N''P''),
-(N''Conciliacion_Pantalla'',N''P''),
-(N''Conciliacion_Recapturar'',N''P''),
-(N''Saldo_Instantanea'',N''P''),
-(N''Saldo_Consultar'',N''P''),
-(N''Saldo_Revisar'',N''P''),
-(N''CorteFinanciero_Ejecutar'',N''P''),
 (N''CorteCaja_Consultar'',N''P''),
 (N''CorteCaja_Operar'',N''P''),
 (N''Evaluacion_ConsultarEdicion'',N''P''),
@@ -3947,11 +4083,13 @@ INSERT @Etapas(Nombre,Texto) VALUES(N'Verificación final · lote 1',N'IF (SELEC
             (U.Email=N''profesor@liceo.test'' AND R.Name=N''Profesor'') OR
             (U.Email=N''cajero@liceo.test'' AND R.Name=N''Cajero''))<>3
             THROW 54901,N''Las cuentas demo no quedaron completas.'',1;
+        IF OBJECT_ID(''dbo.RevisionSaldo'',''U'') IS NOT NULL OR OBJECT_ID(''dbo.PreparacionObligacion'',''U'') IS NOT NULL
+            THROW 54901,N''No se completó el retiro de conciliaciones.'',1;
         IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
             THROW 54901,N''No quedó un corte de caja abierto para la demostración.'',1;
         INSERT dbo.InstalacionInicial(Etapa,FuenteSha256)
-            VALUES(N''DemostracionLista'',''5fb9ddad7179a1dc3aa4c116c5aa4d0aa36b53e9a2ab4a129c8633a5de3f4151'');
-        SELECT DB_NAME() BaseInstalada,24 UltimaMigracion,
+            VALUES(N''DemostracionLista'',''5224c1d30a97a3ace7484d91b1f5b71349e6f8598b81faa0aeb56d3378a99411'');
+        SELECT DB_NAME() BaseInstalada,25 UltimaMigracion,
             (SELECT COUNT(*) FROM sys.procedures WHERE schema_id=SCHEMA_ID(''dbo'')) Procedimientos,
             (SELECT COUNT(*) FROM dbo.Estudiantes) Estudiantes,
             (SELECT Migrado FROM dbo.ControlFinanciero WHERE Id=1) Migrado;

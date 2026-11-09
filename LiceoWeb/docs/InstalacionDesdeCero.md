@@ -24,11 +24,11 @@ Credenciales públicas para demostración; no usarlas en producción. Se almacen
 
 ## Qué queda preparado
 
-- Migraciones SQL 001–024, Identity e historial de su migración EF.
-- 55 procedimientos vigentes y la vista ObligacionLegada en orden de dependencia.
+- Migraciones SQL 001–025, Identity e historial de su migración EF.
+- 47 procedimientos vigentes en orden de dependencia.
 - Tres cuentas activas con correo confirmado y rol.
 - Primer corte de caja abierto y controles de apertura/cierre exclusivos de Administración.
-- Corte vacío mediante CorteFinanciero_Ejecutar y auditoría del administrador creado.
+- Esquema financiero web activo desde la instalación, sin traslado de datos del escritorio.
 - Año actual, período abierto, Preescolar / Primaria / Secundaria, aulas, materias y tres grupos.
 - 12 expedientes ficticios: cuatro por modalidad; nueve inscritos y tres listos para inscribir.
 - Arancel oficial de matrícula correcto y matrícula pagada para los 12 estudiantes.
@@ -62,3 +62,7 @@ Las pruebas estáticas revisan estructura, dependencias y contraseñas; no susti
 ## Recuperar el error 52408 de la primera versión del instalador demo
 
 Si el instalador anterior terminó en Demostración, lote 3, con el error 52408, no es necesario borrar la base ni volver a cobrar o crear los estudiantes. Actualiza la rama y ejecuta completo **database/seeds/003_CalificacionesDemostracion.sql** sobre esa misma base. El archivo comprueba que estén las cuentas y clases demo, crea solo evaluaciones faltantes y no reemplaza notas ya guardadas. Al finalizar muestra DEMOSTRACIÓN COMPLETADA. Para nuevas bases, el instalador completo ya incluye esta corrección.
+
+## Actualización desde 024
+
+Ejecutar únicamente migrations/025_RetirarConciliacionesLegadas.sql con la aplicación detenida; incluye los procedimientos afectados. Ver RetiroConciliaciones.md.

@@ -1,9 +1,4 @@
-@inject LiceoWeb.Services.IEstadoLibroFinanciero EstadoFinanciero
 @{
-    var usuarioFinanciero = User.IsInRole("Administrador") || User.IsInRole("Cajero");
-    var libro = usuarioFinanciero ? await EstadoFinanciero.ObtenerAsync() : LiceoWeb.Services.EstadoLibro.NoDisponible;
-    var mostrarAnterior = libro == LiceoWeb.Services.EstadoLibro.Anterior;
-
     var paginaActual =
         ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 
@@ -22,8 +17,6 @@
         EstaActivo(pagina) ? "page" : null;
 }
 
-@if (usuarioFinanciero && libro == LiceoWeb.Services.EstadoLibro.NoDisponible)
-{ <p role="status">No se pudo verificar el estado financiero. Los accesos antiguos están ocultos hasta recuperar la conexión.</p> }
 <p class="liceo-menu-title">Menú principal</p>
 
 <nav class="liceo-menu" aria-label="Módulos del sistema">
@@ -44,52 +37,6 @@
         Estudiantes y matrícula
     </a>
 
-    @if (mostrarAnterior)
-    {
-    <a asp-area=""
-       asp-page="/Mensualidades/Index"
-       class="@(EstaActivo("/Mensualidades/Index") ? "active" : "")"
-       aria-current="@AriaActual("/Mensualidades/Index")">
-        Mensualidades
-    </a>
-
-    <a asp-area=""
-       asp-page="/Mensualidades/GestionMensualidades"
-       class="@(EstaActivo("/Mensualidades/GestionMensualidades") ? "active" : "")"
-       aria-current="@AriaActual("/Mensualidades/GestionMensualidades")">
-        Gestión de Mensualidades
-    </a>
-
-    <a asp-area=""
-       asp-page="/Cobros/Index"
-       class="@(EstaActivo("/Cobros/Index") ? "active" : "")"
-       aria-current="@AriaActual("/Cobros/Index")">
-
-        Mantenimiento
-    </a>
-
-    <a asp-area=""
-       asp-page="/Cobros/EvBoTa"   
-       class="@(EstaActivo("/Cobros/EvBoTa") ? "active" : "")"
-       aria-current="@AriaActual("/Cobros/EvBoTa")">
-        Evaluaciones, boletín y tarjeta
-    </a>
-
-    <a asp-area=""
-       asp-page="/Cobros/Promocion" 
-       class="@(EstaActivo("/Cobros/Promocion") ? "active" : "")"
-       aria-current="@AriaActual("/Cobros/Promocion")">
-        Promoción
-    </a>
-
-    <a asp-area=""
-       asp-page="/Recibos/Index"
-       class="@(EstaActivo("/Recibos/Index") ? "active" : "")"
-       aria-current="@AriaActual("/Recibos/Index")">
-        Comprobantes
-    </a>
-    }
-
     }
     @if (User.IsInRole("Administrador"))
     {
@@ -99,36 +46,11 @@
         <a asp-page="/Finanzas/Cortes" class="@(EstaActivo("/Finanzas/Cortes") ? "active" : "")">Cortes de caja</a>
         <a asp-page="/Finanzas/Reporte" class="@(EstaActivo("/Finanzas/Reporte") ? "active" : "")">Cobros y devoluciones</a>
         <a asp-page="/Finanzas/Cargos" class="@(EstaActivo("/Finanzas/Cargos") ? "active" : "")">Generar cargos</a>
-        <a asp-area="" asp-page="/Finanzas/Saldos" class="@(EstaActivo("/Finanzas/Saldos") ? "active" : "")">Conciliación de saldos</a>
-        <a asp-area="" asp-page="/Finanzas/Conciliacion" class="@(EstaActivo("/Finanzas/Conciliacion") ? "active" : "")">Conciliación de obligaciones</a>
-        <a asp-area="" asp-page="/Finanzas/Aranceles" class="@(EstaActivo("/Finanzas/Aranceles") ? "active" : "")">Aranceles y preparación</a>
+        <a asp-area="" asp-page="/Finanzas/Aranceles" class="@(EstaActivo("/Finanzas/Aranceles") ? "active" : "")">Aranceles y tarifas</a>
         <a asp-area="" asp-page="/Notas/Cierre" class="@(EstaActivo("/Notas/Cierre") ? "active" : "")">Cierre e historial académico</a>
         <a asp-page="/Planificacion/Index" class="@(EstaActivo("/Planificacion/Index") ? "active" : "")">Organización académica</a>
         <a asp-area="" asp-page="/Personal/Administrar" class="@(EstaActivo("/Personal/Administrar") || EstaActivo("/Personal/Index") ? "active" : "")">Cuentas del personal</a>
 
-        @if (mostrarAnterior)
-        {
-        <a asp-area=""
-           asp-page="/Arreglos/Index"
-           class="@(EstaActivo("/Arreglos/Index") ? "active" : "")"
-           aria-current="@AriaActual("/Arreglos/Index")">
-            Arreglos de pago
-        </a>
-
-        <a asp-area=""
-           asp-page="/Precios/Index"
-           class="@(EstaActivo("/Precios/Index") ? "active" : "")"
-           aria-current="@AriaActual("/Precios/Index")">
-            Tarifas
-        </a>
-
-        <a asp-area=""
-           asp-page="/Reportes/Index"
-           class="@(EstaActivo("/Reportes/Index") ? "active" : "")"
-           aria-current="@AriaActual("/Reportes/Index")">
-            Reportes
-        </a>
-        }
     }
     @if(User.IsInRole("Administrador") || User.IsInRole("Profesor")) {
         <a asp-page="/Notas/Index" class="@(EstaActivo("/Notas/Index") ? "active" : "")">Calificaciones</a>

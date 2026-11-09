@@ -12,7 +12,7 @@ BEGIN
  DECLARE @Lock int;
  EXEC @Lock=sys.sp_getapplock @Resource='Liceo.Finanzas.Configuracion',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
  IF @Lock<0 THROW 53603,N'Finanzas está ocupado. Reintenta.',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N'El corte financiero debe estar aplicado antes de generar cargos.',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N'Actualiza la base con la migración 025 antes de generar cargos.',1;
  DECLARE @Arancel int,@AnioId int,@Anio int,@Modalidad nvarchar(80),@Periodicidad nvarchar(10),@Importe decimal(18,2),@Referencia nvarchar(80);
  SELECT @Arancel=A.Id,@AnioId=Y.Id,@Anio=Y.Anio,@Modalidad=M.Nombre,@Periodicidad=F.Periodicidad,@Importe=T.Importe
  FROM dbo.TarifaArancel T WITH(UPDLOCK,HOLDLOCK)
@@ -20,8 +20,6 @@ BEGIN
  JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.ConfiguracionCargo F ON F.ArancelId=A.Id
  WHERE T.Id=@TarifaId AND T.Version=@VersionTarifa AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND T.Importe>0;
  IF @Arancel IS NULL THROW 53602,N'La tarifa cambió o ya no está disponible. Vuelve a seleccionarla.',1;
- IF EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE ArancelId=@Arancel AND CASE WHEN Origen='Mensualidades' THEN 'Mensual' ELSE 'Anual' END<>@Periodicidad)
- THROW 53602,N'La periodicidad contradice los conceptos históricos.',1;
  SET @Evento=NULLIF(UPPER(LTRIM(RTRIM(@Evento))),N'');
  IF (@Periodicidad='Mensual' AND (@Mes IS NULL OR @Mes NOT BETWEEN 1 AND 12 OR @Evento IS NOT NULL))
  OR (@Periodicidad='Anual' AND (@Mes IS NOT NULL OR @Evento IS NOT NULL))
@@ -35,10 +33,6 @@ BEGIN
  SELECT E.Registro,CASE
  WHEN EXISTS(SELECT 1 FROM dbo.CargoEstudiante C JOIN dbo.TarifaArancel T ON T.Id=C.TarifaId
   WHERE C.Registro=E.Registro AND T.ArancelId=@Arancel AND T.AnioId=@AnioId AND C.Referencia=@Referencia) THEN N'Cargo ya registrado (incluye anulados)'
- WHEN EXISTS(SELECT 1 FROM dbo.ObligacionMigrada O JOIN dbo.RevisionObligacion R ON R.Id=O.RevisionId
-  JOIN dbo.TarifaArancel T ON T.Id=R.TarifaId LEFT JOIN dbo.Mensualidades M ON O.Origen='Mensualidades' AND M.Id=O.OrigenId
-  WHERE R.Registro=E.Registro AND T.ArancelId=@Arancel AND T.AnioId=@AnioId AND (O.Origen<>'Mensualidades' OR @Periodicidad<>'Mensual' OR M.Numero_Mes=@Mes OR M.Id IS NULL))
-  THEN N'Obligación histórica'
  END
  FROM dbo.Estudiantes E WITH(HOLDLOCK) WHERE E.Estado='Activo' AND E.Modalidad=@Modalidad;
 

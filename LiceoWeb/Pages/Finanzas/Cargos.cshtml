@@ -12,7 +12,7 @@
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 @if (Model.Cargado)
 {
-    @if (!Model.Migrado) { <div class="alert alert-warning">El corte financiero no está aplicado. Puedes revisar tarifas y periodicidades, pero todavía no generar cargos.</div> }
+    @if (!Model.Migrado) { <div class="alert alert-warning">Falta actualizar la base con la migración 025 para generar cargos.</div> }
     var aranceles = Model.Datos.Tables["Aranceles"]!.AsEnumerable();
     var sinPeriodicidad = aranceles.Count(a=>a.IsNull("Periodicidad"));
     var sinTarifas = Model.Datos.Tables["Tarifas"]!.Rows.Count == 0 && (Model.ModoGlobal || Model.Datos.Tables["Estudiante"]!.Rows.Count > 0);

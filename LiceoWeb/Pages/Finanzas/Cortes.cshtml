@@ -8,15 +8,7 @@
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 @if(Model.Cargado){
 @if(!Model.Migrado){
-<section class="liceo-card mb-4"><h2 class="h4">Activar el libro financiero nuevo</h2><p>Esta transición se realiza una sola vez. Primero concilia los datos antiguos, si existen. Simular no aplica los cambios.</p>
-<form method="post" asp-page-handler="Transicion">
-<input type="hidden" name="operacion" value="@Model.OperacionTransicion" />
-@if(Model.Simulacion is {} sim){
- <partial name="~/Pages/Planificacion/_Tabla.cshtml" model="sim" />
- <label class="d-block mb-3"><input type="checkbox" name="confirmado" value="true" required /> Confirmo los totales revisados y el cierre del libro anterior.</label>
- <button class="btn btn-liceo-primary" name="aplicar" value="true">Activar libro nuevo y abrir caja</button>
-}else{<button class="btn btn-liceo-primary">Simular transición</button>}
-</form></section>
+<div class="alert alert-warning">Falta actualizar la base con la migración 025. La importación del sistema de escritorio ya no está disponible.</div>
 }else{
 @if(Model.Abierto is {} abierto){
 <div class="alert alert-info">Caja abierta · Corte #@abierto["Id"] desde @Fecha(abierto["Inicio"]). Los cobros y anticipos se asignan a este corte.</div>

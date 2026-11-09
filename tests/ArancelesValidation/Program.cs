@@ -15,9 +15,9 @@ t.Version="0x12";Check(!Valida(t),"Versión incompleta rechazada");
 t=Tarifa();t.Motivo=" ";Check(!Valida(t),"Motivo requerido");
 Check(!Valida(new(){Codigo="BUS",Nombre=" ",Motivo="Alta"}),"Nombre requerido");
 Check(Valida(new(){Codigo="BUS",Nombre="Transporte",Motivo="Alta"}),"Arancel configurable");
-Check(Valida(new(){Accion="Mapeo",Origen="Mensualidades",ArancelId=1,Motivo="Vinculación"}),"Origen permitido");
-Check(!Valida(new(){Accion="Mapeo",Origen="Pagos",ArancelId=1,Motivo="Vinculación"}),"No confundir pagos con obligaciones");
-Check(Valida(new(){Accion="Preparar",Motivo="Revisión"}),"Preparación válida");
+Check(!Valida(new(){Accion="Mapeo",ArancelId=1,Motivo="Vinculación"}),"Mapeo retirado rechazado");
+
+Check(!Valida(new(){Accion="Preparar",Motivo="Revisión"}),"Preparación retirada rechazada");
 Check(!Valida(new(){Accion="Cobrar",Motivo="Intento"}),"Cobro no expuesto por catálogo");
 
 // SQL rowversion debe viajar como 0x + 16 dígitos, nunca como System.Byte[].

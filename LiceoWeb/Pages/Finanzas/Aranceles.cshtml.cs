@@ -11,19 +11,16 @@ using Microsoft.Data.SqlClient;
 namespace LiceoWeb.Pages.Finanzas;
 [Authorize(Policy="SoloAdministrador")]
 [ResponseCache(NoStore=true,Location=ResponseCacheLocation.None)]
-public class ArancelesModel(ArancelRepository repository,UsuarioActual usuario,ILogger<ArancelesModel> logger, IEstadoLibroFinanciero libro):PageModel
+public class ArancelesModel(ArancelRepository repository,UsuarioActual usuario,ILogger<ArancelesModel> logger):PageModel
 {
- public static readonly string[] Acciones=["Arancel","Tarifa","Mapeo","Preparar"];
+ public static readonly string[] Acciones=["Arancel","Tarifa"];
  [BindProperty] public ArancelInput Input {get;set;}=new();
  public DataSet Datos {get;private set;}=new();
  [TempData] public string? Mensaje {get;set;}
  public IEnumerable<DataRow> Filas(string tabla)=>Datos.Tables.Contains(tabla)?Datos.Tables[tabla]!.AsEnumerable():[];
- public EstadoLibro EstadoFinanciero {get;private set;}
- public bool EsPreparacion => Input.Accion is "Mapeo" or "Preparar";
  public IEnumerable<SelectListItem> Opciones(string tabla)=>Filas(tabla).Where(r=>r.Field<bool>("Activo")).Select(r=>new SelectListItem((tabla=="Aranceles"?r["Nombre"]:r["Etiqueta"]).ToString(),r["Id"].ToString()));
  private async Task Cargar()
  {
-  EstadoFinanciero=await libro.ObtenerAsync();
   try { Datos=await repository.ConsultarAsync(usuario.ObtenerId()); }
   catch(SqlException ex)
   {
@@ -56,15 +53,9 @@ public class ArancelesModel(ArancelRepository repository,UsuarioActual usuario,I
  public async Task<IActionResult> OnPostAsync()
  {
   if(!Acciones.Contains(Input.Accion))return BadRequest();
-  if(EsPreparacion && await libro.ObtenerAsync()!=EstadoLibro.Anterior)
-  {
-   ModelState.AddModelError("","La preparación solo está disponible con el libro anterior abierto.");
-   await Cargar();return Page();
-  }
-  if(ModelState.IsValid)try{await repository.GuardarAsync(Input,usuario.ObtenerId());Mensaje=Input.Accion=="Preparar"?"Captura completada. Los registros anteriores no se duplicaron; revisa las fuentes cambiadas.":"Operación guardada con auditoría.";return RedirectToPage(new{accion=Input.Accion});}
+  if(ModelState.IsValid)try{await repository.GuardarAsync(Input,usuario.ObtenerId());Mensaje="Operación guardada con auditoría.";return RedirectToPage(new{accion=Input.Accion});}
   catch(SqlException ex) when(ex.Number==52801){return Forbid();}
   catch(SqlException ex) when(ex.Number is >=52800 and <=52804){ModelState.AddModelError("",ex.Message);}
-  catch(SqlException ex) when(ex.Number==53410){ModelState.AddModelError("","El corte financiero ya cerró la preparación de obligaciones anteriores.");}
   catch(SqlException ex)
   {
    logger.LogError("Catálogo financiero, {Accion}: SQL {Numero}, procedimiento {Procedimiento}, línea {Linea}",Input.Accion,ex.Number,ex.Procedure,ex.LineNumber);

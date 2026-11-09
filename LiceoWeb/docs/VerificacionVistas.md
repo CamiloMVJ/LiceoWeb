@@ -1,3 +1,5 @@
+> Actualización 025: se retiró el traslado del escritorio y sus conciliaciones. Las referencias a ese flujo en el historial de este documento ya no se aplican. Consultar [RetiroConciliaciones.md](RetiroConciliaciones.md).
+
 # Verificación de expediente, búsqueda y finanzas
 
 ## Actualizar una base de desarrollo existente

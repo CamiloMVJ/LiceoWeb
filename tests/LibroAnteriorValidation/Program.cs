@@ -22,8 +22,8 @@ async Task Check(string name,string path,string method,EstadoLibro state,bool ex
  if(expectedNext && !LibroAnteriorFilter.EsRutaAnterior(path) && fake.Calls!=0)throw new Exception("Consultó DB para una ruta nueva");
  Console.WriteLine("PASS "+name);count++;
 }
-await Check("Anterior permite GET","/Cobros/Index","GET",EstadoLibro.Anterior,true);
-await Check("Anterior permite POST","/Mensualidades/Index","POST",EstadoLibro.Anterior,true);
+await Check("Esquema sin actualizar bloquea GET antiguo","/Cobros/Index","GET",EstadoLibro.Anterior,false,503);
+await Check("Esquema sin actualizar bloquea POST antiguo","/Mensualidades/Index","POST",EstadoLibro.Anterior,false,503);
 await Check("Nuevo redirige GET","/Cobros/Index","GET",EstadoLibro.Nuevo,false,redirect:true);
 await Check("Nuevo bloquea POST","/Cobros/Index","POST",EstadoLibro.Nuevo,false,409);
 await Check("Nuevo bloquea otra mutación","/Precios/Editar_PrecioMatricula","DELETE",EstadoLibro.Nuevo,false,409);

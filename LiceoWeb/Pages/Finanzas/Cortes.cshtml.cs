@@ -37,8 +37,6 @@ public class CortesModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
  public DataRow? Abierto=>Cortes.FirstOrDefault(r=>r.IsNull("Fin"));
  public DataRow? Elegido=>Cortes.FirstOrDefault(r=>r.Field<long>("Id")==Id) ?? Abierto;
  [BindProperty(SupportsGet=true)] public long Id {get;set;}
- public DataTable? Simulacion {get;private set;}
- public Guid OperacionTransicion {get;private set;}=Guid.NewGuid();
  [TempData] public string? Mensaje {get;set;}
  public decimal EfectivoEsperado=>Abierto is {} a && Elegido==Abierto
   ? a.Field<decimal>("FondoApertura")+Datos.Tables["Metodos"]!.AsEnumerable().Where(r=>r.Field<string>("Metodo")=="Efectivo").Sum(r=>r.Field<decimal>("Neto")):0;
@@ -70,29 +68,6 @@ public class CortesModel(SqlConnectionFactory factory, UsuarioActual usuario, IL
   catch(SqlException ex) when(ex.Number is >=54800 and <=54803){ModelState.AddModelError("",ex.Message);}
   catch(Exception ex){logger.LogError(ex,"Operación de corte no confirmada");ModelState.AddModelError("","No se pudo confirmar. Consulta el historial y conserva esta operación para reintentar.");}
   Id=0;await Cargar();return Page();
- }
- public async Task<IActionResult> OnPostTransicionAsync([FromForm]Guid operacion,[FromForm]bool aplicar=false,[FromForm]bool confirmado=false)
- {
-  OperacionTransicion=operacion;
-  if(operacion==Guid.Empty || (aplicar && (!confirmado || TempData.Peek("TransicionSimulada")?.ToString()!=operacion.ToString())))
-  {ModelState.AddModelError("","Primero simula y confirma la transición.");await Cargar();return Page();}
-  try
-  {
-   await using var c=factory.Create();await c.OpenAsync();
-   await using var cmd=new SqlCommand("dbo.CorteFinanciero_Ejecutar",c){CommandType=CommandType.StoredProcedure};
-   cmd.Parameters.Add("@UsuarioId",SqlDbType.NVarChar,450).Value=usuario.ObtenerId();
-   cmd.Parameters.Add("@Operacion",SqlDbType.UniqueIdentifier).Value=operacion;
-   cmd.Parameters.Add("@Aplicar",SqlDbType.Bit).Value=aplicar;
-   cmd.Parameters.Add("@Confirmacion",SqlDbType.NVarChar,60).Value=aplicar?"APLICAR CORTE EN DESARROLLO":DBNull.Value;
-   await using var r=await cmd.ExecuteReaderAsync();
-   var tabla=new DataTable();tabla.Load(r);Simulacion=tabla;
-   if(aplicar){TempData.Remove("TransicionSimulada");Mensaje="Libro nuevo activado y primer corte de caja abierto.";return RedirectToPage();}
-   TempData["TransicionSimulada"]=operacion.ToString();
-  }
-  catch(SqlException ex) when(ex.Number==53401){return Forbid();}
-  catch(SqlException ex) when(ex.Number is >=53400 and <=53404){ModelState.AddModelError("",ex.Message);}
-  catch(Exception ex){logger.LogError(ex,"Transición financiera");ModelState.AddModelError("","No se pudo confirmar la transición. Revisa el estado antes de reintentar.");}
-  await Cargar();return Page();
  }
  private async Task Cargar()
  {

@@ -11,7 +11,7 @@ public sealed class ArancelRepository(SqlConnectionFactory factory)
   await using var c=factory.Create();await c.OpenAsync();await using var cmd=c.CreateCommand();cmd.CommandType=CommandType.StoredProcedure;cmd.CommandText="dbo.Aranceles_Consultar";
   cmd.Parameters.Add("@UsuarioId",SqlDbType.NVarChar,450).Value=usuario;
   await using var reader=await cmd.ExecuteReaderAsync();var result=new DataSet();
-  foreach(var name in new[]{"Aranceles","Tarifas","Anios","Modalidades","Mapeos","Historial","Preparacion","Resumen"}){var t=new DataTable(name);t.Load(reader);result.Tables.Add(t);}return result;
+  foreach(var name in new[]{"Aranceles","Tarifas","Anios","Modalidades","Historial"}){var t=new DataTable(name);t.Load(reader);result.Tables.Add(t);}return result;
  }
  public async Task GuardarAsync(ArancelInput input,string usuario)
  {

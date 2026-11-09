@@ -11,13 +11,11 @@ public sealed class ArancelInput:IValidatableObject
  public int AnioId {get;set;}
  public decimal? Importe {get;set;}
  public bool Activo {get;set;}=true;
- [StringLength(30)] public string? Origen {get;set;}
  [StringLength(500)] public string? Motivo {get;set;}
  [RegularExpression("^0x[0-9A-Fa-f]{16}$",ErrorMessage="La versión del registro no es válida. Recarga la página de edición antes de guardar.")] public string? Version {get;set;}
- public static readonly string[] Origenes=["Matriculas","Mensualidades","Mantenimientos","EvBoTaS","Promociones"];
  public IEnumerable<ValidationResult> Validate(ValidationContext context)
  {
-  if(Accion is not ("Arancel" or "Tarifa" or "Mapeo" or "Preparar"))yield return new("Operación inválida.");
+  if(Accion is not ("Arancel" or "Tarifa"))yield return new("Operación inválida.");
   if(Id<0)yield return new("Identificador inválido.");
   if(string.IsNullOrWhiteSpace(Motivo))yield return new("Indica el motivo de la operación.");
   if(Accion=="Arancel" && (string.IsNullOrWhiteSpace(Codigo)||string.IsNullOrWhiteSpace(Nombre)))yield return new("Código y nombre son obligatorios.");
@@ -27,6 +25,5 @@ public sealed class ArancelInput:IValidatableObject
    if(Importe is null or <0 or >9999999999999999.99m || (Importe.HasValue && decimal.Round(Importe.Value,2)!=Importe))yield return new("Importe no negativo, con hasta dos decimales.");
   }
   if(Accion is "Arancel" or "Tarifa" && Id>0 && string.IsNullOrWhiteSpace(Version))yield return new("Recarga el registro antes de editar.");
-  if(Accion=="Mapeo" && (ArancelId<=0 || !Origenes.Contains(Origen)))yield return new("Selecciona un origen permitido y un arancel.");
  }
 }

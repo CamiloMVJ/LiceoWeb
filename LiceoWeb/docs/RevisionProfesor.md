@@ -1,3 +1,5 @@
+> Actualización 025: se retiró el traslado del escritorio y sus conciliaciones. Las referencias a ese flujo en el historial de este documento ya no se aplican. Consultar [RetiroConciliaciones.md](RetiroConciliaciones.md).
+
 # Revisión del profesor — punto de continuación
 
 Rama: revision-profesor-2026-10-29. Base: integracion-equipo-2026-10-29, ac418141f31af29f7c6beca96ca4752430423e56.

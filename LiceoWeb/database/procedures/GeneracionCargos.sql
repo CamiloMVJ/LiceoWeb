@@ -19,7 +19,6 @@ BEGIN
  IF @Lock<0 THROW 53603,N'Finanzas está ocupado.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.Arancel WHERE Id=@ArancelId AND Activo=1) THROW 53602,N'Arancel inexistente o inactivo.',1;
  IF EXISTS(SELECT 1 FROM dbo.ConfiguracionCargo WHERE ArancelId=@ArancelId AND Periodicidad<>@Periodicidad) THROW 53602,N'La periodicidad ya fue definida. Su cambio requiere revisar cargos e historial.',1;
- IF EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE ArancelId=@ArancelId AND CASE WHEN Origen='Mensualidades' THEN 'Mensual' ELSE 'Anual' END<>@Periodicidad) THROW 53602,N'La periodicidad contradice el mapeo histórico. Revise la conciliación.',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.ConfiguracionCargo WHERE ArancelId=@ArancelId)
  BEGIN
   INSERT dbo.ConfiguracionCargo VALUES(@ArancelId,@Periodicidad);
@@ -49,7 +48,7 @@ BEGIN
  BEGIN TRANSACTION;
  EXEC @Lock=sys.sp_getapplock @Resource='Liceo.Finanzas.Configuracion',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
  IF @Lock<0 THROW 53603,N'Finanzas está ocupado. Reintente la misma operación.',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N'Aplique y valide el corte financiero antes de generar cargos.',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 53602,N'Actualiza la base con la migración 025 para habilitar las operaciones financieras.',1;
  SELECT @CargoId=CargoId FROM dbo.GeneracionCargo WHERE Operacion=@Operacion;
  IF @CargoId IS NOT NULL
  BEGIN
@@ -63,18 +62,12 @@ BEGIN
  JOIN dbo.ModalidadAcademica M ON M.Id=T.ModalidadId JOIN dbo.Estudiantes E ON E.Registro=@Registro AND E.Modalidad=M.Nombre
  WHERE T.Id=@TarifaId AND T.Version=@VersionTarifa AND T.Activo=1 AND A.Activo=1 AND Y.Activo=1 AND M.Activo=1 AND E.Estado='Activo';
  IF @Importe IS NULL OR @Importe<=0 THROW 53602,N'Revise estudiante activo, modalidad, periodicidad y tarifa vigente. Si cambió la tarifa, vuelva a consultar.',1;
- IF EXISTS(SELECT 1 FROM dbo.MapaConceptoLegado WHERE ArancelId=@ArancelId AND CASE WHEN Origen='Mensualidades' THEN 'Mensual' ELSE 'Anual' END<>@Periodicidad) THROW 53602,N'La periodicidad contradice los conceptos históricos.',1;
  IF @Periodicidad='Mensual' AND (@Mes IS NULL OR @Mes NOT BETWEEN 1 AND 12 OR @Evento IS NOT NULL) THROW 53602,N'El cargo mensual requiere mes de 1 a 12 y ningún evento.',1;
  IF @Periodicidad='Anual' AND (@Mes IS NOT NULL OR @Evento IS NOT NULL) THROW 53602,N'El cargo anual no lleva mes ni evento.',1;
  IF @Periodicidad='Eventual' AND (@Mes IS NOT NULL OR @Evento IS NULL OR @Evento COLLATE Latin1_General_100_BIN2 LIKE '%[^A-Z0-9_-]%') THROW 53602,N'El evento requiere código de letras, números, guion o guion bajo; no lleva mes.',1;
  IF @Vencimiento IS NOT NULL AND YEAR(@Vencimiento)<>@Anio THROW 53602,N'El vencimiento debe pertenecer al año de la tarifa.',1;
  SET @Referencia=CASE @Periodicidad WHEN 'Anual' THEN 'ANUAL' WHEN 'Mensual' THEN 'MES:'+RIGHT('0'+CONVERT(varchar(2),@Mes),2) ELSE 'EVENTO:'+@Evento END;
  IF EXISTS(SELECT 1 FROM dbo.CargoEstudiante C WITH(UPDLOCK,HOLDLOCK) JOIN dbo.TarifaArancel T ON T.Id=C.TarifaId WHERE C.Registro=@Registro AND T.ArancelId=@ArancelId AND T.AnioId=@AnioId AND C.Referencia=@Referencia) THROW 53602,N'Ya existe ese cargo, incluso si fue anulado. Consulte la cuenta.',1;
- -- Incluye obligaciones antiguas pagadas (CargoId nulo): no volver a facturarlas.
- IF EXISTS(SELECT 1 FROM dbo.ObligacionMigrada O JOIN dbo.RevisionObligacion R ON R.Id=O.RevisionId JOIN dbo.TarifaArancel T ON T.Id=R.TarifaId
- LEFT JOIN dbo.Mensualidades M ON O.Origen='Mensualidades' AND M.Id=O.OrigenId
- WHERE R.Registro=@Registro AND T.ArancelId=@ArancelId AND T.AnioId=@AnioId AND (O.Origen<>'Mensualidades' OR @Periodicidad<>'Mensual' OR M.Numero_Mes=@Mes OR M.Id IS NULL))
- THROW 53602,N'Existe una obligación histórica para este concepto y período; consulte la cuenta y la conciliación.',1;
  SET @Descripcion=LEFT(@Nombre,150)+N' · '+CONVERT(nvarchar(4),@Anio)+N' · '+@Referencia;
  INSERT dbo.CargoEstudiante(Registro,TarifaId,Referencia,DescripcionHistorica,Importe,Vencimiento) VALUES(@Registro,@TarifaId,@Referencia,@Descripcion,@Importe,@Vencimiento);
  SET @CargoId=SCOPE_IDENTITY();

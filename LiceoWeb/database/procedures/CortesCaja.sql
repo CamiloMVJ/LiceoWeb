@@ -48,7 +48,7 @@ BEGIN
  EXEC @Lock=sys.sp_getapplock @Resource='Liceo.Finanzas.Configuracion',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
  IF @Lock<0 THROW 54803,N'Caja ocupada. Reintenta la misma operación.',1;
  SET @Ahora=SYSUTCDATETIME();
- IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 54802,N'Activa primero el libro financiero nuevo.',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1) THROW 54802,N'Actualiza la base con la migración 025.',1;
  IF EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion)
  BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.EventoCorteCaja WHERE Operacion=@Operacion AND SolicitudHash=@Hash AND UsuarioId=@UsuarioId)

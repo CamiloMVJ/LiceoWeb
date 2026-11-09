@@ -21,14 +21,11 @@ DECLARE @Op uniqueidentifier=NEWID();
 EXEC dbo.Registrar_Auditoria N'demo-administrador',N'InicializarDemo',N'Identity',N'cuentas-demo',@Op;
 COMMIT;
 GO
--- Se aplica el procedimiento real sobre una base sin actividad financiera.
--- Esto activa el libro nuevo sin migrar ni reinterpretar pagos de otra instalación.
-DECLARE @Corte uniqueidentifier=NEWID();
-EXEC dbo.CorteFinanciero_Ejecutar
- @UsuarioId=N'demo-administrador',@Operacion=@Corte,@Aplicar=1,
- @Confirmacion=N'APLICAR CORTE EN DESARROLLO';
+-- El esquema 025 inicia directamente con el libro web, sin importar datos de escritorio.
 IF NOT EXISTS(SELECT 1 FROM dbo.ControlFinanciero WHERE Id=1 AND Migrado=1)
- THROW 54902,N'No se activó el libro nuevo. No se continuará con los datos demo.',1;
+ THROW 54902,N'Instala la migración 025 antes de crear la demostración.',1;
+IF NOT EXISTS(SELECT 1 FROM dbo.CorteCaja WHERE Fin IS NULL)
+ INSERT dbo.CorteCaja(UsuarioApertura,FondoApertura) VALUES(N'demo-administrador',0);
 GO
 DECLARE @Admin nvarchar(450)=N'demo-administrador',@Profesor nvarchar(450)=N'demo-profesor',
  @Cajero nvarchar(450)=N'demo-cajero',@Anio int=YEAR(SYSUTCDATETIME()),

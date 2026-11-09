@@ -15,7 +15,7 @@
     var resumen = Model.Datos.Tables["Resumen"]!.Rows[0];
     <h2>@resumen["NombreEstudiante"] <small class="text-muted">@resumen["Registro"]</small></h2>
     @if (!Model.Migrado)
-    { <div class="alert alert-warning">El corte financiero aún no está aplicado. Los cobros nuevos están bloqueados; los totales siguientes no representan todavía toda la cuenta histórica.</div> }
+    { <div class="alert alert-warning">Falta actualizar la base con la migración 025 para habilitar los cobros.</div> }
     <div class="row my-3">
         <div class="col-sm-6"><div class="card card-body">Deuda del libro nuevo <strong>C$ @Model.Deuda.ToString("N2")</strong></div></div>
         <div class="col-sm-6"><div class="card card-body">Saldo a favor disponible <strong>C$ @(((decimal)resumen["SaldoFavor"]).ToString("N2"))</strong></div></div>

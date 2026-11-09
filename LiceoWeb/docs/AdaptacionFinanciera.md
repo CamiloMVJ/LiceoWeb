@@ -1,3 +1,5 @@
+> Actualización 025: se retiró el traslado del escritorio y sus conciliaciones. Las referencias a ese flujo en el historial de este documento ya no se aplican. Consultar [RetiroConciliaciones.md](RetiroConciliaciones.md).
+
 # Adaptación financiera — diagnóstico, catálogo y preparación
 Estado: diagnóstico, catálogo y preparación implementados; NO se activó un libro financiero nuevo.
 Ejecutar database/verification/008_DiagnosticoFinanciero.sql completo en una copia LiceoWeb_Dev sin actividad de cobros. Requiere tablas originales y etapa 003. Es solo lectura de tablas de negocio; usa una tabla temporal. Validado con ScriptDom, no ejecutado contra SQL Server.
